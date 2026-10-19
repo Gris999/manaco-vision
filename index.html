@@ -164,7 +164,7 @@ tailwind.config={theme:{extend:{
             <p class="text-mute text-sm mt-1">Apunta la cámara al zapato: verás el modelo, el precio y el stock.</p>
             <div class="estadoIA lg:hidden text-xs text-mute flex items-center gap-2 mt-2" role="status"><span class="dot w-2 h-2 rounded-full bg-aviso"></span><span class="txt">Cargando IA…</span></div></div>
           <div class="rounded-[22px] overflow-hidden bg-tinta">
-            <div id="visor" class="relative overflow-hidden aspect-[4/5] sm:aspect-[4/3]">
+            <div id="visor" class="relative overflow-hidden aspect-[4/3] max-h-[46vh] sm:max-h-none w-full">
               <video id="video" playsinline muted aria-label="Vista de la cámara"></video>
               <div id="placeholderCam" class="absolute inset-0 grid place-items-center text-center text-white/70 p-6">
                 <div><svg class="w-14 h-14 mx-auto mb-3 opacity-80" aria-hidden="true"><use href="#i-cam"/></svg>
@@ -179,7 +179,7 @@ tailwind.config={theme:{extend:{
             <div class="p-3 grid grid-cols-3 gap-2 bg-tinta">
               <button id="btnCam" class="btn btn-p text-sm"><svg class="w-5 h-5" aria-hidden="true"><use href="#i-cam"/></svg><span>Activar</span></button>
               <button id="btnFlip" class="btn text-sm bg-white/10 text-white hover:bg-white/20" aria-label="Cambiar entre cámara trasera y frontal"><svg class="w-5 h-5" aria-hidden="true"><use href="#i-flip"/></svg>Girar</button>
-              <label class="btn text-sm bg-white/10 text-white hover:bg-white/20 cursor-pointer"><svg class="w-5 h-5" aria-hidden="true"><use href="#i-img"/></svg>Foto<input id="foto" type="file" accept="image/*" capture="environment" class="sr-only" aria-label="Subir foto de un zapato"></label>
+              <label class="btn text-sm bg-white/10 text-white hover:bg-white/20 cursor-pointer"><svg class="w-5 h-5" aria-hidden="true"><use href="#i-img"/></svg>Foto<input id="foto" type="file" accept="image/*" class="sr-only" aria-label="Subir foto de un zapato"></label>
             </div>
           </div>
         </div>
