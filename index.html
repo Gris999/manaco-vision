@@ -114,6 +114,9 @@ tailwind.config={theme:{extend:{
   <symbol id="i-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
   <symbol id="i-download" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></symbol>
   <symbol id="i-share" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3v13M7 8l5-5 5 5M5 12v8h14v-8"/></symbol>
+  <symbol id="i-rol-vendedor" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 7h12l-1 13H7z"/><path d="M9 7a3 3 0 0 1 6 0"/><path d="M9.5 13.5l1.8 1.8 3.4-3.6"/></symbol>
+  <symbol id="i-rol-encargado" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1"/><path d="M8.5 10h7M8.5 14h7M8.5 18h4"/></symbol>
+  <symbol id="i-rol-gerente" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16"/><rect x="5.5" y="12" width="3" height="6" rx=".8"/><rect x="10.5" y="8" width="3" height="10" rx=".8"/><rect x="15.5" y="4" width="3" height="14" rx=".8"/></symbol>
   <symbol id="i-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></symbol>
 </svg>
 
@@ -125,7 +128,7 @@ tailwind.config={theme:{extend:{
       <div class="eyebrow mt-1">Vision · Inventario inteligente</div>
     </div>
     <button class="btnRol w-full flex items-center gap-3 rounded-2xl bg-suave p-3 mb-5 text-left hover:bg-linea" aria-label="Cambiar de rol">
-      <span class="rolIco w-10 h-10 rounded-full bg-marca text-white grid place-items-center text-lg shrink-0"></span>
+      <span class="rolIco w-10 h-10 p-2 rounded-xl bg-marca text-white shrink-0"></span>
       <span class="min-w-0 flex-1"><span class="eyebrow block">Entraste como</span><span class="rolTxt font-semibold block leading-tight"></span></span>
       <span class="text-xs font-semibold text-marca">Cambiar</span>
     </button>
@@ -146,7 +149,7 @@ tailwind.config={theme:{extend:{
       <div class="flex items-center gap-3">
         <div class="mr-auto min-w-0">
           <div class="text-2xl font-extrabold italic tracking-tight leading-none">manaco</div>
-          <button class="btnRol text-[11px] text-white/90 flex items-center gap-1 mt-0.5 font-medium" aria-label="Cambiar de rol"><span class="rolIco"></span><span class="rolTxt"></span> ▾</button>
+          <button class="btnRol text-[11px] text-white/90 flex items-center gap-1 mt-0.5 font-medium" aria-label="Cambiar de rol"><span class="rolIco w-3.5 h-3.5 inline-block"></span><span class="rolTxt"></span> ▾</button>
         </div>
         <button class="btnInstalar hidden shrink-0 bg-white text-marca rounded-full w-9 h-9 grid place-items-center" aria-label="Instalar la app" title="Instalar la app"><svg class="w-5 h-5" aria-hidden="true"><use href="#i-download"/></svg></button>
         <label class="tiendaHeader shrink-0 flex items-center gap-1.5 bg-white/15 rounded-full pl-3 pr-2 py-1.5 text-xs">
@@ -234,11 +237,11 @@ tailwind.config={theme:{extend:{
       <!-- CONTEO DE INVENTARIO -->
       <section id="v-cierre" class="vista hidden" aria-labelledby="t-cie">
         <div class="mb-4"><div class="eyebrow" id="cTienda"></div><h1 id="t-cie" class="titular text-3xl lg:text-4xl">Conteo de inventario</h1>
-          <details class="text-sm mt-1 max-w-2xl"><summary class="text-mute cursor-pointer">Cuenta los pares de cada modelo · <span class="underline">¿cómo funciona?</span></summary>
-            <ol class="mt-2 space-y-1 text-mute list-decimal pl-5"><li>Busca el modelo o recorre las páginas.</li><li>Si hay lo mismo que dice el sistema, toca <b>✓ Hay N</b>; si no, ajusta con − y +.</li><li>Tu avance se guarda solo: puedes contar por partes.</li><li>Al terminar, toca <b>Cerrar conteo</b>: las diferencias se registran en el kardex.</li></ol></details></div>
+          <details class="text-sm mt-1 max-w-2xl"><summary class="text-mute cursor-pointer">Conteo cíclico: hoy cuentas solo unos pocos modelos · <span class="underline">¿cómo funciona?</span></summary>
+            <ol class="mt-2 space-y-1 text-mute list-decimal pl-5"><li>El sistema elige los modelos de hoy: <b>vendidos hoy</b>, <b>stock bajo</b>, los <b>más vendidos</b> y una parte <b>rotativa</b> del catálogo (así se cubre todo en ~5 semanas).</li><li>Si hay lo mismo que dice el sistema, toca <b>✓ Hay N</b>; si no, ajusta con − y +.</li><li>Tu avance se guarda solo.</li><li>Toca <b>Cerrar conteo</b>: las diferencias quedan en el kardex. Para un inventario anual usa <b>Todo el catálogo</b>.</li></ol></details></div>
         <div id="cRes" class="mb-4" aria-live="polite"></div>
         <div id="cPanel">
-          <div class="flex gap-2 mb-3">
+          <div class="flex gap-2 mb-3" id="cBusqueda">
             <label class="relative flex-1 min-w-0"><span class="sr-only">Buscar modelo a contar</span><svg class="w-5 h-5 absolute left-4 top-3 text-mute" aria-hidden="true"><use href="#i-search"/></svg>
               <input id="cBuscar" type="search" placeholder="Buscar…" class="campo pl-11"></label>
             <select id="cSeccion" class="campo !w-32 sm:!w-48 shrink-0" aria-label="Sección"></select>
@@ -249,7 +252,7 @@ tailwind.config={theme:{extend:{
             <button id="cPagOk" class="btn btn-s !min-h-0 py-1.5 px-3 text-xs">✓ Toda la página cuadra</button>
           </div>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pb-6" id="listaCierre"></div>
-          <nav class="flex items-center justify-between gap-2 mt-4" aria-label="Páginas del conteo">
+          <nav id="cPagNav" class="flex items-center justify-between gap-2 mt-2 mb-24 lg:mb-6" aria-label="Páginas del conteo">
             <button id="cPrev" class="btn btn-s !min-h-0 py-2 text-sm">← Anterior</button>
             <span class="text-sm text-mute" id="cPag"></span>
             <button id="cNext" class="btn btn-s !min-h-0 py-2 text-sm">Siguiente →</button>
@@ -486,7 +489,7 @@ async function init(){
   $$(".btnRol").forEach(b=>b.onclick=abrirInicio);
   $("#inicioTienda").innerHTML=TIENDAS.map(t=>`<option value="${t}">${t}</option>`).join("");
   $("#rolesGrid").innerHTML=Object.entries(ROLES).map(([k,r])=>`<button data-rol="${k}" class="card text-left p-4 md:p-5 hover:border-tinta hover:shadow-lg transition bg-white flex md:flex-col items-center md:items-start gap-4">
-    <span class="w-14 h-14 shrink-0 rounded-full bg-suave grid place-items-center text-3xl">${r.ico}</span>
+    <span class="w-14 h-14 shrink-0 rounded-2xl bg-marca text-white grid place-items-center shadow-sm"><svg class="w-7 h-7" aria-hidden="true"><use href="#i-rol-${k}"/></svg></span>
     <span class="flex-1 min-w-0"><span class="font-bold text-lg block">${r.nombre}</span><span class="text-sm text-mute block leading-snug">${r.desc}</span>
       <span class="text-xs text-marca font-semibold block mt-1.5">${r.vistas.map(v=>VISTAS.find(x=>x[0]===v)[1]).join(" · ")}</span></span>
     <span class="w-9 h-9 shrink-0 rounded-full bg-tinta text-white grid place-items-center md:hidden" aria-hidden="true">›</span>
@@ -511,7 +514,7 @@ async function init(){
   $("#cSeccion").onchange=()=>{cPag=0; renderCierre();};
   $("#cPrev").onclick=()=>{cPag=Math.max(0,cPag-1); renderCierre(); $("#cRango").scrollIntoView({block:"center"});};
   $("#cNext").onclick=()=>{cPag++; renderCierre(); $("#cRango").scrollIntoView({block:"center"});};
-  $("#cPagOk").onclick=()=>{const t=tiendaAct(), B=borrador(t), L=listaConteo().slice(cPag*POR_PAG_CONTEO,(cPag+1)*POR_PAG_CONTEO); let n=0; L.forEach(c=>{if(B.valores[c.id]==null){B.valores[c.id]=S.stock[c.id][t]; n++;}}); guardar(); renderCierre(); toast(n?`✓ ${n} modelos marcados como correctos`:"Esta página ya estaba contada");};
+  $("#cPagOk").onclick=()=>{const t=tiendaAct(), B=borrador(t), porPag=cFiltro==="todo"?POR_PAG_CONTEO:TOPE_HOY, L=listaConteo().slice(cPag*porPag,(cPag+1)*porPag); let n=0; L.forEach(c=>{if(B.valores[c.id]==null){B.valores[c.id]=S.stock[c.id][t]; n++;}}); guardar(); renderCierre(); toast(n?`✓ ${n} modelos marcados como correctos`:"Esta página ya estaba contada");};
   // Dashboard
   $("#dPeriodo").innerHTML=[[1,"Hoy"],[7,"7 días"],[30,"30 días"]].map(([v,t])=>`<button data-per="${v}" class="px-3.5 py-1.5 rounded-full text-sm font-medium">${t}</button>`).join("");
   $$("[data-per]").forEach(b=>b.onclick=()=>{dPer=+b.dataset.per; renderDash();});
@@ -533,14 +536,14 @@ function armarNav(){
   $$(".selTienda").forEach(o=>o.value=tienda);
   $$(".selTienda").forEach(x=>{x.disabled=fija; x.title=fija?"Para cambiar de tienda, cambia de rol":"";});
   $$(".tiendaHeader,.tiendaSide").forEach(l=>l.onclick=()=>{if(fija){toast("Tu tienda se elige al entrar. Toca tu rol para cambiarla."); abrirInicio();}});
-  const r=ROLES[rol]; $$(".rolTxt").forEach(e=>e.textContent=r?(e.closest("header")?r.nombre.split(" ")[0]:r.nombre):"Elegir rol"); $$(".rolIco").forEach(e=>e.textContent=r?r.ico:"👤");
+  const r=ROLES[rol]; $$(".rolTxt").forEach(e=>e.textContent=r?(e.closest("header")?r.nombre.split(" ")[0]:r.nombre):"Elegir rol"); $$(".rolIco").forEach(e=>e.innerHTML=r?`<svg class="w-full h-full" aria-hidden="true"><use href="#i-rol-${rol}"/></svg>`:"");
 }
 function abrirInicio(){ $("#inicioTienda").value=tienda; $("#inicio").classList.remove("hidden"); if(stream) cerrarCam(); }
 function elegirRol(k){
   rol=k; try{localStorage.setItem("mv_rol",k)}catch(e){}
   tienda=$("#inicioTienda").value; $$(".selTienda").forEach(o=>o.value=tienda);
   $("#inicio").classList.add("hidden"); armarNav(); ver(ROLES[k].vistas[0]);
-  toast(`${ROLES[k].ico} Entraste como ${ROLES[k].nombre}${k!=="gerente"?" · "+tienda.split(" - ")[0]:""}`);
+  toast(`Entraste como ${ROLES[k].nombre}${k!=="gerente"?" · "+tienda.split(" - ")[0]:""}`);
 }
 function ver(v){
   if(!VISTAS.some(x=>x[0]===v)) v=vistasRol()[0];
@@ -756,42 +759,59 @@ function renderVentas(){
     :`<div class="rounded-2xl bg-suave p-8 text-center text-mute text-sm">Aún no hay ventas hoy en esta tienda.<br>Usa el escáner o el formulario.</div>`;
 }
 /* ---------- CONTEO DE INVENTARIO (paginado, con borrador) ---------- */
-const POR_PAG_CONTEO=20; let cPag=0, cFiltro="todos";
+const POR_PAG_CONTEO=20, ROTACION_DIA=20, TOPE_HOY=35; let cPag=0, cFiltro="hoy";
 function borrador(t=tiendaAct()){ S.conteos??={}; const k=hoy()+"|"+t; return S.conteos[k]??={valores:{},cerrado:false}; }
 function vendidosHoy(t){const m={}; S.ventas.forEach(v=>{if(v.fecha===hoy()&&v.tienda===t) m[v.id]=(m[v.id]||0)+v.cant;}); return m;}
+/* Conteo CÍCLICO (práctica estándar de retail): cada día se cuenta un grupo pequeño elegido por el sistema
+   y una parte rotativa del catálogo, así todo se cuenta cada ~5 semanas sin contar 725 modelos a la vez. */
+function listaDelDia(t=tiendaAct()){
+  const vend=vendidosHoy(t), motivo={};
+  const add=(id,m)=>{ if(!motivo[id]) motivo[id]=m; };
+  Object.keys(vend).forEach(id=>add(id,"Vendido hoy"));
+  CAT.filter(c=>S.stock[c.id][t]<BAJO).forEach(c=>add(c.id,"Stock bajo"));
+  const W=D.ventana(30,hoy()), porMod={}; S.ventas.forEach(v=>{if(v.tienda===t&&D.enRango(v.fecha,W.desde,W.hasta)) porMod[v.id]=(porMod[v.id]||0)+v.cant;});
+  Object.entries(porMod).sort((a,b)=>b[1]-a[1]).slice(0,5).forEach(([id])=>add(id,"Más vendido"));
+  const orden=[...CAT].sort((a,b)=>a.id<b.id?-1:1), dia=Math.floor(new Date(hoy()+"T12:00").getTime()/864e5), ini=(dia*ROTACION_DIA)%orden.length;
+  for(let k=0;k<ROTACION_DIA;k++) add(orden[(ini+k)%orden.length].id,"Rotación");
+  const ids=Object.keys(motivo).slice(0,TOPE_HOY);
+  return {ids,motivo};
+}
 function listaConteo(){
-  const t=tiendaAct(), B=borrador(t), vend=vendidosHoy(t), q=($("#cBuscar").value||"").trim().toLowerCase(), sec=$("#cSeccion").value;
-  return CAT.filter(c=>(!q||(c.nombre+" "+c.marca).toLowerCase().includes(q))&&(sec==="Todas"||c.seccion===sec)&&(
-      cFiltro==="todos"||(cFiltro==="vendidos"&&vend[c.id])||(cFiltro==="pendientes"&&B.valores[c.id]==null)||
-      (cFiltro==="diferencias"&&B.valores[c.id]!=null&&B.valores[c.id]!==S.stock[c.id][t])))
-    .sort((x,y)=>(vend[y.id]?1:0)-(vend[x.id]?1:0));
+  const t=tiendaAct(), B=borrador(t), q=($("#cBuscar").value||"").trim().toLowerCase(), sec=$("#cSeccion").value, H=listaDelDia(t), enHoy=new Set(H.ids);
+  const base=cFiltro==="todo"?CAT:H.ids.map(id=>modelo(id)).filter(Boolean);
+  return base.filter(c=>(!q||(c.nombre+" "+c.marca).toLowerCase().includes(q))&&(sec==="Todas"||c.seccion===sec)&&(
+      cFiltro==="hoy"||cFiltro==="todo"||(cFiltro==="pendientes"&&B.valores[c.id]==null)||
+      (cFiltro==="diferencias"&&B.valores[c.id]!=null&&B.valores[c.id]!==S.stock[c.id][t])));
 }
 function renderCierre(){
-  const t=tiendaAct(), ini=asegurarInicio(t), B=borrador(t), vend=vendidosHoy(t);
+  const t=tiendaAct(), ini=asegurarInicio(t), B=borrador(t), vend=vendidosHoy(t), H=listaDelDia(t);
   $("#cTienda").textContent=t;
   $("#cPanel").classList.toggle("hidden",B.cerrado);
   $("#cRes").innerHTML=B.cerrado?resultadoConteo(B.resultado):"";
   if(B.cerrado) return;
-  const contados=Object.keys(B.valores).length, difs=Object.entries(B.valores).filter(([id,v])=>v!==S.stock[id][t]);
-  const faltan=difs.reduce((a,[id,v])=>a+Math.max(0,S.stock[id][t]-v),0);
-  $("#cProg").textContent=`Contados ${contados} de ${CAT.length}`;
-  $("#cBar").style.width=(contados/CAT.length*100)+"%";
-  $("#cDifRes").innerHTML=difs.length?`<span class="text-[#FF8FAE]">${difs.length} con diferencia · faltan ${faltan} ${faltan===1?"par":"pares"}</span>`:`<span class="text-white/70">Sin diferencias por ahora</span>`;
-  const nV=Object.keys(vend).length;
-  const F=[["todos","Todos"],["vendidos",`● Vendidos hoy (${nV})`],["pendientes",`Pendientes (${CAT.length-contados})`],["diferencias",`Con diferencia (${difs.length})`]];
+  const hechosHoy=H.ids.filter(id=>B.valores[id]!=null).length, difs=Object.entries(B.valores).filter(([id,v])=>v!==S.stock[id][t]);
+  const faltan=difs.reduce((a,[id,v])=>a+Math.max(0,S.stock[id][t]-v),0), extra=Object.keys(B.valores).filter(id=>!H.motivo[id]).length;
+  $("#cProg").textContent=`Hoy: ${hechosHoy} de ${H.ids.length} modelos${extra?` (+${extra} extra)`:""}`;
+  $("#cBar").style.width=(H.ids.length?hechosHoy/H.ids.length*100:0)+"%";
+  $("#cDifRes").innerHTML=difs.length?`<span class="text-[#FF8FAE]">${difs.length} con diferencia · faltan ${faltan} ${faltan===1?"par":"pares"}</span>`:`<span class="text-white/70">${hechosHoy===H.ids.length?"¡Lista de hoy completa!":"Sin diferencias por ahora"}</span>`;
+  const F=[["hoy",`Hoy te tocan (${H.ids.length})`],["pendientes",`Pendientes (${H.ids.length-hechosHoy})`],["diferencias",`Con diferencia (${difs.length})`],["todo","Todo el catálogo"]];
   $("#cFiltros").innerHTML=F.map(([k,n])=>`<button class="chip ${cFiltro===k?"on":""}" data-cf="${k}" aria-pressed="${cFiltro===k}">${n}</button>`).join("");
   $$("[data-cf]").forEach(b=>b.onclick=()=>{cFiltro=b.dataset.cf; cPag=0; renderCierre();});
-  const lista=listaConteo(), pags=Math.max(1,Math.ceil(lista.length/POR_PAG_CONTEO)); cPag=Math.min(cPag,pags-1);
-  const pg=lista.slice(cPag*POR_PAG_CONTEO,(cPag+1)*POR_PAG_CONTEO);
-  $("#cRango").textContent=lista.length?`${cPag*POR_PAG_CONTEO+1}–${cPag*POR_PAG_CONTEO+pg.length} de ${lista.length} modelos`:"Sin modelos para este filtro";
+  $("#cBusqueda").classList.toggle("hidden",cFiltro!=="todo");
+  const lista=listaConteo(), porPag=cFiltro==="todo"?POR_PAG_CONTEO:TOPE_HOY, pags=Math.max(1,Math.ceil(lista.length/porPag)); cPag=Math.min(cPag,pags-1);
+  const pg=lista.slice(cPag*porPag,(cPag+1)*porPag);
+  $("#cRango").textContent=!lista.length?"Sin modelos para este filtro":cFiltro==="todo"?`${cPag*porPag+1}–${cPag*porPag+pg.length} de ${lista.length} modelos`:`${lista.length} modelos · elegidos por el sistema`;
+  $("#cPagNav").classList.toggle("hidden",pags<=1);
   $("#cPag").textContent=`Página ${cPag+1} de ${pags}`;
   $("#cPrev").disabled=cPag===0; $("#cNext").disabled=cPag>=pags-1; $("#cPagOk").classList.toggle("invisible",!pg.length);
-  $("#listaCierre").innerHTML=pg.map(c=>{const esp=S.stock[c.id][t], v=B.valores[c.id], hecho=v!=null, dif=hecho?v-esp:0;
+  $("#cPagOk").textContent=cFiltro==="todo"?"✓ Toda la página cuadra":"✓ Todo cuadra";
+  const tagCls={"Vendido hoy":"bg-marca-50 text-marca","Stock bajo":"bg-aviso-50 text-aviso","Más vendido":"bg-tinta text-white","Rotación":"bg-suave text-mute"};
+  $("#listaCierre").innerHTML=pg.map(c=>{const esp=S.stock[c.id][t], v=B.valores[c.id], hecho=v!=null, dif=hecho?v-esp:0, m=H.motivo[c.id];
     return `<div class="card p-3 ${hecho?(dif?"!border-marca":"!border-ok"):""}">
       <div class="flex items-center gap-3">
         <img src="${c.imagen}" loading="lazy" class="w-12 h-12 tile object-contain shrink-0" alt="">
-        <div class="flex-1 min-w-0"><div class="font-semibold text-sm leading-tight line-clamp-2">${vend[c.id]?'<span class="text-marca" title="Vendido hoy">●</span> ':''}${corto(c)}</div>
-          <div class="text-xs text-mute mt-0.5">Sistema <b class="text-tinta">${esp}</b>${vend[c.id]?` · vendidos hoy ${vend[c.id]}`:""}</div></div>
+        <div class="flex-1 min-w-0"><div class="font-semibold text-sm leading-tight line-clamp-2">${corto(c)}</div>
+          <div class="text-xs text-mute mt-0.5 flex flex-wrap items-center gap-1.5">Sistema <b class="text-tinta">${esp}</b>${m?`<span class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${tagCls[m]}">${m}</span>`:""}</div></div>
         <span class="text-xs font-semibold shrink-0 ${hecho?(dif?"text-marca":"text-ok"):"text-mute"}">${hecho?(dif?`${dif>0?"+":""}${dif}`:"✓ Cuadra"):"Sin contar"}</span>
       </div>
       <div class="flex items-center justify-between gap-2 mt-2.5 pt-2.5 border-t border-linea">
@@ -812,7 +832,7 @@ function resultadoConteo(R){
     ?`<div class="flex items-center gap-3"><div class="w-11 h-11 rounded-full bg-marca text-white grid place-items-center font-bold">!</div><div><div class="font-bold">Conteo cerrado con diferencias</div><div class="text-sm">Faltante: <b>${R.falt} ${R.falt===1?"par":"pares"} · merma a costo ${bs(R.monto)}</b>${R.sobra?` · sobrante: ${R.sobra}`:""}</div></div></div>`
     :`<div class="flex items-center gap-3"><div class="w-11 h-11 rounded-full bg-ok text-white grid place-items-center font-bold">✓</div><div><div class="font-bold">Inventario cuadrado</div><div class="text-sm">Todo lo contado coincide con el sistema.</div></div></div>`;
   return `<div class="rounded-2xl p-5 fade ${R.filas.length?"bg-marca-50":"bg-ok-50"}">${cab}
-    <div class="text-sm mt-3">Contaste <b>${R.contados}</b> de ${R.total} modelos${R.sinContar?` · <b>${R.sinContar}</b> sin contar mantienen el stock del sistema`:""} · cerrado a las ${R.hora}.</div>
+    <div class="text-sm mt-3">Conteo cíclico: contaste <b>${R.contados}</b> modelos a las ${R.hora}. El resto del catálogo se contará en los próximos días (mantiene el stock del sistema).</div>
     ${R.filas.length?`<div class="mt-3 space-y-1.5">${R.filas.slice(0,30).map(f=>`<div class="flex justify-between text-sm bg-white rounded-xl px-3 py-2"><span class="truncate mr-2">${corto(modelo(f.id))}: sistema <b>${f.esp}</b>, contado <b>${f.fis}</b></span><b class="${f.dif<0?'text-marca':'text-ok'}">${f.dif>0?'+':''}${f.dif}</b></div>`).join("")}${R.filas.length>30?`<div class="text-xs text-mute">… y ${R.filas.length-30} más</div>`:""}</div>`:""}
     <button class="btn btn-s mt-4" onclick="reabrirConteo()">Nuevo conteo (demo)</button></div>`;
 }
@@ -820,8 +840,8 @@ function reabrirConteo(){ if(!confirm("Solo para la demostración: ¿empezar un 
 $("#cBtn").onclick=()=>{
   const t=tiendaAct(), B=borrador(t), ids=Object.keys(B.valores);
   if(!ids.length){toast("Aún no contaste ningún modelo"); return;}
-  const sinContar=CAT.length-ids.length;
-  if(!confirm(`Vas a cerrar el conteo con ${ids.length} modelos contados${sinContar?` y ${sinContar} sin contar (mantendrán el stock del sistema)`:""}. ¿Continuar?`)) return;
+  const H=listaDelDia(t), pendHoy=H.ids.filter(id=>B.valores[id]==null).length, sinContar=CAT.length-ids.length;
+  if(!confirm(pendHoy?`Te faltan ${pendHoy} modelos de la lista de hoy. ¿Cerrar igual? Los no contados mantienen el stock del sistema.`:`Vas a cerrar el conteo de hoy (${ids.length} modelos). ¿Continuar?`)) return;
   let falt=0, sobra=0, monto=0; const filas=[];
   S.cierres=S.cierres.filter(c=>!(c.fecha===hoy()&&c.tienda===t)); // un solo conteo vigente por día y tienda
   ids.forEach(id=>{const esp=S.stock[id][t], fis=B.valores[id], dif=fis-esp;
