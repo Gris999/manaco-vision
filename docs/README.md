@@ -9,6 +9,7 @@ Equipo: **Pedro Alaca** y **Rodrigo Viveros** · Ingeniería de Sistemas, 6.º s
 | 3 | [ARQUITECTURA.md](ARQUITECTURA.md) | ¿Cómo está construido? Capas, módulos, datos, decisiones y diagramas |
 | 4 | [PLAN_DE_PRUEBAS.md](PLAN_DE_PRUEBAS.md) | ¿Cómo sabemos que funciona? Estrategia, casos y resultados |
 | 5 | [TRAZABILIDAD_CASO.md](TRAZABILIDAD_CASO.md) | ¿Qué pide el caso y dónde se cumple? Estación por estación, con lo que falta |
+| 6 | [AUDITORIA_ESTRUCTURA.md](AUDITORIA_ESTRUCTURA.md) | ¿El código es escalable? Estructura real, deuda técnica medida y ruta a producción |
 | — | [informes/](informes/) | Auditoría senior, QA y análisis contable (evidencia de cada iteración) |
 
 ## Mapa del código

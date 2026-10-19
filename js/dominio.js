@@ -17,6 +17,21 @@
   const bs = c => Math.round(c) / 100;
   const redondear = n => bs(cent(n));
 
+  /* ---------- Validación de entradas (la vista nunca "adivina" un valor) ---------- */
+  /** Cantidad de pares: entero entre 1 y max; si no, null. */
+  function leerCantidad(txt, max = 99) {
+    const s = String(txt ?? "").trim();
+    if (!/^\d+$/.test(s)) return null;
+    const n = Number(s);
+    return n >= 1 && n <= max ? n : null;
+  }
+  /** Monto en Bs ≥ 0 con hasta 2 decimales (acepta coma); si no, null. */
+  function leerMonto(txt) {
+    const s = String(txt ?? "").trim().replace(",", ".");
+    if (!/^\d+(\.\d{1,2})?$/.test(s)) return null;
+    return redondear(Number(s));
+  }
+
   /* ---------- Fechas ---------- */
   const aFecha = d => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
   function sumarDias(fecha, k) {
@@ -178,7 +193,7 @@
     return estado;
   }
 
-  const Dominio = { IVA, IT, cent, bs, redondear, sumarDias, ventana, enRango, desglose, resumenVentas, variacion,
+  const Dominio = { IVA, IT, cent, bs, redondear, leerCantidad, leerMonto, sumarDias, ventana, enRango, desglose, resumenVentas, variacion,
     esperadoCaja, totalArqueo, moverStock, verificarKardex, kpiConteos, cobertura, tipoDevolucion, kpiCalidad, migrar, VERSION_ESQUEMA };
   if (typeof module !== "undefined" && module.exports) module.exports = Dominio; else global.Dominio = Dominio;
 })(typeof window !== "undefined" ? window : globalThis);

@@ -8,8 +8,8 @@ function asegurarInicio(t){
 let ultimaVenta={id:null,t:0};
 function vender(id,cant){
   if(ultimaVenta.id===id&&Date.now()-ultimaVenta.t<900) return false; // evita ventas duplicadas por doble toque
-  const t=tiendaAct(), c=modelo(id); cant=Math.max(1,parseInt(cant)||1);
-  if(!c) return false;
+  const t=tiendaAct(), c=modelo(id); cant=D.leerCantidad(cant);
+  if(!c||cant==null) return false;
   if(!cajaAbierta(t)){toast(cajaHoy(t)?`La caja de ${t.split(" - ")[0]} ya se cerró hoy.`:`Primero el Encargado debe abrir la caja de ${t.split(" - ")[0]}.`);return false;}
   asegurarInicio(t);
   if(S.stock[id][t]<cant){toast(`Solo hay ${S.stock[id][t]} pares en ${t}`);return false;}
@@ -20,7 +20,10 @@ function vender(id,cant){
   guardar(); render(); toast(`✓ Vendido: ${cant} × ${c.nombre.split(" - ")[0]} · ${bs(cant*c.precio_bs)} · ${PAGOS[pago][1]}`);
   if(ultimo===id) mostrar({clase:id,prob:ultimaProb||1}); return true;
 }
-function pedirReposicion(id,t,btn){ S.pedidos??=[]; S.pedidos.push({fecha:hoy(),id,tienda:t,cant:10}); guardar(); if(btn){btn.textContent="Pedido ✓"; btn.disabled=true;} toast(`📦 Pedido de 10 pares de ${modelo(id).nombre.split(" - ")[0]} enviado a ${t.split(" - ")[0]}`); }
+const pedidoPendiente=(id,t)=>(S.pedidos||[]).some(p=>p.id===id&&p.tienda===t&&!p.recibido);
+function pedirReposicion(id,t,btn){ S.pedidos??=[];
+  if(pedidoPendiente(id,t)){toast("Ya hay un pedido pendiente de ese modelo para esa tienda"); return;}
+  S.pedidos.push({fecha:hoy(),id,tienda:t,cant:10}); guardar(); if(btn){btn.textContent="Pedido ✓"; btn.disabled=true;} toast(`📦 Pedido de 10 pares de ${modelo(id).nombre.split(" - ")[0]} enviado a ${t.split(" - ")[0]}`); }
 const TIPOMOV={inicial:["Saldo inicial","text-mute"],venta:["Venta","text-marca"],reposicion:["Reposición","text-ok"],ajuste:["Ajuste por conteo","text-aviso"],devolucion:["Devolución / anulación","text-ok"]};
 function verKardex(id){
   const c=modelo(id), ts=rol==="gerente"?TIENDAS:[tiendaAct()];
@@ -56,7 +59,9 @@ function reponer(id,cant,t=tiendaAct()){
   asegurarInicio(t); D.moverStock(S,{id,tienda:t,cant,tipo:"reposicion",ref:"Reposición",fecha:hoy(),hora:new Date().toTimeString().slice(0,5),costo:modelo(id).costo_bs}); S.inicioDia[hoy()+"|"+t][id]+=cant;
   guardar(); render(); toast(`+${cant} pares de ${modelo(id).nombre.split(" - ")[0]} en ${t.split(" - ")[0]}`); if(ultimo===id&&vista==="escaner") mostrar({clase:id,prob:ultimaProb||1});
 }
-$("#vBtn").onclick=()=>{const id=$("#vModelo").value,n=parseInt($("#vCant").value)||1; if(vender(id,n)) $("#vCant").value=1;};
+$("#vBtn").onclick=()=>{const id=$("#vModelo").value,n=D.leerCantidad($("#vCant").value);
+  if(n==null){toast("La cantidad debe ser un número entero de 1 a 99"); $("#vCant").focus(); return;}
+  if(vender(id,n)) $("#vCant").value=1;};
 
 function renderInv(){
   const q=$("#buscar").value.trim().toLowerCase();

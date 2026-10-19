@@ -76,12 +76,12 @@ function renderDash(){
   const porTiendaF={}; C.filter(c=>c.dif<0).forEach(c=>porTiendaF[c.tienda]=(porTiendaF[c.tienda]||0)-c.dif);
   const peorT=Object.entries(porTiendaF).sort((a,b)=>b[1]-a[1])[0];
   const acc=[];
-  bajos.slice(0,3).forEach(([c,t,n])=>acc.push({txt:`Reponer <b>${corto(c)}</b> en ${esc(t.split(" - ")[0])}`,sub:`${n===1?"Queda 1 par":"Quedan "+n+" pares"}`,btn:"Pedir",fn:`pedirReposicion('${c.id}','${t}',this)`}));
+  bajos.slice(0,3).forEach(([c,t,n])=>acc.push({txt:`Reponer <b>${corto(c)}</b> en ${esc(t.split(" - ")[0])}`,sub:`${n===1?"Queda 1 par":"Quedan "+n+" pares"}`,...(pedidoPendiente(c.id,t)?{btn:"Pedido ✓",off:true}:{btn:"Pedir",fn:`pedirReposicion('${c.id}','${t}',this)`})}));
   if(peorT) acc.push({txt:`Revisar faltantes en <b>${esc(peorT[0].split(" - ")[0])}</b>`,sub:`${peorT[1]} pares no aparecieron al contar`,btn:rol==="gerente"?"Avisar":"Ir",fn:rol==="gerente"?`toast('📨 Aviso enviado al Encargado de ${peorT[0].split(" - ")[0]}: revisar ${peorT[1]} pares faltantes')`:`ver('cierre')`});
   if(orden[0]) acc.push({txt:`Asegurar stock de <b>${corto(modelo(orden[0][0]))}</b>`,sub:`Es el más vendido: ${orden[0][1].p} pares`,btn:"Ver",fn:`ver('inventario');$('#buscar').value=${JSON.stringify(modelo(orden[0][0]).nombre.split(" - ")[0])};renderInv()`});
   acc.push({txt:`Impulsar la <b>línea de cuero</b>`,sub:`Mayor margen y vale casi el doble por par en el mercado`,btn:"Ver",fn:`ver('mercado')`});
   $("#acciones").innerHTML=acc.slice(0,5).map((a,i)=>`<li class="flex gap-3 items-center rounded-2xl border border-linea p-3"><span class="w-7 h-7 shrink-0 rounded-full bg-tinta text-white grid place-items-center text-xs font-bold">${i+1}</span>
-    <div class="flex-1 min-w-0"><div class="text-sm leading-snug">${a.txt}</div><div class="text-xs text-mute">${a.sub}</div></div><button class="btn btn-s !min-h-0 !py-1.5 !px-3.5 text-xs shrink-0" onclick="${esc(a.fn)}">${a.btn}</button></li>`).join("");
+    <div class="flex-1 min-w-0"><div class="text-sm leading-snug">${a.txt}</div><div class="text-xs text-mute">${a.sub}</div></div><button class="btn btn-s !min-h-0 !py-1.5 !px-3.5 text-xs shrink-0" ${a.off?"disabled":`onclick="${esc(a.fn)}"`}>${a.btn}</button></li>`).join("");
 
   $("#rankSub").textContent=orden.length?`${orden.length} modelos con ventas`:"";
   const maxP=orden[0]?.[1].p||1;

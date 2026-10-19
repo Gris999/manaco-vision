@@ -43,7 +43,7 @@ Manaco no integra los datos de mercado con los datos internos de ventas, inventa
 | RNF-02 | Disponibilidad | Funciona sin internet tras la primera visita | Servidor apagado: la app y la IA siguen funcionando |
 | RNF-03 | Usabilidad | Lenguaje simple, guía en cada flujo, botones ≥ 44 px | QA en iPhone y 375 px |
 | RNF-04 | Portabilidad | Android, iPhone y escritorio; instalable | Chrome, Safari iOS 17+ y Edge |
-| RNF-05 | Exactitud contable | Sin errores de redondeo; IVA incluido en el precio | 16 pruebas unitarias |
+| RNF-05 | Exactitud contable | Sin errores de redondeo; IVA incluido en el precio | 17 pruebas unitarias |
 | RNF-06 | Mantenibilidad | Dominio separado y probado; un módulo por función | `js/dominio.js` + `js/ui/*` |
 | RNF-07 | Seguridad y privacidad | Las fotos no salen del celular; HTTPS | IA local; GitHub Pages con HTTPS |
 | RNF-08 | Trazabilidad | Todo cambio de stock queda en el kardex | `verificarKardex()` = 0 errores |

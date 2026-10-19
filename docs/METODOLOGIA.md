@@ -1,5 +1,41 @@
 # Metodología
 
+## 0. Selección de la metodología (comparación)
+
+Antes de elegir se compararon las metodologías vistas en la carrera con las condiciones **reales** del proyecto:
+- Equipo de 2 personas y plazo de 1 día.
+- Requisitos que iban a cambiar (el docente evalúa la propuesta, no un pliego cerrado).
+- Componente de IA con resultado incierto.
+- Entrega obligatoria de documentos académicos.
+
+| Criterio (peso) | Cascada | RUP | ICONIX | XP | **Scrum adaptado** |
+|---|---|---|---|---|---|
+| Tolera cambios de requisitos (30 %) | 1 | 3 | 3 | 5 | **5** |
+| Entrega algo usable temprano: la demo es la defensa (25 %) | 1 | 3 | 3 | 5 | **5** |
+| Esfuerzo de documentación acorde a 1 día (15 %) | 3 | 1 | 3 | 4 | **4** |
+| Produce modelos de análisis para el informe (15 %) | 4 | 5 | 5 | 2 | **3** |
+| Encaja con un equipo de 2 (15 %) | 4 | 2 | 4 | 4 | **4** |
+| **Puntaje ponderado (sobre 5)** | 2,20 | 2,85 | 3,45 | 4,25 | **4,40** |
+
+Escala de 1 a 5.
+
+**Por qué no las otras:**
+- **Cascada** exige congelar los requisitos al inicio. Aquí cambiaron 6 veces: roles, caja, conteo cíclico, identidad, etc.
+- **RUP** es correcto en lo formal, pero sus 4 fases y decenas de artefactos no caben en un día ni en un equipo de 2.
+- **ICONIX** se usa de forma **parcial y complementaria**, en el análisis:
+  - Casos de uso → historias de usuario ([REQUISITOS.md](REQUISITOS.md)).
+  - Modelo de dominio → diagrama ER ([ARQUITECTURA.md](ARQUITECTURA.md) §5).
+  - Diagrama de secuencia → §6.
+  - Falta el diagrama de robustez; no se hizo y se reconoce.
+- **XP** aporta prácticas que sí se usaron: pruebas unitarias del dominio, refactorización continua, entregas pequeñas e integración continua vía GitHub Pages. Pero no hubo programación en pareja estricta ni TDD completo.
+
+**Decisión**: Scrum adaptado como marco de gestión, más prácticas de XP en la construcción, más artefactos de análisis estilo ICONIX y CRISP-DM para la parte de datos.
+
+> **Nota de honestidad para la defensa.** La metodología se formalizó por escrito al final (sprint 13). Durante el proyecto se trabajó de forma iterativa, pero sin ceremonias formales (*daily*, *retro*). Lo que sí existe como evidencia verificable:
+> - El historial de *commits* (`git log`): un incremento por iteración.
+> - La bitácora `PROGRESO.md`.
+> - Los informes de QA de cada iteración.
+
 ## 1. Enfoque elegido: iterativo e incremental (Scrum adaptado + CRISP-DM)
 
 El proyecto combina dos marcos, porque tiene dos naturalezas:
@@ -36,6 +72,19 @@ El **producto mínimo viable (MVP)** se definió primero: reconocer un zapato co
 | 11 | Realismo operativo | Conteo cíclico (≈35 modelos por día, no 725) |
 | 12 | Revisión contable | Anulaciones con reverso, conteo ciego, faltantes y sobrantes separados |
 | 13 | Ingeniería y cierre del caso | Código modular, documentación formal, indicadores de la Estación 4 |
+
+## 2b. Métodos y técnicas usados (y para qué)
+
+| Ámbito | Método o técnica | Dónde |
+|---|---|---|
+| Análisis | CRISP-DM; EDA; indicador valor por par = valor ÷ cantidad; exclusión del agregado "Mundo" | `herramientas/analisis.py` |
+| Requisitos | Historias de usuario; priorización MoSCoW; criterios de aceptación | REQUISITOS.md |
+| Diseño | Arquitectura en capas (presentación → dominio → persistencia); modelo de dominio; ADR | ARQUITECTURA.md |
+| IA | *Transfer learning* (MobileNetV2 congelada + cabeza densa); aumento de datos; validación *hold-out* 80/20; métricas top-1 y top-3 | `herramientas/train/` |
+| Inventario | Inventario perpetuo con **kardex**; **conteo cíclico**; exactitud IRA; merma a costo | `dominio.js`, `conteo.js` |
+| Caja | Sesión de caja tipo POS (Odoo `pos.session`); arqueo por denominación; Reporte Z | `caja.js` |
+| Calidad | Pirámide de pruebas; pruebas unitarias; E2E por rol; pruebas en dispositivo; Definición de Terminado | PLAN_DE_PRUEBAS.md |
+| Configuración | Git con *commits* por incremento; versionado de caché; migración de esquema de datos (v6 → v7) | `sw.js`, `migrar()` |
 
 ## 3. Procedimientos de trabajo
 

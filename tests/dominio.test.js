@@ -136,3 +136,10 @@ test("calidad: devoluciones por tipo, defectos y plazo de entrega", () => {
   assert.equal(k.plazoPromedio, 3.5); assert.equal(k.aTiempo, 50); assert.equal(k.pendientes, 1);
   assert.equal(D.kpiCalidad([], []).tasaDevolucion, null);
 });
+
+test("validación de entradas: cantidad y monto", () => {
+  assert.equal(D.leerCantidad("3"), 3);
+  for (const m of ["0", "-3", "abc", "1.5", "", "100"]) assert.equal(D.leerCantidad(m), null, m);
+  assert.equal(D.leerMonto("500"), 500); assert.equal(D.leerMonto("12,5"), 12.5); assert.equal(D.leerMonto("0"), 0);
+  for (const m of ["", "abc", "-5", "1.234"]) assert.equal(D.leerMonto(m), null, m);
+});

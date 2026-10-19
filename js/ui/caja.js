@@ -13,12 +13,13 @@ function resumenSesion(t=tiendaAct()){
   return {...R,vs,conteo:conteo.length,K,rango:nros.length?`N° ${Math.min(...nros)} – ${Math.max(...nros)}`:"—"};
 }
 function abrirCaja(){
-  const fondo=D.redondear(Math.max(0,parseFloat($("#fondoIni").value)||0)), t=tiendaAct(), k=cajaKey(t)+"#"+Date.now();
+  const fondo=D.leerMonto($("#fondoIni").value), t=tiendaAct(), k=cajaKey(t)+"#"+Date.now();
+  if(fondo==null){toast("Escribe el fondo inicial en Bs (0 si empiezas sin cambio)"); $("#fondoIni").focus(); return;}
   S.cajas[k]={fecha:hoy(),tienda:t,abierta:true,fondo,movs:[],hApertura:new Date().toTimeString().slice(0,5),idx0:S.ventas.length};
   (S.sesionActiva??={})[t]=k; if(S.permitirNueva) delete S.permitirNueva[t]; asegurarInicio(t); guardar(); renderCaja(); toast(`🟢 Caja abierta con ${bsc(fondo)}`);
 }
 function movCaja(){
-  const tipo=$("#mcTipo").value, monto=D.redondear(parseFloat($("#mcMonto").value)||0), motivo=$("#mcMotivo").value.trim();
+  const tipo=$("#mcTipo").value, monto=D.leerMonto($("#mcMonto").value)||0, motivo=$("#mcMotivo").value.trim();
   if(monto<=0){toast("Escribe un monto mayor a 0");return;} if(!motivo){toast("Escribe el motivo (ej.: depósito al banco)");return;}
   const cj=cajaHoy(), r=resumenSesion();
   if(tipo==="retiro"&&monto>D.esperadoCaja(cj,r.porPago.efectivo)){toast("No hay tanto efectivo en caja");return;}

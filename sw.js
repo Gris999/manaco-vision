@@ -2,7 +2,7 @@
    - Precarga la app, las librerías, los datos y la IA (~20 MB) para usarla sin internet.
    - Las fotos del catálogo se guardan a medida que se ven y luego en segundo plano.
    - Al publicar una versión nueva, sube VERSION: la app mostrará "Hay una nueva versión". */
-const VERSION = "v20-2026-10-19";
+const VERSION = "v21-2026-10-19";
 const NUCLEO = `mv-nucleo-${VERSION}`;
 const FOTOS = "mv-fotos-v1"; // las fotos casi no cambian: se conservan entre versiones
 
