@@ -11,5 +11,5 @@
     "noImplicitAny": false,
     "skipLibCheck": true
   },
-  "include": ["js/dominio.js", "js/acciones.js", "server/servidor.js"]
+  "include": ["js/dominio.js", "js/acciones.js", "server/servidor.js", "server/almacen.js"]
 }

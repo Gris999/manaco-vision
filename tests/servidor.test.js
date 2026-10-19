@@ -3,12 +3,12 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const os = require("node:os"), path = require("node:path"), fs = require("node:fs");
 process.env.BD = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "manaco-")), "prueba.db");
-const { crearServidor } = require("../server/servidor.js");
+const { crearServidor, iniciar } = require("../server/servidor.js");
 const D = require("../js/dominio.js");
 
 let base, srv;
-test.before(() => new Promise(ok => { srv = crearServidor().listen(0, () => { base = "http://127.0.0.1:" + srv.address().port; ok(); }); }));
-test.after(() => srv.close());
+test.before(async () => { await iniciar(); await new Promise(ok => { srv = crearServidor().listen(0, () => { base = "http://127.0.0.1:" + srv.address().port; ok(); }); }); });
+test.after(async () => { srv.close(); await require("../server/servidor.js").almacen.cerrar(); });
 const api = async (ruta, { token, body, metodo } = {}) => {
   const r = await fetch(base + ruta, { method: metodo || (body ? "POST" : "GET"), headers: { "Content-Type": "application/json", ...(token ? { Authorization: "Bearer " + token } : {}) }, body: body && JSON.stringify(body) });
   return { status: r.status, j: await r.json() };

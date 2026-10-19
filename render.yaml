@@ -1,5 +1,11 @@
-# Despliegue del servidor en Render (plan gratuito). En Render: New → Blueprint → elegir este repositorio.
-# Nota: en el plan gratuito el disco no es persistente; para producción usar un disco (Render Disk) o PostgreSQL.
+# Render Blueprint: crea la base de datos PostgreSQL y el servidor web, conectados entre sí.
+# En Render: New → Blueprint → elegir este repositorio → Apply.
+databases:
+  - name: manaco-vision-db
+    plan: free            # PostgreSQL gratuito (Render lo da por 30 días; luego pasar a un plan pago)
+    databaseName: manaco
+    user: manaco
+
 services:
   - type: web
     name: manaco-vision-api
@@ -9,9 +15,13 @@ services:
     startCommand: node server/servidor.js
     healthCheckPath: /api/salud
     envVars:
-      - key: PUERTO
-        value: "10000"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: manaco-vision-db
+          property: connectionString
       - key: SECRETO_JWT
         generateValue: true
       - key: CORS_ORIGENES
         value: https://gris999.github.io
+      - key: NODE_VERSION
+        value: "22.12.0"
