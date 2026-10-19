@@ -3,341 +3,374 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#2a1d17">
+<meta name="theme-color" content="#E40140">
+<meta name="description" content="Manaco Vision: prototipo académico de inventario de calzado con visión artificial y analítica.">
 <title>Manaco Vision</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,700;1,800&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com/3.4.16"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2.1.1/dist/mobilenet.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script>
+/* Sistema visual: rojo Manaco (#E40140) como único color de marca sobre base neutra (estilo Nike/Adidas) */
 tailwind.config={theme:{extend:{
-  fontFamily:{sans:["Plus Jakarta Sans","system-ui","sans-serif"],display:["Fraunces","Georgia","serif"]},
+  fontFamily:{sans:["Poppins","system-ui","sans-serif"]},
   colors:{
-    marca:{DEFAULT:"#b5562b",600:"#9c4621",50:"#fbefe7",100:"#f6dccb"},
-    tinta:"#2a1d17",
-    crema:"#f6f1ea",
-    gray:{50:"#faf7f3",100:"#f2ece5",200:"#e8dfd5",300:"#d6c9bb",400:"#b3a394",500:"#8a7a6c",600:"#6b5c50",700:"#4f433a",800:"#382e27",900:"#2a1d17"},
-    emerald:{50:"#ecf5ef",600:"#3f7d5c",700:"#326649",400:"#6fb08a"},
-    alerta:{DEFAULT:"#c0392b",50:"#fbeae6"}
+    marca:{DEFAULT:"#E40140",600:"#C40036",700:"#A3002D",50:"#FDE8EE",100:"#FBD0DC"},
+    tinta:"#111111", gris:"#575756", suave:"#F5F5F5", linea:"#E5E5E5", mute:"#707072",
+    ok:{DEFAULT:"#007D48",50:"#E6F4EC"}, aviso:{DEFAULT:"#B45309",50:"#FEF3E2"}, error:{DEFAULT:"#B91C1C",50:"#FDECEC"}
   }}}};
 </script>
 <style>
-  body{background:#f6f1ea;-webkit-tap-highlight-color:transparent}
-  h1,h2,h3,.font-display{font-family:Fraunces,Georgia,serif;letter-spacing:-.01em}
-  h1{font-weight:600}
-  .card{background:#fff;border-radius:20px;border:1px solid #eee5db;box-shadow:0 1px 2px rgba(42,29,23,.04),0 6px 18px -8px rgba(42,29,23,.10)}
-  .nav-item{display:flex;align-items:center;gap:.75rem;padding:.7rem .9rem;border-radius:14px;color:#d8c8b8;font-weight:500;width:100%}
-  .nav-item:hover{background:rgba(255,255,255,.06)}
-  .nav-item.on{background:#f6f1ea;color:#2a1d17;font-weight:700}
-  .tab-item{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10.5px;font-weight:600;color:#8a7a6c;flex:1;padding:7px 0}
-  .tab-item.on{color:#b5562b}
+  :root{--marca:#E40140}
+  html{scroll-behavior:smooth}
+  body{background:#fff;color:#111;-webkit-tap-highlight-color:transparent}
+  :focus-visible{outline:2px solid #E40140;outline-offset:2px;border-radius:8px}
+  .titular{font-weight:800;letter-spacing:-.025em;line-height:1.05}
+  .eyebrow{font-size:.72rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#707072}
+  .card{background:#fff;border:1px solid #E5E5E5;border-radius:18px}
+  .tile{background:#F5F5F5;border-radius:14px}
+  .nav-item{display:flex;align-items:center;gap:.8rem;padding:.7rem 1rem;border-radius:999px;color:#111;font-weight:500;width:100%;transition:background .15s}
+  .nav-item:hover{background:#F5F5F5}
+  .nav-item.on{background:#111;color:#fff}
+  .tab-item{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;font-weight:600;color:#707072;flex:1;min-height:56px;justify-content:center}
+  .tab-item.on{color:#E40140}
   .tab-item svg,.nav-item svg{width:22px;height:22px}
-  .chip{padding:.4rem .85rem;border-radius:999px;font-size:.8rem;font-weight:600;border:1px solid #e8dfd5;background:#fff;white-space:nowrap;color:#4f433a}
-  .chip.on{background:#2a1d17;color:#fff;border-color:#2a1d17}
-  .btn{display:inline-flex;align-items:center;justify-content:center;gap:.5rem;border-radius:14px;font-weight:700;padding:.75rem 1rem;transition:transform .05s,background .15s}
+  .chip{padding:.5rem .95rem;border-radius:999px;font-size:.8rem;font-weight:500;border:1px solid #E5E5E5;background:#fff;white-space:nowrap;min-height:38px;transition:all .15s}
+  .chip:hover{border-color:#111}
+  .chip.on{background:#111;color:#fff;border-color:#111}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:.5rem;border-radius:999px;font-weight:600;padding:.8rem 1.25rem;min-height:46px;transition:transform .06s,background .15s,opacity .15s}
   .btn:active{transform:scale(.97)}
-  .btn-p{background:#b5562b;color:#fff}.btn-p:hover{background:#9c4621}
-  .btn-s{background:#fff;border:1px solid #e8dfd5;color:#2a1d17}
-  .stepper button{width:38px;height:38px;border-radius:12px;background:#f2ece5;font-weight:700;font-size:1.2rem;color:#2a1d17}
-  .stepper input{width:52px;text-align:center;font-weight:700;font-size:1.05rem;background:transparent}
+  .btn:disabled{opacity:.4;pointer-events:none}
+  .btn-p{background:#E40140;color:#fff}.btn-p:hover{background:#C40036}
+  .btn-n{background:#111;color:#fff}.btn-n:hover{background:#333}
+  .btn-s{background:#fff;border:1px solid #CACACB;color:#111}.btn-s:hover{border-color:#111}
+  .stepper button{width:40px;height:40px;border-radius:999px;background:#F5F5F5;font-weight:600;font-size:1.2rem}
+  .stepper button:hover{background:#E5E5E5}
+  .stepper input{width:48px;text-align:center;font-weight:700;font-size:1.05rem;background:transparent}
+  .campo{width:100%;border:1px solid #CACACB;border-radius:999px;padding:.7rem 1rem;background:#fff;font-size:.9rem}
+  .campo:focus{border-color:#111;outline:none}
   video{width:100%;height:100%;object-fit:cover}
-  .scan-frame{position:absolute;inset:14%;border-radius:20px;box-shadow:0 0 0 9999px rgba(0,0,0,.28);pointer-events:none}
-  .scan-frame::before,.scan-frame::after{content:"";position:absolute;inset:-2px;border-radius:20px;border:3px solid transparent;
-    background:linear-gradient(#fff,#fff) top left/36px 3px no-repeat,linear-gradient(#fff,#fff) top left/3px 36px no-repeat,
-    linear-gradient(#fff,#fff) top right/36px 3px no-repeat,linear-gradient(#fff,#fff) top right/3px 36px no-repeat}
+  .scan-frame{position:absolute;inset:14%;border-radius:22px;box-shadow:0 0 0 9999px rgba(0,0,0,.32);pointer-events:none}
+  .scan-frame::before,.scan-frame::after{content:"";position:absolute;inset:-2px;border-radius:22px;border:3px solid transparent;
+    background:linear-gradient(#fff,#fff) top left/38px 3px no-repeat,linear-gradient(#fff,#fff) top left/3px 38px no-repeat,
+    linear-gradient(#fff,#fff) top right/38px 3px no-repeat,linear-gradient(#fff,#fff) top right/3px 38px no-repeat}
   .scan-frame::after{transform:rotate(180deg)}
-  .scan-line{position:absolute;left:16%;right:16%;height:2px;background:linear-gradient(90deg,transparent,#e9a173,transparent);animation:scan 2.2s ease-in-out infinite;display:none}
+  .scan-line{position:absolute;left:16%;right:16%;height:3px;border-radius:3px;background:linear-gradient(90deg,transparent,#E40140,transparent);animation:scan 2.2s ease-in-out infinite;display:none}
   .scanning .scan-line{display:block}
   @keyframes scan{0%,100%{top:16%}50%{top:84%}}
-  .pb-safe{padding-bottom:calc(env(safe-area-inset-bottom) + 76px)}
-  @media(min-width:1024px){.pb-safe{padding-bottom:2rem}}
+  .pb-safe{padding-bottom:calc(env(safe-area-inset-bottom) + 84px)}
+  @media(min-width:1024px){.pb-safe{padding-bottom:3rem}}
   .bottom-bar{padding-bottom:env(safe-area-inset-bottom)}
-  #toast{transition:all .25s;transform:translate(-50%,20px);opacity:0;pointer-events:none}
+  #toast{transition:all .25s;transform:translate(-50%,16px);opacity:0;pointer-events:none}
   #toast.show{transform:translate(-50%,0);opacity:1}
   .fade{animation:fade .25s ease}
   @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .skel{background:linear-gradient(90deg,#F5F5F5 25%,#ECECEC 50%,#F5F5F5 75%);background-size:200% 100%;animation:sk 1.2s infinite;border-radius:12px}
+  @keyframes sk{to{background-position:-200% 0}}
   input[type=number]::-webkit-inner-spin-button{appearance:none}
   .scroll-x{overflow-x:auto;scrollbar-width:none}.scroll-x::-webkit-scrollbar{display:none}
+  .barra{height:8px;background:#F5F5F5;border-radius:99px;overflow:hidden}.barra>i{display:block;height:100%;border-radius:99px}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 </style>
 </head>
-<body class="font-sans text-tinta antialiased">
+<body class="font-sans antialiased">
+<a href="#main" class="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 bg-tinta text-white px-4 py-2 rounded-full">Saltar al contenido</a>
 
-<!-- Íconos -->
-<svg width="0" height="0" class="absolute">
+<svg width="0" height="0" class="absolute" aria-hidden="true">
   <symbol id="i-scan" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="12" r="3.5"/></symbol>
   <symbol id="i-box" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5M12 13v8"/></symbol>
   <symbol id="i-cash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 10v4M18 10v4"/></symbol>
   <symbol id="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></symbol>
   <symbol id="i-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></symbol>
+  <symbol id="i-globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></symbol>
   <symbol id="i-cam" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 7h3l2-3h6l2 3h3a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="4"/></symbol>
   <symbol id="i-img" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></symbol>
   <symbol id="i-flip" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12a9 9 0 0 1 15.5-6.2L21 8M21 3v5h-5M21 12a9 9 0 0 1-15.5 6.2L3 16M3 21v-5h5"/></symbol>
   <symbol id="i-store" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9h16l-1-5H5zM5 9v11h14V9M10 20v-6h4v6"/></symbol>
-  <symbol id="i-globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></symbol>
   <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></symbol>
 </svg>
 
 <div class="lg:flex min-h-screen">
   <!-- Menú lateral (escritorio) -->
-  <aside class="hidden lg:flex lg:flex-col w-64 shrink-0 bg-tinta text-white p-5 sticky top-0 h-screen">
-    <div class="flex items-center gap-3 mb-8">
-      <div class="w-10 h-10 rounded-xl bg-marca grid place-items-center font-extrabold text-lg">M</div>
-      <div><div class="font-bold leading-tight">Manaco Vision</div><div class="text-xs text-gray-400">Inventario inteligente</div></div>
+  <aside class="hidden lg:flex lg:flex-col w-72 shrink-0 border-r border-linea p-6 sticky top-0 h-screen" aria-label="Navegación principal">
+    <div class="mb-8">
+      <div class="text-marca text-3xl font-extrabold italic tracking-tight leading-none">manaco</div>
+      <div class="eyebrow mt-1">Vision · Inventario inteligente</div>
     </div>
     <nav class="space-y-1" id="navSide"></nav>
     <div class="mt-auto space-y-3">
-      <label class="block text-xs text-gray-400">Tienda activa
-        <select class="selTienda mt-1 w-full bg-white/10 text-white rounded-lg px-3 py-2 text-sm border border-white/10"></select>
+      <label class="block"><span class="eyebrow">Tienda activa</span>
+        <select class="selTienda campo mt-1.5" aria-label="Tienda activa"></select>
       </label>
-      <div class="estadoIA text-xs text-gray-400 flex items-center gap-2"><span class="dot w-2 h-2 rounded-full bg-amber-400"></span><span class="txt">Cargando IA…</span></div>
+      <div class="estadoIA text-xs text-mute flex items-center gap-2" role="status"><span class="dot w-2 h-2 rounded-full bg-aviso"></span><span class="txt">Cargando IA…</span></div>
+      <p class="text-[11px] text-mute leading-snug">Prototipo académico · caso de estudio Manaco. Datos de operación simulados.</p>
     </div>
   </aside>
 
   <div class="flex-1 min-w-0">
     <!-- Barra superior (móvil) -->
-    <header class="lg:hidden sticky top-0 z-20 bg-tinta text-white px-4 pt-[calc(env(safe-area-inset-top)+10px)] pb-3">
+    <header class="lg:hidden sticky top-0 z-20 bg-marca text-white px-4 pt-[calc(env(safe-area-inset-top)+10px)] pb-3">
       <div class="flex items-center gap-3">
-        <div class="w-9 h-9 rounded-xl bg-marca grid place-items-center font-extrabold">M</div>
-        <div class="mr-auto"><div class="font-bold leading-tight text-[15px]" id="tituloMovil">Escáner</div>
-          <div class="estadoIA text-[11px] text-gray-400 flex items-center gap-1.5"><span class="dot w-1.5 h-1.5 rounded-full bg-amber-400"></span><span class="txt">Cargando IA…</span></div></div>
-        <label class="flex items-center gap-1.5 bg-white/10 rounded-lg pl-2 pr-1 py-1 text-xs">
-          <svg class="w-4 h-4"><use href="#i-store"/></svg>
-          <select class="selTienda bg-transparent text-white text-xs max-w-[118px] outline-none"></select>
+        <div class="mr-auto min-w-0">
+          <div class="text-2xl font-extrabold italic tracking-tight leading-none">manaco</div>
+          <div class="estadoIA text-[11px] text-white/85 flex items-center gap-1.5 mt-0.5" role="status"><span class="dot w-1.5 h-1.5 rounded-full bg-white/60"></span><span class="txt">Cargando IA…</span></div>
+        </div>
+        <label class="flex items-center gap-1.5 bg-white/15 rounded-full pl-3 pr-2 py-1.5 text-xs">
+          <svg class="w-4 h-4 shrink-0" aria-hidden="true"><use href="#i-store"/></svg>
+          <select class="selTienda bg-transparent text-white text-xs max-w-[120px] outline-none" aria-label="Tienda activa"></select>
         </label>
       </div>
     </header>
 
-    <main class="max-w-6xl mx-auto px-4 lg:px-8 py-4 lg:py-8 pb-safe">
+    <main id="main" class="max-w-6xl mx-auto px-4 lg:px-10 py-5 lg:py-10 pb-safe">
+
       <!-- ESCÁNER -->
-      <section id="v-escaner" class="vista grid grid-cols-1 lg:grid-cols-5 gap-4 lg:gap-6">
+      <section id="v-escaner" class="vista grid grid-cols-1 lg:grid-cols-5 gap-5 lg:gap-8" aria-labelledby="t-esc">
         <div class="lg:col-span-3">
-          <div class="hidden lg:block mb-4"><h1 class="text-2xl font-bold">Escáner</h1><p class="text-gray-500 text-sm">Apunta la cámara al zapato para ver su stock y venderlo.</p></div>
-          <div class="card overflow-hidden">
-            <div id="visor" class="relative overflow-hidden bg-black aspect-[4/5] sm:aspect-[4/3]">
-              <video id="video" playsinline muted></video>
-              <div id="placeholderCam" class="absolute inset-0 grid place-items-center text-center text-gray-300 p-6">
-                <div><svg class="w-14 h-14 mx-auto mb-3 opacity-70"><use href="#i-cam"/></svg>
-                <p class="font-semibold text-white">Cámara apagada</p><p class="text-sm">Toca "Activar cámara" o sube una foto</p></div>
+          <div class="mb-4"><div class="eyebrow">Paso 1 · Reconocer</div><h1 id="t-esc" class="titular text-3xl lg:text-4xl">Escáner</h1>
+            <p class="text-mute text-sm mt-1">Apunta la cámara al zapato: verás el modelo, el precio y el stock.</p></div>
+          <div class="rounded-[22px] overflow-hidden bg-tinta">
+            <div id="visor" class="relative overflow-hidden aspect-[4/5] sm:aspect-[4/3]">
+              <video id="video" playsinline muted aria-label="Vista de la cámara"></video>
+              <div id="placeholderCam" class="absolute inset-0 grid place-items-center text-center text-white/70 p-6">
+                <div><svg class="w-14 h-14 mx-auto mb-3 opacity-80" aria-hidden="true"><use href="#i-cam"/></svg>
+                <p class="font-semibold text-white text-lg">Cámara apagada</p><p class="text-sm">Toca <b>Activar</b> o sube una foto del zapato</p></div>
               </div>
               <div class="scan-frame"></div><div class="scan-line"></div>
-              <div id="liveChip" class="hidden absolute left-3 right-3 bottom-3 bg-black/70 backdrop-blur text-white rounded-xl px-3 py-2 text-sm">
-                <div class="flex justify-between"><span id="liveNombre" class="font-semibold truncate"></span><span id="livePct" class="tabular-nums"></span></div>
-                <div class="h-1.5 bg-white/20 rounded-full mt-1.5 overflow-hidden"><div id="liveBar" class="h-full bg-marca rounded-full transition-all"></div></div>
+              <div id="liveChip" class="hidden absolute left-3 right-3 bottom-3 bg-white text-tinta rounded-2xl px-4 py-2.5 text-sm shadow-lg" aria-live="polite">
+                <div class="flex justify-between gap-2"><span id="liveNombre" class="font-semibold truncate"></span><span id="livePct" class="tabular-nums font-semibold text-marca"></span></div>
+                <div class="barra mt-1.5"><i id="liveBar" class="bg-marca transition-all" style="width:0"></i></div>
               </div>
             </div>
-            <div class="p-3 grid grid-cols-3 gap-2">
-              <button id="btnCam" class="btn btn-p col-span-1 text-sm"><svg class="w-5 h-5"><use href="#i-cam"/></svg><span>Activar</span></button>
-              <button id="btnFlip" class="btn btn-s text-sm"><svg class="w-5 h-5"><use href="#i-flip"/></svg>Girar</button>
-              <label class="btn btn-s text-sm cursor-pointer"><svg class="w-5 h-5"><use href="#i-img"/></svg>Foto<input id="foto" type="file" accept="image/*" capture="environment" class="hidden"></label>
+            <div class="p-3 grid grid-cols-3 gap-2 bg-tinta">
+              <button id="btnCam" class="btn btn-p text-sm"><svg class="w-5 h-5" aria-hidden="true"><use href="#i-cam"/></svg><span>Activar</span></button>
+              <button id="btnFlip" class="btn text-sm bg-white/10 text-white hover:bg-white/20" aria-label="Cambiar entre cámara trasera y frontal"><svg class="w-5 h-5" aria-hidden="true"><use href="#i-flip"/></svg>Girar</button>
+              <label class="btn text-sm bg-white/10 text-white hover:bg-white/20 cursor-pointer"><svg class="w-5 h-5" aria-hidden="true"><use href="#i-img"/></svg>Foto<input id="foto" type="file" accept="image/*" capture="environment" class="sr-only" aria-label="Subir foto de un zapato"></label>
             </div>
           </div>
         </div>
-        <div class="lg:col-span-2 lg:pt-[68px]">
-          <div class="card p-5" id="resultado"></div>
-        </div>
+        <div class="lg:col-span-2 lg:pt-[92px]"><div class="card p-5" id="resultado" aria-live="polite"></div></div>
       </section>
 
       <!-- INVENTARIO -->
-      <section id="v-inventario" class="vista hidden">
-        <div class="flex flex-wrap items-end gap-3 mb-4">
-          <div class="mr-auto"><h1 class="text-2xl font-bold">Inventario</h1><p class="text-gray-500 text-sm" id="invResumen"></p></div>
-          <label class="relative w-full sm:w-72"><svg class="w-5 h-5 absolute left-3 top-2.5 text-gray-400"><use href="#i-search"/></svg>
-            <input id="buscar" placeholder="Buscar modelo…" class="w-full pl-10 pr-3 py-2.5 rounded-xl border border-gray-200 bg-white text-sm"></label>
+      <section id="v-inventario" class="vista hidden" aria-labelledby="t-inv">
+        <div class="flex flex-wrap items-end gap-3 mb-5">
+          <div class="mr-auto"><div class="eyebrow">Stock en 3 tiendas</div><h1 id="t-inv" class="titular text-3xl lg:text-4xl">Inventario</h1><p class="text-mute text-sm mt-1" id="invResumen"></p></div>
+          <label class="relative w-full sm:w-80"><span class="sr-only">Buscar modelo</span><svg class="w-5 h-5 absolute left-4 top-3 text-mute" aria-hidden="true"><use href="#i-search"/></svg>
+            <input id="buscar" type="search" placeholder="Buscar modelo, marca…" class="campo pl-11"></label>
         </div>
-        <div class="scroll-x flex gap-2 mb-4" id="filtros"></div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3" id="gridInv"></div>
-        <button id="invMas" onclick="invMax+=24;renderInv()" class="btn btn-s w-full mt-4 hidden"></button>
+        <div class="scroll-x flex gap-2 mb-5" id="filtros" role="group" aria-label="Filtros de inventario"></div>
+        <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 lg:gap-4" id="gridInv"></div>
+        <button id="invMas" class="btn btn-s w-full mt-5 hidden"></button>
       </section>
 
       <!-- VENTAS -->
-      <section id="v-ventas" class="vista hidden">
-        <div class="mb-4"><h1 class="text-2xl font-bold">Ventas</h1><p class="text-gray-500 text-sm" id="vTienda"></p></div>
-        <div class="grid grid-cols-3 gap-3 mb-4" id="vKpis"></div>
-        <div class="grid grid-cols-1 lg:grid-cols-5 gap-4">
-          <div class="card p-4 lg:col-span-2 h-fit">
-            <h2 class="font-semibold mb-3">Registrar venta</h2>
-            <div class="flex gap-3 items-center mb-3">
-              <img id="vImg" class="w-16 h-16 rounded-xl bg-gray-50 object-contain shrink-0" alt="">
-              <select id="vModelo" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-white"></select>
+      <section id="v-ventas" class="vista hidden" aria-labelledby="t-ven">
+        <div class="mb-5"><div class="eyebrow" id="vTienda"></div><h1 id="t-ven" class="titular text-3xl lg:text-4xl">Ventas de hoy</h1></div>
+        <div class="grid grid-cols-3 gap-3 mb-5" id="vKpis"></div>
+        <div class="grid grid-cols-1 lg:grid-cols-5 gap-5">
+          <div class="card p-5 lg:col-span-2 h-fit">
+            <h2 class="font-semibold text-lg mb-3">Registrar una venta</h2>
+            <label class="block mb-3"><span class="sr-only">Buscar modelo</span><input id="vBuscar" type="search" placeholder="Escribe para buscar el modelo…" class="campo"></label>
+            <div class="flex gap-3 items-center mb-4">
+              <img id="vImg" class="w-16 h-16 tile object-contain shrink-0" alt="">
+              <select id="vModelo" class="campo !rounded-2xl" aria-label="Modelo"></select>
             </div>
-            <div class="flex items-center justify-between mb-4">
-              <span class="text-sm text-gray-500">Cantidad</span>
-              <div class="stepper flex items-center gap-1"><button data-d="-1">−</button><input id="vCant" type="number" min="1" value="1"><button data-d="1">+</button></div>
+            <div class="flex items-center justify-between mb-5">
+              <span class="text-sm text-mute">Cantidad de pares</span>
+              <div class="stepper flex items-center gap-1"><button data-d="-1" aria-label="Restar un par">−</button><input id="vCant" type="number" min="1" max="99" value="1" aria-label="Cantidad"><button data-d="1" aria-label="Sumar un par">+</button></div>
             </div>
             <button id="vBtn" class="btn btn-p w-full">Registrar venta</button>
           </div>
-          <div class="lg:col-span-3">
-            <h2 class="font-semibold mb-2">Ventas de hoy</h2>
-            <div class="space-y-2" id="listaVentas"></div>
-          </div>
+          <div class="lg:col-span-3"><h2 class="font-semibold text-lg mb-3">Historial de hoy</h2><div class="space-y-2" id="listaVentas"></div></div>
         </div>
       </section>
 
       <!-- CIERRE -->
-      <section id="v-cierre" class="vista hidden">
-        <div class="mb-4"><h1 class="text-2xl font-bold">Cierre del día</h1>
-          <p class="text-gray-500 text-sm">Cuenta los pares físicos de <b id="cTienda"></b>. El sistema compara con lo esperado (inicio del día − ventas) y detecta faltantes.</p></div>
-        <div id="cRes" class="mb-4"></div>
-        <label class="relative block mb-3"><svg class="w-5 h-5 absolute left-3 top-2.5 text-gray-400"><use href="#i-search"/></svg>
-          <input id="cBuscar" placeholder="Buscar modelo a contar… (● = vendido hoy)" class="w-full pl-10 pr-3 py-2.5 rounded-xl border border-gray-200 bg-white text-sm"></label>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" id="listaCierre"></div>
-        <button id="cMas" onclick="cMax+=30;renderCierre()" class="btn btn-s w-full mt-3 hidden"></button>
-        <div class="sticky bottom-[84px] lg:bottom-4 mt-4">
-          <button id="cBtn" class="btn btn-p w-full shadow-lg py-3.5"><svg class="w-5 h-5"><use href="#i-moon"/></svg>Cerrar el día y conciliar</button>
-        </div>
-      </section>
-
-      <!-- MERCADO -->
-      <section id="v-mercado" class="vista hidden">
-        <div class="mb-4"><h1 class="text-3xl">Mercado de calzado</h1>
-          <p class="text-gray-500 text-sm">Toda la base de comercio exterior (230 registros depurados · 2020–2024 · España). Filtra y descubre qué se compra, qué se vende y cuánto vale cada par.</p></div>
-        <div class="card p-4 mb-4 space-y-3">
-          <div><div class="text-xs font-semibold text-gray-500 mb-1.5">Movimiento</div><div class="scroll-x flex gap-2" id="fFlujo"></div></div>
-          <div><div class="text-xs font-semibold text-gray-500 mb-1.5">Tipo de zapato</div><div class="scroll-x flex gap-2" id="fCat"></div></div>
-          <div class="flex flex-wrap gap-3 items-end">
-            <div><div class="text-xs font-semibold text-gray-500 mb-1.5">Año</div><div class="scroll-x flex gap-2" id="fAnio"></div></div>
-            <label class="text-xs font-semibold text-gray-500">País<select id="fPais" class="block mt-1.5 border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white text-tinta font-normal"></select></label>
-          </div>
-        </div>
-        <div id="mFrase" class="rounded-[22px] bg-tinta text-crema p-5 mb-4"></div>
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6" id="mKpis"></div>
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-          <div class="card p-5"><h2 class="text-xl mb-1">¿Cómo cambió cada año?</h2><p class="text-gray-500 text-sm mb-3">Millones de USD. Ojo: no todos los años tienen la misma cantidad de registros.</p><div class="relative h-60"><canvas id="chAnios"></canvas></div></div>
-          <div class="card p-5"><h2 class="text-xl mb-1">¿Con qué países?</h2><p class="text-gray-500 text-sm mb-3">Los 8 socios con más dinero en la selección</p><div class="space-y-2.5" id="mPaises"></div></div>
-        </div>
-        <div class="card p-5 mb-6"><h2 class="text-xl mb-1">¿Pesa más en dinero o en cantidad?</h2>
-          <p class="text-gray-500 text-sm mb-4">Si la barra de dinero es más larga que la de pares, ese tipo de zapato vale más por unidad.</p><div class="space-y-5" id="mVQ"></div></div>
-        <div class="card p-4 sm:p-5">
-          <div class="flex flex-wrap items-center gap-2 mb-3"><h2 class="text-xl mr-auto">Todos los registros</h2><span class="text-sm text-gray-500" id="mCuenta"></span></div>
-          <div class="hidden md:block overflow-x-auto"><table class="w-full text-sm"><thead><tr class="text-left text-gray-500 border-b border-gray-200" id="mHead"></tr></thead><tbody id="mTabla"></tbody></table></div>
-          <div class="md:hidden space-y-2" id="mCards"></div>
-          <div class="flex items-center justify-between mt-4"><button id="mPrev" class="btn btn-s py-2 text-sm">← Anterior</button><span class="text-sm text-gray-500" id="mPag"></span><button id="mNext" class="btn btn-s py-2 text-sm">Siguiente →</button></div>
-        </div>
+      <section id="v-cierre" class="vista hidden" aria-labelledby="t-cie">
+        <div class="mb-5"><div class="eyebrow">Fin de jornada</div><h1 id="t-cie" class="titular text-3xl lg:text-4xl">Cierre del día</h1>
+          <p class="text-mute text-sm mt-1 max-w-2xl">Cuenta los pares de <b class="text-tinta" id="cTienda"></b> y ajusta el número. El sistema compara con lo esperado (inicio del día − ventas) y detecta faltantes.</p></div>
+        <div id="cRes" class="mb-4" aria-live="polite"></div>
+        <label class="relative block mb-4"><span class="sr-only">Buscar modelo a contar</span><svg class="w-5 h-5 absolute left-4 top-3 text-mute" aria-hidden="true"><use href="#i-search"/></svg>
+          <input id="cBuscar" type="search" placeholder="Buscar modelo a contar… (● vendido hoy)" class="campo pl-11"></label>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="listaCierre"></div>
+        <button id="cMas" class="btn btn-s w-full mt-3 hidden"></button>
+        <div class="sticky bottom-[88px] lg:bottom-6 mt-5"><button id="cBtn" class="btn btn-n w-full shadow-xl"><svg class="w-5 h-5" aria-hidden="true"><use href="#i-moon"/></svg>Cerrar el día y conciliar</button></div>
       </section>
 
       <!-- DASHBOARD -->
-      <section id="v-dashboard" class="vista hidden">
-        <div class="mb-5"><h1 class="text-3xl">Resumen del negocio</h1>
-          <p class="text-gray-500 text-sm">Últimos 30 días · las 3 tiendas · explicado en simple</p></div>
-
-        <div id="hero" class="rounded-[24px] bg-tinta text-crema p-5 sm:p-7 mb-5 overflow-hidden relative"></div>
-
-        <h2 class="text-xl mb-1">¿Cómo está el negocio?</h2>
-        <p class="text-gray-500 text-sm mb-3">Verde = bien · Ámbar = atención · Rojo = hay que actuar</p>
-        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 mb-7" id="salud"></div>
-
-        <div class="grid grid-cols-1 lg:grid-cols-5 gap-4 mb-7">
-          <div class="card p-5 lg:col-span-2">
-            <h2 class="text-xl mb-1">¿Qué hacer hoy?</h2>
-            <p class="text-gray-500 text-sm mb-3">Recomendaciones automáticas a partir de los datos</p>
-            <ol class="space-y-2.5" id="acciones"></ol>
-          </div>
-          <div class="card p-5 lg:col-span-3">
-            <h2 class="text-xl mb-1">¿Qué zapatos se venden más?</h2>
-            <p class="text-gray-500 text-sm mb-3">Pares vendidos en 30 días</p>
-            <div class="space-y-3" id="ranking"></div>
-            <button id="verTodos" class="mt-3 text-sm font-semibold text-marca">Ver todos los modelos</button>
+      <section id="v-dashboard" class="vista hidden" aria-labelledby="t-das">
+        <div class="flex flex-wrap items-end gap-3 mb-5">
+          <div class="mr-auto"><div class="eyebrow">Para Gerencia · explicado en simple</div><h1 id="t-das" class="titular text-3xl lg:text-4xl">Resumen del negocio</h1></div>
+          <div class="flex flex-wrap gap-2">
+            <div class="flex gap-1 p-1 bg-suave rounded-full" role="group" aria-label="Periodo" id="dPeriodo"></div>
+            <select id="dTienda" class="campo !w-auto !py-2 text-sm" aria-label="Tienda para el resumen"></select>
           </div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-7">
-          <div class="card p-5"><h2 class="text-xl mb-1">¿Qué tienda vende más?</h2><p class="text-gray-500 text-sm mb-4">Dinero vendido en 30 días</p><div class="space-y-4" id="tiendas"></div></div>
-          <div class="card p-5"><h2 class="text-xl mb-1">¿Qué tipo de zapato deja más dinero?</h2><p class="text-gray-500 text-sm mb-3">Parte de las ventas de cada tipo</p>
-            <div class="flex flex-col sm:flex-row items-center gap-5"><div class="relative w-44 h-44 shrink-0"><canvas id="chCat"></canvas><div id="catCentro" class="absolute inset-0 grid place-items-center text-center pointer-events-none"></div></div><div class="space-y-3 w-full" id="catLeyenda"></div></div></div>
+        <div id="hero" class="rounded-[26px] bg-marca text-white p-6 sm:p-8 mb-6 relative overflow-hidden"></div>
+
+        <div class="flex items-baseline justify-between mb-3"><h2 class="font-bold text-xl">¿Cómo está el negocio?</h2>
+          <span class="text-xs text-mute hidden sm:inline">● Bien &nbsp; ● Atención &nbsp; ● Actuar</span></div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 mb-8" id="salud"></div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-5 gap-5 mb-8">
+          <div class="card p-5 lg:col-span-2">
+            <h2 class="font-bold text-xl">¿Qué hacer hoy?</h2>
+            <p class="text-mute text-sm mb-4">Acciones sugeridas por los datos. Toca para resolverlas.</p>
+            <ol class="space-y-2" id="acciones"></ol>
+          </div>
+          <div class="card p-5 lg:col-span-3">
+            <div class="flex items-baseline justify-between"><h2 class="font-bold text-xl">Los más vendidos</h2><span class="text-xs text-mute" id="rankSub"></span></div>
+            <p class="text-mute text-sm mb-4">Pares vendidos y lo que facturó cada uno</p>
+            <div class="space-y-3" id="ranking"></div>
+            <button id="verTodos" class="mt-4 text-sm font-semibold underline underline-offset-4">Ver top 15</button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-8">
+          <div class="card p-5"><h2 class="font-bold text-xl">¿Qué tienda vende más?</h2><p class="text-mute text-sm mb-4">Facturación del periodo</p><div class="space-y-4" id="tiendas"></div></div>
+          <div class="card p-5"><h2 class="font-bold text-xl">¿Qué tipo de zapato deja más dinero?</h2><p class="text-mute text-sm mb-4">Parte de la facturación</p>
+            <div class="flex flex-col sm:flex-row items-center gap-6"><div class="relative w-44 h-44 shrink-0"><canvas id="chCat" aria-label="Gráfico de ventas por tipo de zapato" role="img"></canvas><div id="catCentro" class="absolute inset-0 grid place-items-center text-center pointer-events-none"></div></div><div class="space-y-3 w-full" id="catLeyenda"></div></div></div>
         </div>
 
         <div class="card p-5 mb-8">
-          <h2 class="text-xl mb-1">¿Cómo van las ventas día a día?</h2>
-          <p class="text-gray-500 text-sm mb-3">Cada punto es lo que se vendió ese día. La línea punteada es el promedio: los días por encima fueron buenos.</p>
-          <div class="relative h-60"><canvas id="chDia"></canvas></div>
+          <div class="flex flex-wrap items-baseline justify-between gap-2"><h2 class="font-bold text-xl">Ventas día a día</h2><span class="text-xs text-mute" id="diaNota"></span></div>
+          <p class="text-mute text-sm mb-4">Barras rojas = días por encima del promedio (línea punteada).</p>
+          <div class="relative h-64"><canvas id="chDia" role="img" aria-label="Gráfico de ventas diarias"></canvas></div>
         </div>
 
-        <h2 class="text-xl mb-1">Lo que dice el mercado</h2>
-        <p class="text-gray-500 text-sm mb-3">Datos de comercio exterior de calzado 2020–2024 (España). Son una referencia, no las ventas de Manaco.</p>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
-          <div class="card p-5"><div class="text-3xl mb-2">👞</div><div class="font-display text-3xl font-semibold text-marca">≈ 2×</div><p class="text-sm mt-1"><b>El zapato de cuero vale casi el doble</b> por par (unos 45 USD) que el deportivo o casual (unos 25 USD).</p></div>
-          <div class="card p-5"><div class="text-3xl mb-2">🚢</div><div class="font-display text-3xl font-semibold text-marca">3×</div><p class="text-sm mt-1"><b>En deportivo entra 3 veces más de lo que sale.</b> Ahí compite el zapato importado barato.</p></div>
-          <div class="card p-5"><div class="text-3xl mb-2">💡</div><div class="font-display text-2xl font-semibold text-marca leading-tight">Conclusión</div><p class="text-sm mt-1">Conviene <b>competir con calidad en cuero</b>, no bajando precios contra el importado.</p></div>
+        <div class="card p-5 mb-8">
+          <h2 class="font-bold text-xl">Metas del proyecto</h2><p class="text-mute text-sm mb-4">Avance hacia los objetivos SMART propuestos</p>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-5" id="metas"></div>
         </div>
-        <button onclick="ver('mercado')" class="btn btn-p w-full sm:w-auto mb-4">Explorar toda la base del mercado →</button>
-        <div class="card p-5 mb-6"><h3 class="text-lg mb-1">Valor promedio por par (USD)</h3><p class="text-gray-500 text-sm mb-3">Barra más alta = el par vale más dinero</p><div class="relative h-56"><canvas id="chMercado"></canvas></div></div>
-        <div class="text-center"><button id="btnReset" class="text-xs text-gray-500 underline">Reiniciar datos de demostración</button></div>
+
+        <div class="rounded-[22px] bg-suave p-6 flex flex-col sm:flex-row sm:items-center gap-4">
+          <div class="flex-1"><div class="eyebrow">Inteligencia de mercado</div><p class="font-bold text-xl leading-snug mt-1">El zapato de cuero vale casi el doble por par (≈ 43,6 USD contra ≈ 25).</p><p class="text-sm text-mute">Explora los 230 registros de la base con filtros.</p></div>
+          <button onclick="ver('mercado')" class="btn btn-n shrink-0">Explorar mercado <svg class="w-4 h-4" aria-hidden="true"><use href="#i-arrow"/></svg></button>
+        </div>
+        <div class="text-center mt-8"><button id="btnReset" class="text-xs text-mute underline underline-offset-4">Reiniciar datos de demostración</button></div>
+      </section>
+
+      <!-- MERCADO -->
+      <section id="v-mercado" class="vista hidden" aria-labelledby="t-mer">
+        <div class="mb-5"><div class="eyebrow">Base de comercio exterior · 230 registros · 2020–2024</div><h1 id="t-mer" class="titular text-3xl lg:text-4xl">Mercado de calzado</h1>
+          <p class="text-mute text-sm mt-1 max-w-2xl">País reportante: España. Es una referencia externa, no son ventas de Manaco. Filtra y descubre qué se compra, qué se vende y cuánto vale cada par.</p></div>
+        <div class="card p-4 mb-5 space-y-4">
+          <div><div class="eyebrow mb-2">Movimiento</div><div class="scroll-x flex gap-2" id="fFlujo" role="group" aria-label="Movimiento"></div></div>
+          <div><div class="eyebrow mb-2">Tipo de zapato</div><div class="scroll-x flex gap-2" id="fCat" role="group" aria-label="Tipo"></div></div>
+          <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-4 items-end">
+            <div class="min-w-0"><div class="eyebrow mb-2">Año</div><div class="scroll-x flex gap-2" id="fAnio" role="group" aria-label="Año"></div></div>
+            <label><span class="eyebrow block mb-2">País</span><select id="fPais" class="campo sm:!w-56"></select></label>
+          </div>
+        </div>
+        <div id="mFrase" class="rounded-[22px] bg-tinta text-white p-6 mb-5" aria-live="polite"></div>
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6" id="mKpis"></div>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-6">
+          <div class="card p-5"><h2 class="font-bold text-xl">¿Cómo cambió cada año?</h2><p class="text-mute text-sm mb-4">Millones de USD. Ojo: no todos los años tienen la misma cantidad de registros.</p><div class="relative h-64"><canvas id="chAnios" role="img" aria-label="Gráfico por año"></canvas></div></div>
+          <div class="card p-5"><h2 class="font-bold text-xl">¿Con qué países?</h2><p class="text-mute text-sm mb-4">Los 8 socios con más dinero en la selección</p><div class="space-y-3" id="mPaises"></div></div>
+        </div>
+        <div class="card p-5 mb-6"><h2 class="font-bold text-xl">¿Pesa más en dinero o en cantidad?</h2>
+          <p class="text-mute text-sm mb-5">Si la barra de dinero es más larga que la de pares, ese tipo vale más por unidad.</p><div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="mVQ"></div></div>
+        <div class="card p-4 sm:p-5">
+          <div class="flex flex-wrap items-center gap-2 mb-3"><h2 class="font-bold text-xl mr-auto">Todos los registros</h2><span class="text-sm text-mute" id="mCuenta"></span></div>
+          <div class="hidden md:block overflow-x-auto"><table class="w-full text-sm"><thead><tr class="text-left text-mute border-b border-linea" id="mHead"></tr></thead><tbody id="mTabla"></tbody></table></div>
+          <div class="md:hidden space-y-2" id="mCards"></div>
+          <div class="flex items-center justify-between mt-4 gap-2"><button id="mPrev" class="btn btn-s !min-h-0 py-2 text-sm">← Anterior</button><span class="text-sm text-mute" id="mPag"></span><button id="mNext" class="btn btn-s !min-h-0 py-2 text-sm">Siguiente →</button></div>
+        </div>
       </section>
     </main>
   </div>
 </div>
 
-<!-- Barra inferior (móvil) -->
-<nav class="lg:hidden fixed bottom-0 inset-x-0 z-30 bg-white/95 backdrop-blur border-t border-gray-200 bottom-bar">
+<nav class="lg:hidden fixed bottom-0 inset-x-0 z-30 bg-white/95 backdrop-blur border-t border-linea bottom-bar" aria-label="Navegación">
   <div class="flex max-w-lg mx-auto" id="navBottom"></div>
 </nav>
-<div id="toast" class="fixed left-1/2 bottom-[150px] lg:bottom-8 z-40 bg-tinta text-white text-sm font-medium px-4 py-3 rounded-xl shadow-xl max-w-[90vw]"></div>
+<div id="toast" role="status" aria-live="polite" class="fixed left-1/2 bottom-[150px] lg:bottom-8 z-40 bg-tinta text-white text-sm font-medium px-5 py-3 rounded-full shadow-xl max-w-[90vw] text-center"></div>
 
 <script>
 const TIENDAS=["La Paz - El Prado","Cochabamba - Heroínas","Santa Cruz - Ventura Mall"];
-const VISTAS=[["escaner","Escáner","i-scan"],["inventario","Inventario","i-box"],["ventas","Ventas","i-cash"],["cierre","Cierre","i-moon"],["dashboard","Dashboard","i-chart"],["mercado","Mercado","i-globe"]];
-const UMBRAL=0.55, KEY="manacoVision_v3", BAJO=5;
-let invMax=24, cMax=30, CAT=[], CLASES=[], net=null, head=null, S=null, charts={}, vista="escaner", filtroCat="Todas", tienda=TIENDAS[0];
+const VISTAS=[["escaner","Escáner","i-scan"],["inventario","Inventario","i-box"],["ventas","Ventas","i-cash"],["cierre","Cierre","i-moon"],["dashboard","Resumen","i-chart"],["mercado","Mercado","i-globe"]];
+const UMBRAL=0.55, KEY="manacoVision_v5", BAJO=5;
+const NOMC={"Deportivo":"Deportivo","Casual cuero (suela caucho)":"Casual","Formal cuero/cuero":"Formal de cuero"};
+let invMax=24, cMax=30, CAT=[], IDX={}, CLASES=[], net=null, head=null, S=null, charts={}, vista="escaner", filtroCat="Todas", tienda=TIENDAS[0];
+let dPer=30, dTie="Todas";
 const $=s=>document.querySelector(s), $$=s=>document.querySelectorAll(s);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const bs=n=>"Bs "+Math.round(n).toLocaleString("es-BO");
-const hoy=()=>new Date().toISOString().slice(0,10);
+const fechaLocal=d=>{const x=new Date(d); return x.getFullYear()+"-"+String(x.getMonth()+1).padStart(2,"0")+"-"+String(x.getDate()).padStart(2,"0");};
+const hoy=()=>fechaLocal(Date.now());
+const diaMenos=k=>fechaLocal(Date.now()-k*864e5);
 const tiendaAct=()=>tienda;
-const modelo=id=>CAT.find(c=>c.id===id);
-const corto=c=>c.nombre.split(" - ")[0].replace(/^(DEPORTIVO|ZAPATO DE VESTIR|ZAPATO FORMAL|ZAPATO|CASUAL CORDONES|ZAPATILLAS|BOTIN)\s+/i,"").toLowerCase().replace(/(^|\s)\S/g,m=>m.toUpperCase());
+const modelo=id=>IDX[id];
+const corto=c=>c?esc(c.nombre.split(" - ")[0].replace(/^(DEPORTIVO|ZAPATO DE VESTIR|ZAPATO FORMAL|ZAPATOS?|CASUAL CORDONES|ZAPATILLAS|BOTIN)\s+/i,"").toLowerCase().replace(/(^|\s)\S/g,m=>m.toUpperCase())):"";
 const stockTotal=id=>TIENDAS.reduce((a,t)=>a+S.stock[id][t],0);
+const deb=(f,ms=180)=>{let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>f(...a),ms)}};
 
-function guardar(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
-let tt; function toast(msg){const t=$("#toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(tt); tt=setTimeout(()=>t.classList.remove("show"),2400);}
+function guardar(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){toast("No se pudo guardar en este navegador")}}
+let tt; function toast(msg){const t=$("#toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(tt); tt=setTimeout(()=>t.classList.remove("show"),2600);}
 
 function semilla(){
   let r=42; const rnd=()=>(r=(r*9301+49297)%233280)/233280;
   const st={}; CAT.forEach(c=>{st[c.id]={}; TIENDAS.forEach(t=>st[c.id][t]=rnd()<0.03?1+Math.floor(rnd()*4):5+Math.floor(rnd()*20))});
   const peso={"Deportivo":1.4,"Casual cuero (suela caucho)":1.0,"Formal cuero/cuero":0.7};
   const ventas=[];
-  for(let d=30; d>=1; d--){
-    const f=new Date(Date.now()-d*864e5).toISOString().slice(0,10);
+  for(let d=60; d>=1; d--){
+    const f=diaMenos(d);
     TIENDAS.forEach((t,ti)=>CAT.forEach(c=>{
       if(rnd()>Math.min(1,30/CAT.length)) return;
-      const n=1+Math.floor(rnd()*2*peso[c.categoria]*(1+ti*0.2));
-      if(n>0) ventas.push({fecha:f,hora:"12:00",id:c.id,tienda:t,cant:n,precio:c.precio_bs});
+      ventas.push({fecha:f,hora:"12:00",id:c.id,tienda:t,cant:1+Math.floor(rnd()*2*(peso[c.categoria]||1)*(1+ti*0.2)),precio:c.precio_bs});
     }));
   }
   const cierres=[];
-  for(let d=3; d>=1; d--){
-    const f=new Date(Date.now()-d*864e5).toISOString().slice(0,10);
-    TIENDAS.forEach(t=>CAT.forEach(c=>{const dif=rnd()<0.08?-1:0; cierres.push({fecha:f,tienda:t,id:c.id,esperado:10,fisico:10+dif,dif})}));
-  }
+  for(let d=3; d>=1; d--){const f=diaMenos(d); TIENDAS.forEach(t=>CAT.forEach(c=>{const dif=rnd()<0.008?-1:0; cierres.push({fecha:f,tienda:t,id:c.id,esperado:10,fisico:10+dif,dif})}));}
   return {stock:st,inicioDia:{},ventas,cierres};
 }
 
 async function init(){
-  CAT=await (await fetch("catalogo.json",{cache:"no-cache"})).json();
-  CAT.forEach(c=>{if(!c.precio_bs) c.precio_bs=189.3});
+  try{CAT=await (await fetch("catalogo.json",{cache:"no-cache"})).json();}catch(e){$("#resultado").innerHTML=`<p class="text-error">No se pudo cargar el catálogo. Revisa tu conexión.</p>`;return;}
+  CAT.forEach(c=>{if(!c.precio_bs) c.precio_bs=189.3; IDX[c.id]=c;});
   try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){}
   if(!S||!S.stock||CAT.some(c=>!S.stock[c.id])) {S=semilla(); guardar();}
-  $$(".selTienda").forEach(sel=>{sel.innerHTML=TIENDAS.map(t=>`<option value="${t}">${t}</option>`).join(""); sel.onchange=()=>{tienda=sel.value; $$(".selTienda").forEach(o=>o.value=tienda); render(); if(ultimo&&ultimo!=="otro") mostrar({clase:ultimo,prob:ultimaProb});};});
-  $("#navSide").innerHTML=VISTAS.map(([v,n,i])=>`<button data-v="${v}" class="nav-item"><svg><use href="#${i}"/></svg>${n}</button>`).join("");
-  $("#navBottom").innerHTML=VISTAS.map(([v,n,i])=>`<button data-v="${v}" class="tab-item"><svg><use href="#${i}"/></svg>${n}</button>`).join("");
+  $$(".selTienda").forEach(sel=>{sel.innerHTML=TIENDAS.map(t=>`<option value="${t}">${t}</option>`).join(""); sel.onchange=()=>{tienda=sel.value; $$(".selTienda").forEach(o=>o.value=tienda); render(); if(ultimo&&ultimo!=="otro") mostrar({clase:ultimo,prob:ultimaProb}); toast("Tienda: "+tienda);};});
+  $("#navSide").innerHTML=VISTAS.map(([v,n,i])=>`<button data-v="${v}" class="nav-item"><svg aria-hidden="true"><use href="#${i}"/></svg>${n}</button>`).join("");
+  $("#navBottom").innerHTML=VISTAS.map(([v,n,i])=>`<button data-v="${v}" class="tab-item"><svg aria-hidden="true"><use href="#${i}"/></svg>${n}</button>`).join("");
   $$("[data-v]").forEach(b=>b.onclick=()=>ver(b.dataset.v));
-  $("#vModelo").innerHTML=[...CAT].sort((a,b)=>a.nombre.localeCompare(b.nombre)).map(c=>`<option value="${c.id}">${c.nombre}</option>`).join("");
-  $("#vModelo").onchange=()=>{$("#vImg").src=modelo($("#vModelo").value).imagen};
-  $$(".stepper button").forEach(b=>b.onclick=()=>{const i=$("#vCant"); i.value=Math.max(1,(+i.value||1)+(+b.dataset.d));});
-  const cats=["Todas",...new Set(CAT.map(c=>c.seccion).filter(Boolean)),...new Set(CAT.map(c=>c.categoria)),"Stock bajo"];
-  $("#filtros").innerHTML=cats.map(c=>`<button class="chip" data-f="${c}">${c}</button>`).join("");
+  // Ventas
+  const llenarSel=q=>{const L=[...CAT].filter(c=>!q||(c.nombre+" "+c.marca).toLowerCase().includes(q)).sort((a,b)=>a.nombre.localeCompare(b.nombre)).slice(0,300);
+    $("#vModelo").innerHTML=L.map(c=>`<option value="${c.id}">${esc(c.nombre)} · ${bs(c.precio_bs)}</option>`).join("")||`<option value="">Sin resultados</option>`; $("#vModelo").onchange();};
+  $("#vModelo").onchange=()=>{const c=modelo($("#vModelo").value); $("#vImg").src=c?c.imagen:""; $("#vBtn").disabled=!c;};
+  $("#vBuscar").oninput=deb(e=>llenarSel(e.target.value.trim().toLowerCase()));
+  llenarSel("");
+  $$(".stepper button[data-d]").forEach(b=>b.onclick=()=>{const i=$("#vCant"); i.value=Math.min(99,Math.max(1,(parseInt(i.value)||1)+(+b.dataset.d)));});
+  // Inventario
+  const secc=[...new Set(CAT.map(c=>c.seccion).filter(Boolean))];
+  const cats=["Todas",...secc,...new Set(CAT.map(c=>c.categoria)),"Stock bajo"];
+  $("#filtros").innerHTML=cats.map(c=>`<button class="chip" data-f="${esc(c)}">${esc(NOMC[c]||c)}</button>`).join("");
   $$("[data-f]").forEach(b=>b.onclick=()=>{filtroCat=b.dataset.f; invMax=24; renderInv();});
-  $("#buscar").oninput=()=>{invMax=24; renderInv();};
-  $("#cBuscar").oninput=()=>{cMax=30; renderCierre();};
-  $("#btnReset").onclick=()=>{if(confirm("¿Reiniciar los datos de demostración?")){S=semilla(); guardar(); render(); toast("Datos reiniciados");}};
-  $("#vImg").src=CAT[0].imagen;
-  resultadoVacio(); ver("escaner"); cargarIA(); initMercado();
+  $("#buscar").oninput=deb(()=>{invMax=24; renderInv();});
+  $("#invMas").onclick=()=>{invMax+=24; renderInv();};
+  $("#cBuscar").oninput=deb(()=>{cMax=30; renderCierre();});
+  $("#cMas").onclick=()=>{cMax+=30; renderCierre();};
+  // Dashboard
+  $("#dPeriodo").innerHTML=[[1,"Hoy"],[7,"7 días"],[30,"30 días"]].map(([v,t])=>`<button data-per="${v}" class="px-3.5 py-1.5 rounded-full text-sm font-medium">${t}</button>`).join("");
+  $$("[data-per]").forEach(b=>b.onclick=()=>{dPer=+b.dataset.per; renderDash();});
+  $("#dTienda").innerHTML=`<option value="Todas">Las 3 tiendas</option>`+TIENDAS.map(t=>`<option>${t}</option>`).join("");
+  $("#dTienda").onchange=e=>{dTie=e.target.value; renderDash();};
+  $("#btnReset").onclick=()=>{if(confirm("¿Reiniciar los datos de demostración? Se perderán las ventas y cierres registrados.")){S=semilla(); guardar(); render(); toast("Datos reiniciados");}};
+  resultadoVacio(); ver(location.hash.slice(1)||"escaner"); cargarIA(); initMercado();
 }
 function ver(v){
-  vista=v;
-  $$("[data-v]").forEach(b=>b.classList.toggle("on",b.dataset.v===v));
+  if(!VISTAS.some(x=>x[0]===v)) v="escaner";
+  vista=v; history.replaceState(null,"","#"+v);
+  $$("[data-v]").forEach(b=>{b.classList.toggle("on",b.dataset.v===v); b.setAttribute("aria-current",b.dataset.v===v?"page":"false");});
   $$(".vista").forEach(s=>s.classList.toggle("hidden",s.id!=="v-"+v));
-  $("#tituloMovil").textContent=VISTAS.find(x=>x[0]===v)[1];
+  if(v!=="escaner"&&stream) cerrarCam();
   window.scrollTo({top:0});
   render();
 }
@@ -350,22 +383,21 @@ function render(){
 }
 
 /* ---------- IA ---------- */
-function estadoIA(txt,color){$$(".estadoIA").forEach(e=>{e.querySelector(".txt").textContent=txt; e.querySelector(".dot").className="dot w-2 h-2 rounded-full "+color;});}
+function estadoIA(txt,cls){$$(".estadoIA").forEach(e=>{e.querySelector(".txt").textContent=txt; e.querySelector(".dot").className="dot w-2 h-2 rounded-full "+cls;});}
 async function cargarIA(){
   try{
     [net,head]=await Promise.all([mobilenet.load({version:2,alpha:1.0,modelUrl:"mobilenet/model.json",inputRange:[0,1]}),tf.loadLayersModel("modelo/model.json",{requestInit:{cache:"no-cache"}})]);
     CLASES=await (await fetch("modelo/clases.json",{cache:"no-cache"})).json();
-    estadoIA("IA lista · "+(CLASES.length-1)+" modelos","bg-emerald-400");
-  }catch(e){estadoIA("Error al cargar la IA","bg-red-500");console.error(e)}
-}
-function predecir(fuente){
-  return tf.tidy(()=>Array.from(head.predict(net.infer(fuente,true)).dataSync()));
+    estadoIA("IA lista · "+(CLASES.length-1)+" modelos","bg-ok");
+  }catch(e){estadoIA("No se pudo cargar la IA","bg-error");console.error(e)}
 }
 function clasificar(fuente){
-  const p=predecir(fuente); const i=p.indexOf(Math.max(...p)); return {clase:CLASES[i],prob:p[i],todas:p};
+  const p=tf.tidy(()=>Array.from(head.predict(net.infer(fuente,true)).dataSync()));
+  const i=p.indexOf(Math.max(...p)); return {clase:CLASES[i],prob:p[i],todas:p};
 }
-let loop=null, stream=null, ultimo=null, ultimaProb=0, estable=0, facing="environment";
+let loop=null, stream=null, ultimo=null, ultimaProb=0, estable=0, facing="environment", ultimasTodas=null;
 async function abrirCam(){
+  if(!navigator.mediaDevices?.getUserMedia){toast("Este navegador no permite usar la cámara. Usa \"Foto\".");return;}
   try{
     stream?.getTracks().forEach(t=>t.stop());
     stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:facing,width:{ideal:1280}},audio:false});
@@ -373,16 +405,15 @@ async function abrirCam(){
     $("#placeholderCam").classList.add("hidden"); $("#visor").classList.add("scanning"); $("#liveChip").classList.remove("hidden");
     $("#btnCam span").textContent="Detener";
     clearInterval(loop); loop=setInterval(()=>{
-      if(!net||v.readyState<2) return;
-      const r=clasificar(v);
-      const valido=r.clase!=="otro"&&r.prob>=UMBRAL;
-      $("#liveNombre").textContent=valido?corto(modelo(r.clase)):"Buscando zapato…";
+      if(!net||!head||v.readyState<2) return;
+      const r=clasificar(v), valido=r.clase!=="otro"&&r.prob>=UMBRAL;
+      $("#liveNombre").innerHTML=valido?corto(modelo(r.clase)):"Buscando zapato…";
       $("#livePct").textContent=valido?(r.prob*100).toFixed(0)+"%":"";
-      $("#liveBar").style.width=(valido?r.prob*100:8)+"%";
+      $("#liveBar").style.width=(valido?r.prob*100:6)+"%";
       if(r.clase===ultimo) estable++; else {estable=0; ultimo=r.clase;}
       if(estable===2) mostrar(r);
-    },350);
-  }catch(e){toast("No se pudo abrir la cámara. Usa \"Foto\".");}
+    },380);
+  }catch(e){toast(e.name==="NotAllowedError"?"Permiso de cámara denegado. Actívalo en el navegador o usa \"Foto\".":"No se pudo abrir la cámara. Usa \"Foto\".");}
 }
 function cerrarCam(){
   clearInterval(loop); stream?.getTracks().forEach(t=>t.stop()); stream=null;
@@ -393,43 +424,41 @@ $("#btnCam").onclick=()=>stream?cerrarCam():abrirCam();
 $("#btnFlip").onclick=()=>{facing=facing==="environment"?"user":"environment"; if(stream) abrirCam(); else toast("Cámara "+(facing==="user"?"frontal":"trasera")+" seleccionada");};
 $("#foto").onchange=e=>{
   const f=e.target.files[0]; if(!f) return;
-  if(!net){toast("La IA aún está cargando…");return;}
-  const img=new Image(); img.onload=()=>{ const r=clasificar(img); ultimo=r.clase; mostrar(r); }; img.src=URL.createObjectURL(f);
-  e.target.value="";
+  if(!net||!head){toast("La IA aún está cargando…");return;}
+  const img=new Image(); img.onload=()=>{const r=clasificar(img); ultimo=r.clase; mostrar(r); URL.revokeObjectURL(img.src);}; img.onerror=()=>toast("No se pudo leer la imagen");
+  img.src=URL.createObjectURL(f); e.target.value="";
 };
 function resultadoVacio(){
-  $("#resultado").innerHTML=`<div class="text-center py-8 text-gray-500"><svg class="w-12 h-12 mx-auto mb-3 text-gray-300"><use href="#i-scan"/></svg>
-    <p class="font-semibold text-tinta">Esperando un zapato</p><p class="text-sm">El modelo, su precio y el stock aparecerán aquí.</p></div>`;
+  $("#resultado").innerHTML=`<div class="text-center py-10"><div class="w-16 h-16 mx-auto mb-4 rounded-full bg-suave grid place-items-center"><svg class="w-8 h-8 text-mute" aria-hidden="true"><use href="#i-scan"/></svg></div>
+    <p class="font-semibold">Esperando un zapato</p><p class="text-sm text-mute">El modelo, su precio y el stock aparecerán aquí.</p></div>`;
 }
-let ultimasTodas=null;
 function elegir(k,p){ultimo=k; mostrar({clase:k,prob:Math.max(p,UMBRAL),todas:ultimasTodas});}
 function mostrar(r){
   if(r.todas) ultimasTodas=r.todas;
   const box=$("#resultado");
-  if(r.clase==="otro"||r.prob<UMBRAL){
-    box.innerHTML=`<div class="fade text-center py-6"><div class="text-4xl mb-2">🔍</div><p class="font-semibold">No reconozco un modelo Manaco</p>
-      <p class="text-sm text-gray-500">Confianza ${(r.prob*100).toFixed(0)}% · acerca el zapato o mejora la luz</p></div>`; return;
+  if(r.clase==="otro"||r.prob<UMBRAL||!modelo(r.clase)){
+    box.innerHTML=`<div class="fade text-center py-8"><div class="w-16 h-16 mx-auto mb-3 rounded-full bg-suave grid place-items-center text-2xl">🔍</div><p class="font-semibold">No reconozco un modelo Manaco</p>
+      <p class="text-sm text-mute">Confianza ${(r.prob*100).toFixed(0)}% · acerca el zapato, mejora la luz o usa un fondo liso</p></div>`; return;
   }
   ultimaProb=r.prob;
   const c=modelo(r.clase), t=tiendaAct(), n=S.stock[c.id][t];
-  const TD=r.todas||ultimasTodas; const top=TD?TD.map((p,i)=>[CLASES[i],p]).filter(x=>x[0]!=="otro").sort((a,b)=>b[1]-a[1]).slice(0,3):null;
+  const TD=r.todas||ultimasTodas;
+  const top=TD?TD.map((p,i)=>[CLASES[i],p]).filter(x=>x[0]!=="otro"&&modelo(x[0])).sort((a,b)=>b[1]-a[1]).slice(0,3):null;
   box.innerHTML=`<div class="fade">
-   <div class="flex gap-4 items-center">
-     <img src="${c.imagen}" class="w-24 h-24 object-contain rounded-2xl bg-gray-50 shrink-0" alt="">
-     <div class="min-w-0"><div class="text-[11px] uppercase tracking-wider text-gray-500 font-semibold">${c.marca} · ${c.categoria}</div>
-       <div class="font-bold text-lg leading-tight">${c.nombre}</div>
-       <div class="text-sm mt-1"><b>${bs(c.precio_bs)}</b> <span class="text-emerald-600 font-semibold ml-2">✓ ${(r.prob*100).toFixed(1)}%</span></div></div>
+   <div class="tile aspect-[4/3] grid place-items-center mb-4"><img src="${c.imagen}" class="max-h-full max-w-[80%] object-contain mix-blend-multiply" alt="${esc(c.nombre)}"></div>
+   <div class="eyebrow">${esc(c.marca)} · ${esc(NOMC[c.categoria]||c.categoria)}${c.seccion?" · "+esc(c.seccion):""}</div>
+   <div class="font-bold text-xl leading-tight mt-0.5">${esc(c.nombre)}</div>
+   <div class="flex items-center gap-3 mt-1.5"><span class="text-lg font-semibold">${bs(c.precio_bs)}</span><span class="text-xs font-semibold text-ok bg-ok-50 px-2 py-0.5 rounded-full">IA ${(r.prob*100).toFixed(0)}%</span></div>
+   <div class="mt-4 rounded-2xl p-4 flex items-end justify-between ${n<BAJO?'bg-marca-50':'bg-suave'}">
+     <div><div class="text-xs text-mute">Stock en ${esc(t)}</div><div class="text-5xl font-extrabold tabular-nums leading-none mt-1">${n}<span class="text-base font-medium text-mute ml-1.5">pares</span></div></div>
+     <span class="text-xs font-semibold px-2.5 py-1 rounded-full ${n<BAJO?'bg-marca text-white':'bg-white text-ok'}">${n<BAJO?'Reponer':'Disponible'}</span>
    </div>
-   <div class="mt-4 rounded-2xl p-4 ${n<BAJO?'bg-marca-50':'bg-emerald-50'} flex items-end justify-between">
-     <div><div class="text-xs text-gray-600">Stock en ${t}</div><div class="text-5xl font-extrabold tabular-nums leading-none mt-1">${n}<span class="text-base font-medium text-gray-500 ml-1">pares</span></div></div>
-     ${n<BAJO?'<span class="text-xs font-semibold text-marca bg-white px-2 py-1 rounded-lg">⚠️ Reponer</span>':'<span class="text-xs font-semibold text-emerald-700 bg-white px-2 py-1 rounded-lg">Disponible</span>'}
-   </div>
-   <div class="grid grid-cols-2 gap-2 mt-3">${TIENDAS.filter(x=>x!==t).map(x=>`<div class="rounded-xl bg-gray-50 px-3 py-2"><div class="text-[11px] text-gray-500 truncate">${x}</div><div class="font-bold">${S.stock[c.id][x]} pares</div></div>`).join("")}</div>
+   <div class="grid grid-cols-2 gap-2 mt-2">${TIENDAS.filter(x=>x!==t).map(x=>`<div class="rounded-xl border border-linea px-3 py-2"><div class="text-[11px] text-mute truncate">${esc(x)}</div><div class="font-semibold">${S.stock[c.id][x]} pares</div></div>`).join("")}</div>
    <div class="grid grid-cols-2 gap-2 mt-4">
-     <button class="btn btn-p" onclick="vender('${c.id}',1)">Vender 1 par</button>
+     <button class="btn btn-p" onclick="vender('${c.id}',1)" ${n<1?"disabled":""}>Vender 1 par</button>
      <button class="btn btn-s" onclick="reponer('${c.id}',5)">+5 reponer</button>
    </div>
-   ${top?`<div class="mt-5"><div class="text-xs font-semibold text-gray-500 mb-2">Lo que ve la IA · toca otra opción si no es este</div>${top.map(([k,p])=>`<div onclick="elegir('${k}',${p})" class="flex items-center gap-2 text-xs mb-1 py-1 px-1.5 -mx-1.5 rounded-lg cursor-pointer hover:bg-gray-50 ${k===c.id?'bg-gray-50':''}"><img src="${modelo(k).imagen}" class="w-7 h-7 object-contain rounded" alt=""><span class="w-28 truncate">${corto(modelo(k))}</span><div class="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden"><div class="h-full ${k===c.id?'bg-marca':'bg-gray-300'}" style="width:${(p*100).toFixed(1)}%"></div></div><span class="w-10 text-right tabular-nums">${(p*100).toFixed(0)}%</span></div>`).join("")}</div>`:""}
+   ${top?`<div class="mt-5 pt-4 border-t border-linea"><div class="text-xs font-semibold mb-2">¿No es este? Toca el correcto</div>${top.map(([k,p])=>`<button onclick="elegir('${k}',${p})" class="w-full flex items-center gap-3 text-left text-sm py-1.5 px-2 -mx-2 rounded-xl hover:bg-suave ${k===c.id?'bg-suave':''}"><img src="${modelo(k).imagen}" class="w-9 h-9 object-contain rounded-lg bg-suave" alt=""><span class="flex-1 truncate">${corto(modelo(k))}</span><span class="barra w-16"><i class="${k===c.id?'bg-marca':'bg-[#CACACB]'}" style="width:${(p*100).toFixed(1)}%"></i></span><span class="w-9 text-right tabular-nums text-xs">${(p*100).toFixed(0)}%</span></button>`).join("")}</div>`:""}
   </div>`;
 }
 
@@ -440,34 +469,35 @@ function asegurarInicio(t){
   return S.inicioDia[k];
 }
 function vender(id,cant){
-  const t=tiendaAct(), c=modelo(id); asegurarInicio(t);
-  if(S.stock[id][t]<cant){toast("Sin stock suficiente en "+t);return false;}
+  const t=tiendaAct(), c=modelo(id); cant=Math.max(1,parseInt(cant)||1);
+  if(!c) return false; asegurarInicio(t);
+  if(S.stock[id][t]<cant){toast(`Solo hay ${S.stock[id][t]} pares en ${t}`);return false;}
   S.stock[id][t]-=cant;
   S.ventas.push({fecha:hoy(),hora:new Date().toTimeString().slice(0,5),id,tienda:t,cant,precio:c.precio_bs});
-  guardar(); render(); toast(`✓ Venta: ${cant} × ${corto(c)} · ${bs(cant*c.precio_bs)}`);
+  guardar(); render(); toast(`✓ Vendido: ${cant} × ${c.nombre.split(" - ")[0]} · ${bs(cant*c.precio_bs)}`);
   if(ultimo===id) mostrar({clase:id,prob:ultimaProb||1}); return true;
 }
-function reponer(id,cant){
-  const t=tiendaAct(); asegurarInicio(t); S.stock[id][t]+=cant; S.inicioDia[hoy()+"|"+t][id]+=cant;
-  guardar(); render(); toast(`+${cant} pares de ${corto(modelo(id))}`); if(ultimo===id) mostrar({clase:id,prob:ultimaProb||1});
+function reponer(id,cant,t=tiendaAct()){
+  asegurarInicio(t); S.stock[id][t]+=cant; S.inicioDia[hoy()+"|"+t][id]+=cant;
+  guardar(); render(); toast(`+${cant} pares de ${modelo(id).nombre.split(" - ")[0]} en ${t.split(" - ")[0]}`); if(ultimo===id&&vista==="escaner") mostrar({clase:id,prob:ultimaProb||1});
 }
-$("#vBtn").onclick=()=>{const id=$("#vModelo").value,n=+$("#vCant").value||1; if(vender(id,n)) $("#vCant").value=1;};
+$("#vBtn").onclick=()=>{const id=$("#vModelo").value,n=parseInt($("#vCant").value)||1; if(vender(id,n)) $("#vCant").value=1;};
 
 function renderInv(){
   const q=$("#buscar").value.trim().toLowerCase();
   $$("[data-f]").forEach(b=>b.classList.toggle("on",b.dataset.f===filtroCat));
-  const lista=CAT.filter(c=>(filtroCat==="Todas"||c.categoria===filtroCat||c.seccion===filtroCat||(filtroCat==="Stock bajo"&&TIENDAS.some(t=>S.stock[c.id][t]<BAJO)))&&c.nombre.toLowerCase().includes(q));
+  const lista=CAT.filter(c=>(filtroCat==="Todas"||c.categoria===filtroCat||c.seccion===filtroCat||(filtroCat==="Stock bajo"&&TIENDAS.some(t=>S.stock[c.id][t]<BAJO)))&&(c.nombre+" "+c.marca).toLowerCase().includes(q));
   const tot=CAT.reduce((a,c)=>a+stockTotal(c.id),0), bajos=CAT.filter(c=>TIENDAS.some(t=>S.stock[c.id][t]<BAJO)).length;
-  $("#invResumen").textContent=`${CAT.length} modelos · ${tot} pares en ${TIENDAS.length} tiendas · ${bajos} con stock bajo`;
-  $("#gridInv").innerHTML=lista.slice(0,invMax).map(c=>`<div class="card p-4 fade">
-    <div class="flex gap-3 items-center">
-      <img src="${c.imagen}" loading="lazy" class="w-16 h-16 rounded-xl bg-gray-50 object-contain shrink-0" alt="">
-      <div class="min-w-0 flex-1"><div class="font-semibold leading-tight truncate">${corto(c)}</div>
-        <div class="text-xs text-gray-500 truncate">${c.marca} · ${c.categoria}</div><div class="text-sm font-semibold mt-0.5">${bs(c.precio_bs)}</div></div>
-      <div class="text-right"><div class="text-2xl font-extrabold tabular-nums">${stockTotal(c.id)}</div><div class="text-[10px] text-gray-500">pares</div></div>
-    </div>
-    <div class="grid grid-cols-3 gap-1.5 mt-3">${TIENDAS.map(t=>{const n=S.stock[c.id][t],me=t===tiendaAct();return `<div class="rounded-lg px-2 py-1.5 text-center ${n<BAJO?'bg-marca-50 text-marca':'bg-gray-50'} ${me?'ring-2 ring-tinta/80':''}"><div class="text-[10px] truncate">${t.split(" - ")[0]}</div><div class="font-bold">${n}</div></div>`}).join("")}</div>
-  </div>`).join("")||`<p class="text-gray-500">Sin resultados</p>`;
+  $("#invResumen").innerHTML=`<b class="text-tinta">${CAT.length}</b> modelos · <b class="text-tinta">${tot.toLocaleString("es-BO")}</b> pares · <b class="text-marca">${bajos}</b> con stock bajo`;
+  const t=tiendaAct();
+  $("#gridInv").innerHTML=lista.slice(0,invMax).map(c=>{const n=S.stock[c.id][t], baj=TIENDAS.some(x=>S.stock[c.id][x]<BAJO); return `<article class="group fade">
+    <div class="tile aspect-square grid place-items-center relative overflow-hidden"><img src="${c.imagen}" loading="lazy" class="w-[82%] h-[82%] object-contain mix-blend-multiply group-hover:scale-105 transition" alt="${esc(c.nombre)}">
+      ${baj?'<span class="absolute top-2 left-2 text-[10px] font-semibold bg-marca text-white px-2 py-0.5 rounded-full">Stock bajo</span>':''}</div>
+    <div class="pt-2.5 px-0.5"><div class="font-semibold text-sm leading-tight line-clamp-2">${corto(c)}</div>
+      <div class="text-xs text-mute truncate">${esc(c.marca)} · ${esc(NOMC[c.categoria]||c.categoria)}</div>
+      <div class="flex items-baseline justify-between mt-1"><span class="font-semibold text-sm">${bs(c.precio_bs)}</span><span class="text-xs text-mute"><b class="text-tinta text-sm ${n<BAJO?'!text-marca':''}">${n}</b> aquí · ${stockTotal(c.id)} total</span></div>
+      <div class="flex gap-1 mt-1.5">${TIENDAS.map(x=>{const m=S.stock[c.id][x];return `<span title="${esc(x)}: ${m} pares" class="flex-1 text-center text-[10px] rounded-md py-0.5 ${m<BAJO?'bg-marca-50 text-marca font-semibold':'bg-suave'} ${x===t?'ring-1 ring-tinta':''}">${x.split(" ")[0].slice(0,3)} ${m}</span>`}).join("")}</div></div>
+  </article>`}).join("")||`<p class="text-mute col-span-full py-10 text-center">Sin resultados para "${esc(q)}"</p>`;
   $("#invMas").classList.toggle("hidden",lista.length<=invMax);
   $("#invMas").textContent=`Mostrar más (${lista.length-invMax} restantes)`;
 }
@@ -475,11 +505,11 @@ function renderVentas(){
   const t=tiendaAct(); $("#vTienda").textContent=t;
   const vs=S.ventas.filter(v=>v.fecha===hoy()&&v.tienda===t).reverse();
   const tot=vs.reduce((a,v)=>a+v.cant*v.precio,0), pares=vs.reduce((a,v)=>a+v.cant,0);
-  $("#vKpis").innerHTML=[["Ventas hoy",bs(tot)],["Pares",pares],["Transacciones",vs.length]].map(([k,v])=>`<div class="card p-3"><div class="text-[11px] text-gray-500">${k}</div><div class="text-lg sm:text-xl font-bold tabular-nums">${v}</div></div>`).join("");
-  $("#listaVentas").innerHTML=vs.length?vs.map(v=>{const c=modelo(v.id);return `<div class="card p-3 flex items-center gap-3 fade">
-    <img src="${c.imagen}" class="w-12 h-12 rounded-lg bg-gray-50 object-contain" alt=""><div class="flex-1 min-w-0"><div class="font-semibold text-sm truncate">${corto(c)}</div><div class="text-xs text-gray-500">${v.hora} · ${v.cant} par(es)</div></div>
-    <div class="font-bold tabular-nums">${bs(v.cant*v.precio)}</div></div>`}).join("")
-    :`<div class="card p-6 text-center text-gray-500 text-sm">Aún no hay ventas hoy en esta tienda.<br>Usa el escáner o el formulario.</div>`;
+  $("#vKpis").innerHTML=[["Facturado",bs(tot)],["Pares",pares],["Ventas",vs.length]].map(([k,v])=>`<div class="rounded-2xl bg-suave p-4"><div class="text-xs text-mute">${k}</div><div class="text-xl sm:text-2xl font-bold tabular-nums">${v}</div></div>`).join("");
+  $("#listaVentas").innerHTML=vs.length?vs.map(v=>{const c=modelo(v.id);return c?`<div class="card p-3 flex items-center gap-3 fade">
+    <img src="${c.imagen}" class="w-12 h-12 tile object-contain" alt=""><div class="flex-1 min-w-0"><div class="font-semibold text-sm truncate">${corto(c)}</div><div class="text-xs text-mute">${v.hora} · ${v.cant} ${v.cant===1?"par":"pares"}</div></div>
+    <div class="font-semibold tabular-nums">${bs(v.cant*v.precio)}</div></div>`:""}).join("")
+    :`<div class="rounded-2xl bg-suave p-8 text-center text-mute text-sm">Aún no hay ventas hoy en esta tienda.<br>Usa el escáner o el formulario.</div>`;
 }
 function renderCierre(){
   const t=tiendaAct(); $("#cTienda").textContent=t; const ini=asegurarInicio(t);
@@ -489,166 +519,167 @@ function renderCierre(){
   $("#cMas").classList.toggle("hidden",lista.length<=cMax); $("#cMas").textContent=`Mostrar más (${lista.length-cMax} restantes)`;
   $("#listaCierre").innerHTML=lista.slice(0,cMax).map(c=>{const vend=S.ventas.filter(v=>v.fecha===hoy()&&v.tienda===t&&v.id===c.id).reduce((a,v)=>a+v.cant,0);
     return `<div class="card p-3 flex items-center gap-3">
-      <img src="${c.imagen}" loading="lazy" class="w-12 h-12 rounded-lg bg-gray-50 object-contain shrink-0" alt="">
-      <div class="flex-1 min-w-0"><div class="font-semibold text-sm truncate">${mov.has(c.id)?'<span class="text-marca">●</span> ':''}${corto(c)}</div>
-        <div class="text-[11px] text-gray-500">Inicio ${ini[c.id]} − vendidos ${vend} = <b class="text-tinta">esperado ${S.stock[c.id][t]}</b></div></div>
-      <div class="stepper flex items-center gap-1"><button type="button" onclick="this.nextElementSibling.stepDown();marcar(this)">−</button>
-        <input data-id="${c.id}" type="number" min="0" value="${S.stock[c.id][t]}" oninput="marcar(this)"><button type="button" onclick="this.previousElementSibling.stepUp();marcar(this)">+</button></div>
-    </div>`}).join("");
+      <img src="${c.imagen}" loading="lazy" class="w-12 h-12 tile object-contain shrink-0" alt="">
+      <div class="flex-1 min-w-0"><div class="font-semibold text-sm truncate">${mov.has(c.id)?'<span class="text-marca" aria-label="vendido hoy">●</span> ':''}${corto(c)}</div>
+        <div class="text-[11px] text-mute">${ini[c.id]} al iniciar − ${vend} vendidos = <b class="text-tinta">${S.stock[c.id][t]} esperados</b></div></div>
+      <div class="stepper flex items-center gap-1"><button type="button" aria-label="Restar" onclick="paso(this,-1)">−</button>
+        <input data-id="${c.id}" type="number" min="0" inputmode="numeric" value="${S.stock[c.id][t]}" oninput="marcar(this)" aria-label="Conteo físico de ${esc(c.nombre)}"><button type="button" aria-label="Sumar" onclick="paso(this,1)">+</button></div>
+    </div>`}).join("")||`<p class="text-mute col-span-full text-center py-6">Sin resultados</p>`;
 }
-function marcar(el){const inp=el.closest(".stepper").querySelector("input"); const esp=S.stock[inp.dataset.id][tiendaAct()]; inp.classList.toggle("text-marca",+inp.value<esp); inp.classList.toggle("text-emerald-600",+inp.value>esp);}
+function paso(b,d){const i=b.parentElement.querySelector("input"); i.value=Math.max(0,(parseInt(i.value)||0)+d); marcar(i);}
+function marcar(inp){const esp=S.stock[inp.dataset.id][tiendaAct()], v=Math.max(0,parseInt(inp.value)||0); inp.classList.toggle("text-marca",v<esp); inp.classList.toggle("text-ok",v>esp);}
 $("#cBtn").onclick=()=>{
   const t=tiendaAct(); let falt=0, monto=0, filas=[];
   $$("#listaCierre input").forEach(inp=>{
-    const id=inp.dataset.id, esp=S.stock[id][t], fis=Math.max(0,+inp.value||0), dif=fis-esp;
+    const id=inp.dataset.id, esp=S.stock[id][t], fis=Math.max(0,parseInt(inp.value)||0), dif=fis-esp;
     S.cierres.push({fecha:hoy(),tienda:t,id,esperado:esp,fisico:fis,dif});
     if(dif!==0){filas.push({id,esp,fis,dif}); if(dif<0){falt+=-dif; monto+=-dif*modelo(id).precio_bs;}}
     S.stock[id][t]=fis;
   });
+  const lim=diaMenos(3); S.cierres=S.cierres.filter(c=>c.fecha>=lim||c.dif!==0);
   guardar(); renderCierre();
   $("#cRes").innerHTML = filas.length
-    ? `<div class="card p-4 fade bg-marca-50"><div class="flex items-center gap-3"><div class="text-3xl">⚠️</div><div><div class="font-bold">Se detectaron diferencias</div><div class="text-sm">Faltante: <b>${falt} ${falt===1?"par":"pares"} · ${bs(monto)}</b></div></div></div>
-       <div class="mt-3 space-y-1.5">${filas.map(f=>`<div class="flex justify-between text-sm bg-white rounded-lg px-3 py-2"><span class="truncate mr-2">${corto(modelo(f.id))}: esperado <b>${f.esp}</b>, contado <b>${f.fis}</b></span><b class="${f.dif<0?'text-marca':'text-emerald-600'}">${f.dif>0?'+':''}${f.dif}</b></div>`).join("")}</div></div>`
-    : `<div class="card p-4 fade bg-emerald-50 flex items-center gap-3"><div class="text-3xl">✅</div><div><div class="font-bold">Inventario cuadrado</div><div class="text-sm">El sistema y el conteo físico coinciden.</div></div></div>`;
+    ? `<div class="rounded-2xl p-5 fade bg-marca-50"><div class="flex items-center gap-3"><div class="w-11 h-11 rounded-full bg-marca text-white grid place-items-center font-bold">!</div><div><div class="font-bold">Se detectaron diferencias</div><div class="text-sm">Faltante: <b>${falt} ${falt===1?"par":"pares"} · ${bs(monto)}</b></div></div></div>
+       <div class="mt-3 space-y-1.5">${filas.map(f=>`<div class="flex justify-between text-sm bg-white rounded-xl px-3 py-2"><span class="truncate mr-2">${corto(modelo(f.id))}: esperado <b>${f.esp}</b>, contado <b>${f.fis}</b></span><b class="${f.dif<0?'text-marca':'text-ok'}">${f.dif>0?'+':''}${f.dif}</b></div>`).join("")}</div></div>`
+    : `<div class="rounded-2xl p-5 fade bg-ok-50 flex items-center gap-3"><div class="w-11 h-11 rounded-full bg-ok text-white grid place-items-center font-bold">✓</div><div><div class="font-bold">Inventario cuadrado</div><div class="text-sm">El sistema y el conteo físico coinciden.</div></div></div>`;
   window.scrollTo({top:0,behavior:"smooth"}); toast(filas.length?"Cierre con diferencias":"Cierre sin diferencias");
 };
 
 /* ---------- DASHBOARD ---------- */
+let rankN=5;
 function renderDash(){
-  const dia=k=>new Date(Date.now()-k*864e5).toISOString().slice(0,10);
-  const lim=dia(30), m=v=>v.cant*v.precio, suma=a=>a.reduce((x,v)=>x+m(v),0);
-  const V=S.ventas.filter(v=>v.fecha>=lim);
-  const tot=suma(V), pares=V.reduce((a,v)=>a+v.cant,0);
-  const sem=suma(S.ventas.filter(v=>v.fecha>=dia(7))), semAnt=suma(S.ventas.filter(v=>v.fecha>=dia(14)&&v.fecha<dia(7)));
-  const tend=semAnt?((sem-semAnt)/semAnt*100):0;
-  const hoyBs=suma(S.ventas.filter(v=>v.fecha===hoy()));
-  const porMod={}; CAT.forEach(c=>porMod[c.id]={p:0,bs:0}); V.forEach(v=>{porMod[v.id].p+=v.cant; porMod[v.id].bs+=m(v);});
+  $$("[data-per]").forEach(b=>{const on=+b.dataset.per===dPer; b.className="px-3.5 py-1.5 rounded-full text-sm font-medium "+(on?"bg-tinta text-white":"text-mute hover:text-tinta"); b.setAttribute("aria-pressed",on);});
+  const m=v=>v.cant*v.precio, suma=a=>a.reduce((x,v)=>x+m(v),0), deT=v=>dTie==="Todas"||v.tienda===dTie;
+  const desde=dPer===1?hoy():diaMenos(dPer), antDesde=dPer===1?diaMenos(1):diaMenos(dPer*2);
+  const V=S.ventas.filter(v=>v.fecha>=desde&&deT(v)), Vant=S.ventas.filter(v=>v.fecha>=antDesde&&v.fecha<desde&&deT(v));
+  const tot=suma(V), pares=V.reduce((a,v)=>a+v.cant,0), totAnt=suma(Vant), tend=totAnt?(tot-totAnt)/totAnt*100:0;
+  const nombrePer={1:"hoy",7:"los últimos 7 días",30:"los últimos 30 días"}[dPer], antPer={1:"ayer",7:"los 7 días anteriores",30:"los 30 días anteriores"}[dPer];
+  const donde=dTie==="Todas"?"en las 3 tiendas":"en "+dTie;
+  const porMod={}; V.forEach(v=>{(porMod[v.id]??={p:0,bs:0}); porMod[v.id].p+=v.cant; porMod[v.id].bs+=m(v);});
   const orden=Object.entries(porMod).sort((a,b)=>b[1].p-a[1].p);
-  const C=S.cierres.filter(c=>c.fecha>=lim), ok=C.filter(c=>c.dif===0).length, exact=C.length?ok/C.length*100:100;
-  const perd=C.filter(c=>c.dif<0), faltP=perd.reduce((a,c)=>a-c.dif,0), faltBs=perd.reduce((a,c)=>a-c.dif*modelo(c.id).precio_bs,0);
-  const bajos=[]; CAT.forEach(c=>TIENDAS.forEach(t=>{if(S.stock[c.id][t]<BAJO) bajos.push([c,t,S.stock[c.id][t]])})); bajos.sort((a,b)=>a[2]-b[2]);
-  const flecha=tend>=0?"↑":"↓";
+  const lim=diaMenos(Math.max(dPer,3)), C=S.cierres.filter(c=>c.fecha>=lim&&deT(c)), ok=C.filter(c=>c.dif===0).length, exact=C.length?ok/C.length*100:100;
+  const perd=C.filter(c=>c.dif<0), faltP=perd.reduce((a,c)=>a-c.dif,0), faltBs=perd.reduce((a,c)=>a-c.dif*(modelo(c.id)?.precio_bs||0),0);
+  const tiendasScope=dTie==="Todas"?TIENDAS:[dTie];
+  const bajos=[]; CAT.forEach(c=>tiendasScope.forEach(t=>{if(S.stock[c.id][t]<BAJO) bajos.push([c,t,S.stock[c.id][t]])})); bajos.sort((a,b)=>a[2]-b[2]);
+  const flecha=tend>=0?"▲":"▼";
 
-  // Héroe
-  $("#hero").innerHTML=`<div class="absolute -right-10 -top-10 w-48 h-48 rounded-full bg-marca/25 blur-2xl"></div>
+  $("#hero").innerHTML=`<div class="absolute -right-16 -bottom-24 w-72 h-72 rounded-full bg-white/10"></div><div class="absolute right-24 -top-20 w-40 h-40 rounded-full bg-white/10"></div>
     <div class="relative">
-      <div class="text-sm text-gray-300 mb-2">En los últimos 30 días</div>
-      <p class="font-display text-2xl sm:text-4xl leading-snug">Vendimos <span class="text-[#f0b48e]">${pares.toLocaleString("es-BO")} pares</span> y facturamos <span class="text-[#f0b48e]">${bs(tot)}</span>.</p>
-      <div class="flex flex-wrap gap-2 mt-4 text-sm">
-        <span class="px-3 py-1.5 rounded-full ${tend>=0?'bg-emerald-600':'bg-alerta'} text-white font-semibold">${flecha} ${Math.abs(tend).toFixed(0)}% esta semana vs. la anterior</span>
-        <span class="px-3 py-1.5 rounded-full bg-white/10">Hoy: <b>${bs(hoyBs)}</b></span>
-        <span class="px-3 py-1.5 rounded-full bg-white/10">Cada par se vendió en promedio a <b>${bs(tot/Math.max(pares,1))}</b></span>
+      <div class="text-sm text-white/80 mb-2">${nombrePer[0].toUpperCase()+nombrePer.slice(1)} · ${esc(donde)}</div>
+      <p class="titular text-3xl sm:text-5xl">${pares.toLocaleString("es-BO")} pares vendidos<br><span class="text-white/90">${bs(tot)} facturados</span></p>
+      <div class="flex flex-wrap gap-2 mt-5 text-sm">
+        ${totAnt?`<span class="px-3 py-1.5 rounded-full bg-white text-tinta font-semibold"><span class="${tend>=0?'text-ok':'text-marca'}">${flecha} ${Math.abs(tend).toFixed(0)}%</span> vs. ${antPer}</span>`:""}
+        <span class="px-3 py-1.5 rounded-full bg-white/15">Ticket por par: <b>${pares?bs(tot/pares):"—"}</b></span>
+        <span class="px-3 py-1.5 rounded-full bg-white/15">${orden.length} modelos con ventas</span>
       </div>
     </div>`;
 
-  // Semáforo
-  const est=(cond1,cond2)=>cond1?["Bien","bg-emerald-50 text-emerald-700","🟢"]:cond2?["Atención","bg-amber-50 text-amber-700","🟡"]:["Actuar","bg-alerta-50 text-alerta","🔴"];
-  const tarj=[
-    ["📈","Ventas de la semana",bs(sem),`${flecha} ${Math.abs(tend).toFixed(0)}% respecto a la semana pasada.`,est(tend>=0,tend>-10)],
-    ["🎯","¿El inventario cuadra?",exact.toFixed(0)+"%",`De cada 100 conteos, <b>${exact.toFixed(0)}</b> coinciden con lo que dice el sistema. La meta es 98.`,est(exact>=98,exact>=90)],
-    ["🧾","Pares perdidos",faltP+" pares",`Faltaron al contar: equivale a <b>${bs(faltBs)}</b> este mes.`,est(faltP===0,faltP<=10)],
-    ["📦","Zapatos por reponer",bajos.length,`Modelos con menos de ${BAJO} pares en alguna tienda.`,est(bajos.length===0,bajos.length<=3)],
+  const est=(a,b)=>a?["Bien","text-ok","bg-ok"]:b?["Atención","text-aviso","bg-aviso"]:["Actuar","text-marca","bg-marca"];
+  const T=[
+    ["Ventas",bs(tot),totAnt?`${flecha} ${Math.abs(tend).toFixed(0)}% respecto a ${antPer}.`:"Sin periodo anterior para comparar.",est(tend>=0,tend>-10),null],
+    ["¿El inventario cuadra?",exact.toFixed(0)+"%",`De cada 100 conteos, ${exact.toFixed(0)} coinciden con el sistema. Meta: 98.`,est(exact>=98,exact>=90),exact],
+    ["Pares perdidos",faltP+(faltP===1?" par":" pares"),faltP?`Faltaron al contar: ${bs(faltBs)}.`:"No faltó nada en los conteos.",est(faltP===0,faltP<=10),null],
+    ["Por reponer",bajos.length+(bajos.length===1?" modelo":" modelos"),`Con menos de ${BAJO} pares en alguna tienda.`,est(bajos.length===0,bajos.length<=15),null],
   ];
-  $("#salud").innerHTML=tarj.map(([ic,t,v,d,[e,cls,dot]])=>`<div class="card p-4 flex flex-col">
-    <div class="flex items-center justify-between mb-3"><div class="w-10 h-10 rounded-full bg-gray-100 grid place-items-center text-lg">${ic}</div><span class="text-xs font-bold px-2.5 py-1 rounded-full ${cls}">${dot} ${e}</span></div>
-    <div class="text-sm text-gray-600 font-medium">${t}</div><div class="font-display text-3xl font-semibold my-1 tabular-nums">${v}</div><p class="text-[13px] text-gray-500 leading-snug">${d}</p></div>`).join("");
+  $("#salud").innerHTML=T.map(([t,v,d,[e,tx,dot],pct])=>`<div class="rounded-2xl bg-suave p-5">
+    <div class="flex items-center justify-between mb-3"><span class="text-sm font-medium">${t}</span><span class="text-xs font-semibold flex items-center gap-1.5 ${tx}"><span class="w-2 h-2 rounded-full ${dot}"></span>${e}</span></div>
+    <div class="text-3xl font-extrabold tracking-tight tabular-nums">${v}</div>
+    ${pct!=null?`<div class="barra mt-2 bg-white"><i class="${dot}" style="width:${pct}%"></i></div>`:""}
+    <p class="text-[13px] text-mute leading-snug mt-2">${d}</p></div>`).join("");
 
-  // Acciones
   const porTiendaF={}; perd.forEach(c=>porTiendaF[c.tienda]=(porTiendaF[c.tienda]||0)-c.dif);
   const peorT=Object.entries(porTiendaF).sort((a,b)=>b[1]-a[1])[0];
   const acc=[];
-  bajos.slice(0,2).forEach(([c,t,n])=>acc.push(["📦",`Reponer <b>${corto(c)}</b> en ${t.split(" - ")[0]}`,`Solo quedan ${n} pares.`]));
-  if(peorT) acc.push(["🔍",`Revisar faltantes en <b>${peorT[0].split(" - ")[0]}</b>`,`Ahí se perdieron ${peorT[1]} pares este mes.`]);
-  acc.push(["⭐",`Asegurar stock de <b>${corto(modelo(orden[0][0]))}</b>`,`Es el más vendido: ${orden[0][1].p} pares.`]);
-  acc.push(["🏷️",`Promocionar <b>${corto(modelo(orden.at(-1)[0]))}</b>`,`Es el que menos se vende: ${orden.at(-1)[1].p} pares.`]);
-  acc.push(["👞",`Impulsar la <b>línea de cuero</b>`,`En el mercado vale casi el doble por par.`]);
-  $("#acciones").innerHTML=acc.slice(0,5).map(([ic,t,d],i)=>`<li class="flex gap-3 items-start"><div class="w-9 h-9 shrink-0 rounded-xl bg-marca-50 grid place-items-center">${ic}</div><div><div class="text-sm leading-snug">${t}</div><div class="text-xs text-gray-500">${d}</div></div></li>`).join("");
+  bajos.slice(0,3).forEach(([c,t,n])=>acc.push({txt:`Reponer <b>${corto(c)}</b> en ${esc(t.split(" - ")[0])}`,sub:`${n===1?"Queda 1 par":"Quedan "+n+" pares"}`,btn:"+10",fn:`reponer('${c.id}',10,'${t}')`}));
+  if(peorT) acc.push({txt:`Revisar faltantes en <b>${esc(peorT[0].split(" - ")[0])}</b>`,sub:`${peorT[1]} pares no aparecieron al contar`,btn:"Ir",fn:`tienda='${peorT[0]}';$$('.selTienda').forEach(o=>o.value=tienda);ver('cierre')`});
+  if(orden[0]) acc.push({txt:`Asegurar stock de <b>${corto(modelo(orden[0][0]))}</b>`,sub:`Es el más vendido: ${orden[0][1].p} pares`,btn:"Ver",fn:`ver('inventario');$('#buscar').value=${JSON.stringify(modelo(orden[0][0]).nombre.split(" - ")[0])};renderInv()`});
+  acc.push({txt:`Impulsar la <b>línea de cuero</b>`,sub:`En el mercado vale casi el doble por par`,btn:"Ver",fn:`ver('mercado')`});
+  $("#acciones").innerHTML=acc.slice(0,5).map((a,i)=>`<li class="flex gap-3 items-center rounded-2xl border border-linea p-3"><span class="w-7 h-7 shrink-0 rounded-full bg-tinta text-white grid place-items-center text-xs font-bold">${i+1}</span>
+    <div class="flex-1 min-w-0"><div class="text-sm leading-snug">${a.txt}</div><div class="text-xs text-mute">${a.sub}</div></div><button class="btn btn-s !min-h-0 !py-1.5 !px-3.5 text-xs shrink-0" onclick="${esc(a.fn)}">${a.btn}</button></li>`).join("");
 
-  // Ranking
-  const maxP=orden[0][1].p;
-  const pintaRank=n=>$("#ranking").innerHTML=orden.slice(0,n).map(([id,o],i)=>{const c=modelo(id);return `<div class="flex items-center gap-3">
-    <div class="w-6 text-center font-display font-semibold ${i<3?'text-marca':'text-gray-400'}">${i+1}</div>
-    <img src="${c.imagen}" class="w-11 h-11 rounded-xl bg-gray-50 object-contain shrink-0" alt="">
-    <div class="flex-1 min-w-0"><div class="flex justify-between text-sm"><span class="font-semibold truncate mr-2">${corto(c)}</span><span class="tabular-nums text-gray-600 shrink-0">${o.p} pares</span></div>
-      <div class="h-2 bg-gray-100 rounded-full mt-1.5 overflow-hidden"><div class="h-full rounded-full ${i<3?'bg-marca':'bg-gray-300'}" style="width:${o.p/maxP*100}%"></div></div></div></div>`}).join("");
-  let todos=false; pintaRank(5);
-  $("#verTodos").onclick=()=>{todos=!todos; pintaRank(todos?orden.length:5); $("#verTodos").textContent=todos?"Ver solo los 5 primeros":"Ver todos los modelos";};
+  $("#rankSub").textContent=orden.length?`${orden.length} modelos con ventas`:"";
+  const maxP=orden[0]?.[1].p||1;
+  $("#ranking").innerHTML=orden.slice(0,rankN).map(([id,o],i)=>{const c=modelo(id);return c?`<div class="flex items-center gap-3">
+    <div class="w-5 text-right font-bold text-sm ${i<3?'text-marca':'text-mute'}">${i+1}</div>
+    <img src="${c.imagen}" class="w-12 h-12 tile object-contain shrink-0" alt="">
+    <div class="flex-1 min-w-0"><div class="flex justify-between text-sm gap-2"><span class="font-semibold truncate">${corto(c)}</span><span class="tabular-nums shrink-0"><b>${o.p}</b> <span class="text-mute">· ${bs(o.bs)}</span></span></div>
+      <div class="barra mt-1.5"><i class="${i<3?'bg-marca':'bg-[#CACACB]'}" style="width:${o.p/maxP*100}%"></i></div></div></div>`:""}).join("")||`<p class="text-sm text-mute">Sin ventas en el periodo.</p>`;
+  $("#verTodos").textContent=rankN===5?"Ver top 15":"Ver solo top 5";
+  $("#verTodos").onclick=()=>{rankN=rankN===5?15:5; renderDash();};
 
-  // Tiendas
-  const pt=TIENDAS.map(t=>[t,suma(V.filter(v=>v.tienda===t))]).sort((a,b)=>b[1]-a[1]);
-  $("#tiendas").innerHTML=pt.map(([t,v],i)=>`<div><div class="flex justify-between items-baseline mb-1.5"><span class="font-semibold text-sm">${["🥇","🥈","🥉"][i]} ${t}</span><span class="font-display font-semibold tabular-nums">${bs(v)}</span></div>
-    <div class="h-3 bg-gray-100 rounded-full overflow-hidden"><div class="h-full rounded-full" style="width:${v/pt[0][1]*100}%;background:${["#b5562b","#d08a5f","#e3bb9c"][i]}"></div></div>
-    <div class="text-xs text-gray-500 mt-1">${(v/tot*100).toFixed(0)}% de todo lo vendido</div></div>`).join("");
+  const Vt=S.ventas.filter(v=>v.fecha>=desde);
+  const pt=TIENDAS.map(t=>[t,suma(Vt.filter(v=>v.tienda===t))]).sort((a,b)=>b[1]-a[1]), totT=pt.reduce((a,x)=>a+x[1],0)||1;
+  $("#tiendas").innerHTML=pt.map(([t,v],i)=>`<div class="${dTie!=="Todas"&&dTie!==t?'opacity-40':''}"><div class="flex justify-between items-baseline mb-1.5"><span class="font-semibold text-sm">${i+1}. ${esc(t)}</span><span class="font-bold tabular-nums">${bs(v)}</span></div>
+    <div class="barra !h-3"><i style="width:${v/(pt[0][1]||1)*100}%;background:${["#E40140","#111111","#CACACB"][i]}"></i></div>
+    <div class="text-xs text-mute mt-1">${(v/totT*100).toFixed(0)}% de lo vendido</div></div>`).join("");
 
-  // Categorías
-  Chart.defaults.font.family="'Plus Jakarta Sans', system-ui, sans-serif"; Chart.defaults.color="#8a7a6c";
-  const g=(id,cfg)=>{charts[id]?.destroy(); cfg.options=Object.assign({responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:"#2a1d17",padding:10,cornerRadius:10}}},cfg.options||{}); charts[id]=new Chart($("#"+id),cfg);};
-  const cats=[...new Set(CAT.map(c=>c.categoria))], pal=["#b5562b","#2a1d17","#d6a77f"];
-  const nomCat={"Deportivo":"Deportivos","Casual cuero (suela caucho)":"Casuales de cuero","Formal cuero/cuero":"Formales de cuero"};
-  const vc=cats.map(k=>suma(V.filter(v=>modelo(v.id).categoria===k)));
-  g("chCat",{type:"doughnut",data:{labels:cats.map(k=>nomCat[k]),datasets:[{data:vc,backgroundColor:pal,borderWidth:3,borderColor:"#fff"}]},options:{cutout:"68%"}});
+  Chart.defaults.font.family="Poppins, system-ui, sans-serif"; Chart.defaults.color="#707072";
+  const g=(id,cfg)=>{charts[id]?.destroy(); cfg.options=Object.assign({responsive:true,maintainAspectRatio:false,animation:{duration:400},plugins:{legend:{display:false},tooltip:{backgroundColor:"#111",padding:10,cornerRadius:12,titleFont:{weight:"600"}}}},cfg.options||{}); charts[id]=new Chart($("#"+id),cfg);};
+  const cats=Object.keys(NOMC), pal=["#E40140","#111111","#CACACB"];
+  const vc=cats.map(k=>suma(V.filter(v=>modelo(v.id)?.categoria===k)));
+  g("chCat",{type:"doughnut",data:{labels:cats.map(k=>NOMC[k]),datasets:[{data:vc,backgroundColor:pal,borderWidth:3,borderColor:"#fff"}]},options:{cutout:"70%",plugins:{legend:{display:false},tooltip:{backgroundColor:"#111",callbacks:{label:c=>" "+bs(c.raw)}}}}});
   const iMax=vc.indexOf(Math.max(...vc));
-  $("#catCentro").innerHTML=`<div><div class="font-display text-2xl font-semibold">${(vc[iMax]/tot*100).toFixed(0)}%</div><div class="text-[11px] text-gray-500 leading-tight">${nomCat[cats[iMax]]}</div></div>`;
-  $("#catLeyenda").innerHTML=cats.map((k,i)=>`<div class="flex items-center gap-3"><span class="w-3.5 h-3.5 rounded-full shrink-0" style="background:${pal[i]}"></span><div class="flex-1"><div class="text-sm font-semibold">${nomCat[k]}</div><div class="text-xs text-gray-500">${bs(vc[i])}</div></div><div class="font-display text-lg font-semibold">${(vc[i]/tot*100).toFixed(0)}%</div></div>`).join("");
+  $("#catCentro").innerHTML=tot?`<div><div class="text-2xl font-extrabold">${(vc[iMax]/tot*100).toFixed(0)}%</div><div class="text-[11px] text-mute leading-tight">${NOMC[cats[iMax]]}</div></div>`:"";
+  $("#catLeyenda").innerHTML=cats.map((k,i)=>`<div class="flex items-center gap-3"><span class="w-3 h-3 rounded-full shrink-0" style="background:${pal[i]}"></span><div class="flex-1"><div class="text-sm font-semibold">${NOMC[k]}</div><div class="text-xs text-mute">${bs(vc[i])}</div></div><div class="text-lg font-bold">${tot?(vc[i]/tot*100).toFixed(0):0}%</div></div>`).join("");
 
-  // Día a día
-  const dias=[...new Set(V.map(v=>v.fecha))].filter(d=>d<hoy()).sort(), vd=dias.map(d=>suma(V.filter(v=>v.fecha===d))), prom=vd.reduce((a,b)=>a+b,0)/Math.max(vd.length,1);
-  g("chDia",{type:"line",data:{labels:dias.map(d=>+d.slice(8)+"/"+(+d.slice(5,7))),datasets:[
-    {data:vd,borderColor:"#b5562b",backgroundColor:"rgba(181,86,43,.12)",fill:true,tension:.35,pointRadius:3,pointBackgroundColor:"#b5562b",borderWidth:2.5},
-    {data:vd.map(()=>prom),borderColor:"#8a7a6c",borderDash:[6,6],pointRadius:0,borderWidth:1.5}]},
-    options:{plugins:{legend:{display:false},tooltip:{backgroundColor:"#2a1d17",callbacks:{label:c=>c.datasetIndex?"Promedio: "+bs(c.raw):"Vendido: "+bs(c.raw)}}},
-      scales:{x:{grid:{display:false},ticks:{maxTicksLimit:8}},y:{grid:{color:"#f2ece5"},border:{display:false},ticks:{callback:v=>"Bs "+(v/1000).toFixed(0)+"k"}}}}});
+  const nd=dPer===1?14:dPer, dias=[...Array(nd)].map((_,i)=>diaMenos(nd-i)), Vd=S.ventas.filter(deT);
+  const vd=dias.map(d=>suma(Vd.filter(v=>v.fecha===d))), prom=vd.reduce((a,b)=>a+b,0)/Math.max(vd.length,1);
+  $("#diaNota").textContent=`Promedio: ${bs(prom)} por día · sin contar hoy`;
+  g("chDia",{type:"bar",data:{labels:dias.map(d=>+d.slice(8)+"/"+(+d.slice(5,7))),datasets:[
+    {type:"line",data:vd.map(()=>prom),borderColor:"#111",borderDash:[5,5],pointRadius:0,borderWidth:1.5,order:0},
+    {data:vd,backgroundColor:vd.map(v=>v>=prom?"#E40140":"#E5E5E5"),borderRadius:6,order:1}]},
+    options:{plugins:{legend:{display:false},tooltip:{backgroundColor:"#111",callbacks:{label:c=>c.dataset.type==="line"?" Promedio: "+bs(c.raw):" Vendido: "+bs(c.raw)}}},
+      scales:{x:{grid:{display:false},ticks:{maxTicksLimit:10}},y:{grid:{color:"#F0F0F0"},border:{display:false},ticks:{callback:v=>"Bs "+(v>=1000?(v/1000).toFixed(0)+"k":v)}}}}});
 
-  // Mercado
-  g("chMercado",{type:"bar",data:{labels:["Casual cuero","Deportivo","Formal cuero"],datasets:[{data:[24.7,26.1,43.6],backgroundColor:["#d6a77f","#d6a77f","#b5562b"],borderRadius:10,barPercentage:.6}]},
-    options:{plugins:{legend:{display:false},tooltip:{backgroundColor:"#2a1d17",callbacks:{label:c=>"≈ "+c.raw+" USD por par"}}},scales:{x:{grid:{display:false}},y:{grid:{color:"#f2ece5"},border:{display:false},ticks:{callback:v=>v+" $"}}}}});
+  const cuero=suma(V.filter(v=>modelo(v.id)?.categoria!=="Deportivo"));
+  const metas=[["Exactitud de inventario",exact,98,"%","12 meses"],["Participación del cuero",tot?cuero/tot*100:0,null,"%","36 meses · meta +15 pts"],["Faltantes del periodo",faltP,0,"pares","Meta: 0"]];
+  $("#metas").innerHTML=metas.map(([t,v,meta,u,s])=>{const pct=meta===98?Math.min(100,v/98*100):meta===0?(v===0?100:Math.max(5,100-v*4)):v;
+    return `<div><div class="flex justify-between text-sm mb-1.5"><span class="font-semibold">${t}</span><span class="tabular-nums"><b>${u==="%"?v.toFixed(0):v}</b> ${u}</span></div><div class="barra !h-3"><i class="bg-tinta" style="width:${pct}%"></i></div><div class="text-xs text-mute mt-1">${s}</div></div>`}).join("");
 }
+
 /* ---------- MERCADO (base completa del Excel) ---------- */
 let MER=[], mf={f:"T",c:"Todos",a:"Todos",p:"Todos"}, mOrden={k:"v",dir:-1}, mPagina=0;
-const NOMC={"Deportivo":"Deportivo","Casual cuero (suela caucho)":"Casual de cuero","Formal cuero/cuero":"Formal de cuero"};
 const usd=n=>n>=1e9?(n/1e9).toFixed(2).replace(".",",")+" mil M USD":n>=1e6?(n/1e6).toFixed(1).replace(".",",")+" M USD":Math.round(n).toLocaleString("es-BO")+" USD";
 const millP=n=>n>=1e6?(n/1e6).toFixed(1).replace(".",",")+" M":Math.round(n).toLocaleString("es-BO");
 async function initMercado(){
-  MER=await (await fetch("mercado.json",{cache:"no-cache"})).json();
+  try{MER=await (await fetch("mercado.json",{cache:"no-cache"})).json();}catch(e){$("#mFrase").textContent="No se pudo cargar la base de mercado."; return;}
   const chips=(id,key,opts)=>{$(id).innerHTML=opts.map(([v,t])=>`<button class="chip" data-k="${key}" data-val="${v}">${t}</button>`).join("");};
   chips("#fFlujo","f",[["T","Todo"],["I","Importación (compras)"],["E","Exportación (ventas)"]]);
-  chips("#fCat","c",[["Todos","Todos"],...Object.entries(NOMC)]);
+  chips("#fCat","c",[["Todos","Todos"],...Object.entries({"Deportivo":"Deportivo","Casual cuero (suela caucho)":"Casual de cuero","Formal cuero/cuero":"Formal de cuero"})]);
   chips("#fAnio","a",[["Todos","Todos"],...[...new Set(MER.map(r=>r.a))].sort().map(a=>[a,a])]);
-  $("#fPais").innerHTML=`<option value="Todos">Todos los países</option>`+[...new Set(MER.map(r=>r.s))].sort().map(s=>`<option>${s}</option>`).join("");
+  $("#fPais").innerHTML=`<option value="Todos">Todos los países</option>`+[...new Set(MER.map(r=>r.s))].sort().map(s=>`<option>${esc(s)}</option>`).join("");
   $$("[data-k]").forEach(b=>b.onclick=()=>{mf[b.dataset.k]=b.dataset.val; mPagina=0; renderMercado();});
   $("#fPais").onchange=e=>{mf.p=e.target.value; mPagina=0; renderMercado();};
   $("#mPrev").onclick=()=>{mPagina=Math.max(0,mPagina-1); renderTablaM();};
   $("#mNext").onclick=()=>{mPagina++; renderTablaM();};
+  if(vista==="mercado") renderMercado();
 }
+const NOMM={"Deportivo":"Deportivo","Casual cuero (suela caucho)":"Casual de cuero","Formal cuero/cuero":"Formal de cuero"};
 function filtrados(){return MER.filter(r=>(mf.f==="T"||r.f===mf.f)&&(mf.c==="Todos"||r.c===mf.c)&&(mf.a==="Todos"||String(r.a)===String(mf.a))&&(mf.p==="Todos"||r.s===mf.p));}
 function renderMercado(){
   if(!MER.length) return;
-  $$("[data-k]").forEach(b=>b.classList.toggle("on",String(mf[b.dataset.k])===b.dataset.val));
+  $$("[data-k]").forEach(b=>{const on=String(mf[b.dataset.k])===b.dataset.val; b.classList.toggle("on",on); b.setAttribute("aria-pressed",on);});
   const R=filtrados(), V=R.reduce((a,r)=>a+r.v,0), Q=R.reduce((a,r)=>a+r.q,0), vpp=Q?V/Q:0;
-  const sI=R.filter(r=>r.f==="I"), sE=R.filter(r=>r.f==="E");
-  const vI=sI.reduce((a,r)=>a+r.v,0), vE=sE.reduce((a,r)=>a+r.v,0);
-  const que=mf.c==="Todos"?"calzado":"calzado "+NOMC[mf.c].toLowerCase(), cuando=mf.a==="Todos"?"entre 2020 y 2024":"en "+mf.a, donde=mf.p==="Todos"?"":` con ${mf.p}`;
-  $("#mFrase").innerHTML=R.length?`<p class="font-display text-xl sm:text-2xl leading-snug">${cuando[0].toUpperCase()+cuando.slice(1)}${donde}, España ${mf.f==="E"?"vendió":mf.f==="I"?"compró":"comerció"} <span class="text-[#f0b48e]">${millP(Q)} pares</span> de ${que} por <span class="text-[#f0b48e]">${usd(V)}</span>.</p>
-    <p class="text-sm text-gray-300 mt-2">Cada par valió en promedio <b class="text-white">${vpp.toFixed(1).replace(".",",")} USD</b>${mf.f==="T"&&vE?` · Por cada dólar que vendió, compró ${(vI/vE).toFixed(1).replace(".",",")}`:""}.</p>`
-    :`<p class="font-display text-xl">No hay registros con estos filtros.</p>`;
-  $("#mKpis").innerHTML=[["💵","Dinero total",usd(V)],["👟","Pares",millP(Q)],["🏷️","Valor por par",vpp.toFixed(1).replace(".",",")+" USD"],["🗂️","Registros",R.length+" de "+MER.length]]
-    .map(([e,k,v])=>`<div class="card p-4"><div class="text-lg">${e}</div><div class="text-xs text-gray-500 mt-1">${k}</div><div class="font-display text-xl sm:text-2xl font-semibold tabular-nums leading-tight">${v}</div></div>`).join("");
-  // Años
+  const vI=R.filter(r=>r.f==="I").reduce((a,r)=>a+r.v,0), vE=R.filter(r=>r.f==="E").reduce((a,r)=>a+r.v,0);
+  const que=mf.c==="Todos"?"calzado":"calzado "+NOMM[mf.c].toLowerCase(), cuando=mf.a==="Todos"?"entre 2020 y 2024":"en "+mf.a, donde=mf.p==="Todos"?"":` con ${esc(mf.p)}`;
+  $("#mFrase").innerHTML=R.length?`<p class="titular text-2xl sm:text-3xl">${cuando[0].toUpperCase()+cuando.slice(1)}${donde}, España ${mf.f==="E"?"vendió":mf.f==="I"?"compró":"comerció"} <span class="text-[#FF6B93]">${millP(Q)} pares</span> de ${que} por <span class="text-[#FF6B93]">${usd(V)}</span>.</p>
+    <p class="text-sm text-white/75 mt-3">Cada par valió en promedio <b class="text-white">${vpp.toFixed(1).replace(".",",")} USD</b>${mf.f==="T"&&vE?` · Por cada dólar que vendió, compró ${(vI/vE).toFixed(1).replace(".",",")}`:""}.</p>`
+    :`<p class="titular text-2xl">No hay registros con estos filtros.</p>`;
+  $("#mKpis").innerHTML=[["Dinero total",usd(V)],["Pares",millP(Q)],["Valor por par",vpp.toFixed(1).replace(".",",")+" USD"],["Registros",R.length+" de "+MER.length]]
+    .map(([k,v])=>`<div class="rounded-2xl bg-suave p-4"><div class="text-xs text-mute">${k}</div><div class="text-lg sm:text-2xl font-bold tabular-nums leading-tight mt-0.5">${v}</div></div>`).join("");
   const anios=[...new Set(MER.map(r=>r.a))].sort();
   const serie=f=>anios.map(a=>R.filter(r=>r.a===a&&r.f===f).reduce((x,r)=>x+r.v,0)/1e6);
-  const ds=[]; if(mf.f!=="E") ds.push({label:"Importación",data:serie("I"),backgroundColor:"#b5562b",borderRadius:6}); if(mf.f!=="I") ds.push({label:"Exportación",data:serie("E"),backgroundColor:"#2a1d17",borderRadius:6});
+  const ds=[]; if(mf.f!=="E") ds.push({label:"Importación",data:serie("I"),backgroundColor:"#E40140",borderRadius:6}); if(mf.f!=="I") ds.push({label:"Exportación",data:serie("E"),backgroundColor:"#111111",borderRadius:6});
   charts.chAnios?.destroy();
   charts.chAnios=new Chart($("#chAnios"),{type:"bar",data:{labels:anios,datasets:ds},options:{responsive:true,maintainAspectRatio:false,
-    plugins:{legend:{position:"bottom",labels:{boxWidth:10,usePointStyle:true}},tooltip:{backgroundColor:"#2a1d17",callbacks:{label:c=>c.dataset.label+": "+usd(c.raw*1e6)}}},
-    scales:{x:{grid:{display:false}},y:{grid:{color:"#f2ece5"},border:{display:false},ticks:{callback:v=>v.toLocaleString("es-BO")+" M"}}}}});
-  // Países
+    plugins:{legend:{position:"bottom",labels:{boxWidth:10,usePointStyle:true}},tooltip:{backgroundColor:"#111",callbacks:{label:c=>" "+c.dataset.label+": "+usd(c.raw*1e6)}}},
+    scales:{x:{grid:{display:false}},y:{grid:{color:"#F0F0F0"},border:{display:false},ticks:{callback:v=>v.toLocaleString("es-BO")+" M"}}}}});
   const ps={}; R.forEach(r=>ps[r.s]=(ps[r.s]||0)+r.v); const top=Object.entries(ps).sort((a,b)=>b[1]-a[1]).slice(0,8);
-  $("#mPaises").innerHTML=top.map(([s,v],i)=>`<div><div class="flex justify-between text-sm mb-1"><span class="font-semibold">${i+1}. ${s}</span><span class="tabular-nums text-gray-600">${usd(v)}</span></div><div class="h-2.5 bg-gray-100 rounded-full overflow-hidden"><div class="h-full rounded-full ${i<3?'bg-marca':'bg-gray-300'}" style="width:${v/top[0][1]*100}%"></div></div></div>`).join("")||`<p class="text-sm text-gray-500">Sin datos</p>`;
-  // Valor vs cantidad
-  $("#mVQ").innerHTML=Object.entries(NOMC).map(([k,n])=>{const s=R.filter(r=>r.c===k), v=s.reduce((a,r)=>a+r.v,0), q=s.reduce((a,r)=>a+r.q,0), pv=V?v/V*100:0, pq=Q?q/Q*100:0;
-    return `<div><div class="flex justify-between items-baseline mb-1.5"><span class="font-semibold">${n}</span><span class="text-sm text-gray-500">${q?(v/q).toFixed(1).replace(".",","):"–"} USD por par</span></div>
-      <div class="flex items-center gap-2 text-xs mb-1"><span class="w-14 text-gray-500">Dinero</span><div class="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden"><div class="h-full bg-marca rounded-full" style="width:${pv}%"></div></div><span class="w-10 text-right tabular-nums font-semibold">${pv.toFixed(0)}%</span></div>
-      <div class="flex items-center gap-2 text-xs"><span class="w-14 text-gray-500">Pares</span><div class="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden"><div class="h-full bg-[#d6a77f] rounded-full" style="width:${pq}%"></div></div><span class="w-10 text-right tabular-nums font-semibold">${pq.toFixed(0)}%</span></div></div>`}).join("");
+  $("#mPaises").innerHTML=top.map(([s,v],i)=>`<button onclick="mf.p=${esc(JSON.stringify(s))};$('#fPais').value=mf.p;renderMercado()" class="w-full text-left"><div class="flex justify-between text-sm mb-1"><span class="font-semibold">${i+1}. ${esc(s)}</span><span class="tabular-nums text-mute">${usd(v)}</span></div><div class="barra"><i class="${i<3?'bg-marca':'bg-[#CACACB]'}" style="width:${v/top[0][1]*100}%"></i></div></button>`).join("")||`<p class="text-sm text-mute">Sin datos</p>`;
+  $("#mVQ").innerHTML=Object.entries(NOMM).map(([k,n])=>{const s=R.filter(r=>r.c===k), v=s.reduce((a,r)=>a+r.v,0), q=s.reduce((a,r)=>a+r.q,0), pv=V?v/V*100:0, pq=Q?q/Q*100:0;
+    return `<div><div class="font-semibold">${n}</div><div class="text-3xl font-extrabold tracking-tight mt-1">${q?(v/q).toFixed(1).replace(".",","):"–"}<span class="text-sm font-medium text-mute"> USD/par</span></div>
+      <div class="flex items-center gap-2 text-xs mt-3 mb-1.5"><span class="w-12 text-mute">Dinero</span><div class="barra flex-1"><i class="bg-marca" style="width:${pv}%"></i></div><span class="w-9 text-right tabular-nums font-semibold">${pv.toFixed(0)}%</span></div>
+      <div class="flex items-center gap-2 text-xs"><span class="w-12 text-mute">Pares</span><div class="barra flex-1"><i class="bg-tinta" style="width:${pq}%"></i></div><span class="w-9 text-right tabular-nums font-semibold">${pq.toFixed(0)}%</span></div></div>`}).join("");
   renderTablaM();
 }
 function renderTablaM(){
@@ -656,17 +687,17 @@ function renderTablaM(){
   const POR=15, pags=Math.max(1,Math.ceil(R.length/POR)); mPagina=Math.min(mPagina,pags-1);
   const pg=R.slice(mPagina*POR,(mPagina+1)*POR);
   const cols=[["a","Año"],["f","Movimiento"],["c","Tipo"],["s","País"],["v","Dinero (USD)"],["q","Pares"],["p","USD/par"]];
-  $("#mHead").innerHTML=cols.map(([k,t])=>`<th class="py-2 px-2 font-semibold cursor-pointer select-none whitespace-nowrap" data-o="${k}">${t}${mOrden.k===k?(mOrden.dir>0?" ↑":" ↓"):""}</th>`).join("");
+  $("#mHead").innerHTML=cols.map(([k,t])=>`<th scope="col" class="py-2 px-2 font-semibold whitespace-nowrap"><button data-o="${k}" class="hover:text-tinta">${t}${mOrden.k===k?(mOrden.dir>0?" ↑":" ↓"):""}</button></th>`).join("");
   $$("[data-o]").forEach(th=>th.onclick=()=>{mOrden={k:th.dataset.o,dir:mOrden.k===th.dataset.o?-mOrden.dir:-1}; renderTablaM();});
   const flujo=f=>f==="I"?`<span class="text-marca font-semibold">Importación</span>`:`<span class="font-semibold">Exportación</span>`;
-  $("#mTabla").innerHTML=pg.map(r=>`<tr class="border-b border-gray-100"><td class="py-2 px-2">${r.a}</td><td class="px-2">${flujo(r.f)}</td><td class="px-2">${NOMC[r.c]}</td><td class="px-2">${r.s}</td><td class="px-2 tabular-nums">${r.v.toLocaleString("es-BO")}</td><td class="px-2 tabular-nums">${r.q.toLocaleString("es-BO")}</td><td class="px-2 tabular-nums font-semibold">${r.p.toFixed(2).replace(".",",")}</td></tr>`).join("");
-  $("#mCards").innerHTML=pg.map(r=>`<div class="rounded-xl bg-gray-50 p-3"><div class="flex justify-between text-sm"><span class="font-semibold">${r.s} · ${r.a}</span>${flujo(r.f)}</div><div class="text-xs text-gray-500">${NOMC[r.c]}</div>
-    <div class="grid grid-cols-3 gap-2 mt-2 text-xs"><div><div class="text-gray-500">Dinero</div><b>${usd(r.v)}</b></div><div><div class="text-gray-500">Pares</div><b>${millP(r.q)}</b></div><div><div class="text-gray-500">Por par</div><b>${r.p.toFixed(1).replace(".",",")} USD</b></div></div></div>`).join("");
+  $("#mTabla").innerHTML=pg.map(r=>`<tr class="border-b border-linea hover:bg-suave"><td class="py-2.5 px-2">${r.a}</td><td class="px-2">${flujo(r.f)}</td><td class="px-2">${NOMM[r.c]}</td><td class="px-2">${esc(r.s)}</td><td class="px-2 tabular-nums">${r.v.toLocaleString("es-BO")}</td><td class="px-2 tabular-nums">${r.q.toLocaleString("es-BO")}</td><td class="px-2 tabular-nums font-semibold">${r.p.toFixed(2).replace(".",",")}</td></tr>`).join("");
+  $("#mCards").innerHTML=pg.map(r=>`<div class="rounded-2xl bg-suave p-3.5"><div class="flex justify-between text-sm"><span class="font-semibold">${esc(r.s)} · ${r.a}</span>${flujo(r.f)}</div><div class="text-xs text-mute">${NOMM[r.c]}</div>
+    <div class="grid grid-cols-3 gap-2 mt-2 text-xs"><div><div class="text-mute">Dinero</div><b>${usd(r.v)}</b></div><div><div class="text-mute">Pares</div><b>${millP(r.q)}</b></div><div><div class="text-mute">Por par</div><b>${r.p.toFixed(1).replace(".",",")} USD</b></div></div></div>`).join("");
   $("#mCuenta").textContent=`${R.length} registros`;
   $("#mPag").textContent=`Página ${mPagina+1} de ${pags}`;
   $("#mPrev").disabled=mPagina===0; $("#mNext").disabled=mPagina>=pags-1;
-  $("#mPrev").classList.toggle("opacity-40",mPagina===0); $("#mNext").classList.toggle("opacity-40",mPagina>=pags-1);
 }
+window.addEventListener("hashchange",()=>{const v=location.hash.slice(1); if(v&&v!==vista) ver(v);});
 init();
 </script>
 </body>
