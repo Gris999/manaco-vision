@@ -3,7 +3,7 @@ const { test, expect } = require("@playwright/test");
 const fs = require("node:fs");
 
 const entrar = async (page, rol, tienda = "La Paz - El Prado") => {
-  if (await page.locator("#inicio").isHidden()) await page.locator(".btnRol:visible").first().click();
+  await page.evaluate(() => abrirInicio()); await expect(page.locator("#inicio")).toBeVisible();
   await page.locator("#inicioTienda").selectOption(tienda);
   await page.locator(`[data-rol="${rol}"]`).click();
 };

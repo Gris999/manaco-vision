@@ -166,7 +166,7 @@ function leerCuerpo(req, max = 2e6) {
 const autenticar = req => verificarToken((req.headers.authorization || "").replace(/^Bearer\s+/i, ""));
 
 const RUTAS = {
-  "GET /api/salud": () => [200, { ok: true, rev: REV, version: "1.2.0", hoy: hoyLocal(), motor: BD.motor.split(" · ")[0] }],
+  "GET /api/salud": () => [200, { ok: true, rev: REV, version: "1.2.1", hoy: hoyLocal(), motor: BD.motor.split(" · ")[0] }],
   "POST /api/login": async (req) => {
     const ip = req.socket.remoteAddress || "?";
     if (!permitirLogin(ip)) return [429, { error: "Demasiados intentos. Espera 5 minutos." }];
@@ -186,6 +186,7 @@ const RUTAS = {
   },
   "POST /api/acciones": async (req, u) => {
     const { acciones } = await leerCuerpo(req);
+    if (process.env.RETARDO_MS) await new Promise(r => setTimeout(r, Number(process.env.RETARDO_MS))); // solo pruebas: simula un servidor lento
     if (!Array.isArray(acciones)) return [400, { error: "Se esperaba { acciones: [...] }" }];
     return [200, await procesarLote(u, acciones)];
   },

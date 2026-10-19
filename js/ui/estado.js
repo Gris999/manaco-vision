@@ -65,9 +65,10 @@ const Sync={
   },
   salir(silencioso){ this.sesion=null; localStorage.removeItem("mv_sesion"); this.estado="local"; this.pintar(); if(!silencioso) location.reload(); },
   encolar(a){ if(!this.activo) return; this.cola.push(a); Almacen.escribir("cola",this.cola); this.estado="pendiente"; this.pintar(); this.sincronizar(); },
-  enCurso:false,
+  enCurso:false, otraVez:false,
   async sincronizar(){
-    if(!this.activo||this.enCurso||!navigator.onLine) {this.pintar(); return;}
+    if(this.enCurso){ this.otraVez=true; return; } // al terminar el envío actual se envía lo que llegó mientras tanto
+    if(!this.activo||!navigator.onLine) {this.pintar(); return;}
     this.enCurso=true;
     try{
       if(this.cola.length){
@@ -78,16 +79,26 @@ const Sync={
       const e=await this.api("/api/estado?rev="+(this.rev??-1)); // solo descarga si hubo cambios en el servidor
       if(!e.sinCambios){ S=e.estado; this.rev=e.rev;
         for(const a of this.cola){try{Acciones.aplicar(S,a,CTX());}catch(_){}} // lo que se hizo mientras tanto sigue visible
-        guardar(); if(typeof render==="function"&&vista) render(); }
+        guardar(); if(typeof render==="function"&&vista) renderConservando(); }
       this.estado=this.cola.length?"pendiente":"sincronizado";
     }catch(err){ this.estado="error"; console.warn("Sincronización",err); }
-    finally{ this.enCurso=false; this.pintar(); }
+    finally{ this.enCurso=false; this.pintar(); if(this.otraVez){ this.otraVez=false; this.sincronizar(); } }
   },
   pintar(){
     const txt={local:"Solo este equipo",sincronizado:"Sincronizado",pendiente:`${this.cola.length} por enviar`,error:navigator.onLine?"Sin conexión al servidor":"Sin internet · se enviará luego"}[this.estado];
     $$(".syncTxt").forEach(e=>{e.textContent=this.activo?`${this.sesion.nombre} · ${txt}`:txt; e.dataset.estado=this.estado;});
   },
 };
+
+/** Redibuja la vista tras una sincronización SIN borrar lo que el usuario está escribiendo (valores y foco). */
+function renderConservando(){
+  const sec=document.getElementById("v-"+vista), campos={};
+  sec?.querySelectorAll("input[id],select[id],textarea[id]").forEach(e=>{ if(e.type!=="radio"&&e.type!=="checkbox") campos[e.id]=e.value; });
+  const foco=document.activeElement?.id, sel=[document.activeElement?.selectionStart,document.activeElement?.selectionEnd];
+  render();
+  for(const [id,v] of Object.entries(campos)){ const e=document.getElementById(id); if(e&&v!==""&&e.value!==v) e.value=v; }
+  const f=foco&&document.getElementById(foco); if(f&&f!==document.activeElement){ f.focus(); try{f.setSelectionRange(sel[0],sel[1]);}catch(_){} }
+}
 
 /* ---------- Diálogos propios (reemplazan prompt/confirm nativos) ---------- */
 /**

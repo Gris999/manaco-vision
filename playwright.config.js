@@ -13,6 +13,6 @@ module.exports = defineConfig({
     command: "node server/servidor.js",
     url: `http://localhost:${PUERTO}/api/salud`,
     reuseExistingServer: false,
-    env: { PUERTO: String(PUERTO), BD: path.join(os.tmpdir(), `manaco-e2e-${Date.now()}.db`) },
+    env: { RETARDO_MS: "800", PUERTO: String(PUERTO), BD: path.join(os.tmpdir(), `manaco-e2e-${Date.now()}.db`) },
   },
 });

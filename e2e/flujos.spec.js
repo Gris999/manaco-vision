@@ -2,7 +2,7 @@
 const { test, expect } = require("@playwright/test");
 
 const entrarDemo = async (page, rol, tienda = "La Paz - El Prado") => {
-  if (await page.locator("#inicio").isHidden()) await page.locator(".btnRol:visible").first().click();
+  await page.evaluate(() => abrirInicio()); await expect(page.locator("#inicio")).toBeVisible();
   await page.locator("#inicioTienda").selectOption(tienda);
   await page.locator(`[data-rol="${rol}"]`).click();
 };
@@ -117,4 +117,23 @@ test("modo servidor: dos celulares comparten datos y el rol lo impone el servido
   await ven.locator(".btnRol:visible").first().click();
   await ven.locator('[data-rol="gerente"]').click();
   await expect(ven.locator("#toast")).toContainText("cierra sesión");
+});
+
+test("servidor lento: dos operaciones seguidas llegan sin esperar el ciclo de 20 s", async ({ browser }) => {
+  const ctx = await browser.newContext({ serviceWorkers: "block" }); const page = await ctx.newPage();
+  await page.goto("/");
+  const f = page.locator("#fLogin");
+  await f.locator("[name=usuario]").fill("encargado.sc"); await f.locator("[name=clave]").fill("Manaco-SC-2026");
+  await f.getByRole("button", { name: "Iniciar sesión" }).click();
+  await expect(page.locator(".syncTxt").first()).toContainText("Sincronizado");
+  await page.locator("#fondoIni").fill("300");
+  await page.getByRole("button", { name: "Abrir caja" }).click();
+  // segunda operación MIENTRAS la primera todavía viaja al servidor (retardo 800 ms)
+  await page.locator("#mcMonto").fill("50"); await page.waitForTimeout(900); // llega la sincronización mientras escribe
+  await expect(page.locator("#mcMonto")).toHaveValue("50");                     // no se borró lo escrito
+  await page.locator("#mcMotivo").fill("Cambio");
+  await page.getByRole("button", { name: "Registrar" }).click();
+  await expect.poll(() => page.evaluate(() => Sync.cola.length), { timeout: 6000 }).toBe(0);
+  const enServidor = await page.evaluate(async () => (await Sync.api("/api/estado?rev=-1")).estado.cajas[Acciones.sesionKey((await Sync.api("/api/estado?rev=-1")).estado, tienda, hoy())]?.movs?.length);
+  expect(enServidor).toBe(1);
 });
