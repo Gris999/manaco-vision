@@ -387,10 +387,10 @@ tailwind.config={theme:{extend:{
     <button class="btn btn-n w-full mt-5" onclick="$('#modalIOS').classList.add('hidden')">Entendido</button>
   </div>
 </div>
-<div id="bannerUpdate" class="hidden fixed left-1/2 -translate-x-1/2 top-3 z-50 bg-tinta text-white rounded-full pl-5 pr-2 py-2 shadow-xl flex items-center gap-3 text-sm" role="status">
+<div id="bannerUpdate" class="hidden fixed left-1/2 -translate-x-1/2 top-[calc(env(safe-area-inset-top)+12px)] z-50 bg-tinta text-white rounded-full pl-5 pr-2 py-2 shadow-xl flex items-center gap-3 text-sm whitespace-nowrap max-w-[calc(100vw-24px)]" role="status">
   Hay una nueva versión <button id="btnUpdate" class="bg-marca rounded-full px-4 py-1.5 font-semibold">Actualizar</button>
 </div>
-<div id="bannerOffline" class="hidden fixed left-1/2 -translate-x-1/2 top-3 z-40 bg-white border border-linea text-tinta rounded-full px-4 py-2 shadow-lg text-xs font-medium" role="status">Sin conexión · trabajando con los datos guardados</div>
+<div id="bannerOffline" class="hidden fixed left-1/2 -translate-x-1/2 top-[calc(env(safe-area-inset-top)+12px)] whitespace-nowrap z-40 bg-white border border-linea text-tinta rounded-full px-4 py-2 shadow-lg text-xs font-medium" role="status">Sin conexión · trabajando con los datos guardados</div>
 <div id="toast" role="status" aria-live="polite" class="fixed left-1/2 top-[76px] lg:top-auto lg:bottom-8 z-40 bg-tinta text-white text-sm font-medium px-5 py-3 rounded-full shadow-xl max-w-[90vw] text-center"></div>
 
 <script>
@@ -1084,8 +1084,10 @@ if("serviceWorker" in navigator&&location.protocol!=="file:"){
   navigator.serviceWorker.addEventListener("controllerchange",()=>{if(teniaControlador&&!recargando){recargando=true; location.reload();}});
   navigator.serviceWorker.register("sw.js").then(reg=>{
     const avisar=w=>{$("#bannerUpdate").classList.remove("hidden"); $("#btnUpdate").onclick=()=>w.postMessage("SKIP_WAITING");};
-    if(reg.waiting&&navigator.serviceWorker.controller) avisar(reg.waiting);
-    reg.addEventListener("updatefound",()=>{const w=reg.installing; w.addEventListener("statechange",()=>{if(w.state==="installed"&&navigator.serviceWorker.controller) avisar(w);});});
+    // Solo es "nueva versión" si esta página YA estaba controlada por un service worker al cargar
+    // (en Safari el primer SW puede tomar el control antes de 'installed' y parecer una actualización).
+    if(reg.waiting&&teniaControlador) avisar(reg.waiting);
+    reg.addEventListener("updatefound",()=>{const w=reg.installing; w.addEventListener("statechange",()=>{if(w.state==="installed"&&teniaControlador) avisar(w);});});
     setInterval(()=>reg.update(),30*60*1000);
   }).catch(e=>console.warn("SW no registrado",e));
 }
