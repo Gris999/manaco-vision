@@ -126,7 +126,7 @@ tailwind.config={theme:{extend:{
     </div>
     <button class="btnRol w-full flex items-center gap-3 rounded-2xl bg-suave p-3 mb-5 text-left hover:bg-linea" aria-label="Cambiar de rol">
       <span class="rolIco w-10 h-10 rounded-full bg-marca text-white grid place-items-center text-lg shrink-0"></span>
-      <span class="min-w-0 flex-1"><span class="eyebrow block">Entraste como</span><span class="rolTxt font-semibold block truncate"></span></span>
+      <span class="min-w-0 flex-1"><span class="eyebrow block">Entraste como</span><span class="rolTxt font-semibold block leading-tight"></span></span>
       <span class="text-xs font-semibold text-marca">Cambiar</span>
     </button>
     <nav class="space-y-1" id="navSide"></nav>
@@ -323,15 +323,18 @@ tailwind.config={theme:{extend:{
       <!-- MERCADO -->
       <section id="v-mercado" class="vista hidden" aria-labelledby="t-mer">
         <div class="mb-5"><div class="eyebrow">Base de comercio exterior · 230 registros · 2020–2024</div><h1 id="t-mer" class="titular text-3xl lg:text-4xl">Mercado de calzado</h1>
-          <p class="text-mute text-sm mt-1 max-w-2xl">País reportante: España. Es una referencia externa, no son ventas de Manaco. Filtra y descubre qué se compra, qué se vende y cuánto vale cada par.</p></div>
-        <div class="card p-4 mb-5 space-y-4">
+          <p class="text-mute text-sm mt-1 max-w-2xl">Datos de España (referencia externa, no ventas de Manaco).</p></div>
+        <details id="mFiltrosBox" class="card p-4 mb-5">
+          <summary class="cursor-pointer font-semibold text-sm flex items-center justify-between gap-2 list-none"><span class="whitespace-nowrap shrink-0">Filtros ▾</span><span id="mFiltrosTxt" class="text-xs text-mute font-normal truncate"></span></summary>
+          <div class="space-y-4 mt-4">
           <div><div class="eyebrow mb-2">Movimiento</div><div class="scroll-x flex gap-2" id="fFlujo" role="group" aria-label="Movimiento"></div></div>
           <div><div class="eyebrow mb-2">Tipo de zapato</div><div class="scroll-x flex gap-2" id="fCat" role="group" aria-label="Tipo"></div></div>
           <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-4 items-end">
             <div class="min-w-0"><div class="eyebrow mb-2">Año</div><div class="scroll-x flex gap-2" id="fAnio" role="group" aria-label="Año"></div></div>
             <label><span class="eyebrow block mb-2">País</span><select id="fPais" class="campo sm:!w-56"></select></label>
           </div>
-        </div>
+          </div>
+        </details>
         <div id="mFrase" class="rounded-[22px] bg-tinta text-white p-6 mb-5" aria-live="polite"></div>
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6" id="mKpis"></div>
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-6">
@@ -632,7 +635,7 @@ async function probarEjemplo(){
   x.translate(160,160); x.rotate((Math.random()*30-15)*Math.PI/180); const w=200+Math.random()*80; x.drawImage(img,-w/2,-w/2,w,w);
   const ph=$("#placeholderCam"); ph.innerHTML=`<img src="${cv.toDataURL("image/jpeg",.85)}" class="w-full h-full object-cover" alt="Foto de prueba"><span class="absolute top-3 left-3 text-[11px] font-semibold bg-white/90 text-tinta px-2 py-1 rounded-full">Modo prueba</span>`;
   const r=clasificar(cv); ultimo=r.clase; mostrar(r);
-  if(r.clase!==c.id) toast(`La IA dudó: era ${c.nombre.split(" - ")[0]}. Puedes tocar el correcto en la lista.`);
+  if(r.clase!==c.id||r.prob<UMBRAL) toast(`Era: ${c.nombre.split(" - ")[0]}. Si la IA dudó, tócalo en la lista.`);
   if(innerWidth<1024) setTimeout(()=>$("#resultado").scrollIntoView({behavior:"smooth",block:"start"}),60);
 }
 /* Pantalla de muestra: abre fotos grandes para apuntar la cámara de OTRO teléfono */
@@ -644,8 +647,11 @@ function mostrar(r){
   if(r.todas) ultimasTodas=r.todas;
   const box=$("#resultado");
   if(r.clase==="otro"||r.prob<UMBRAL||!modelo(r.clase)){
-    box.innerHTML=`<div class="fade text-center py-8"><div class="w-16 h-16 mx-auto mb-3 rounded-full bg-suave grid place-items-center text-2xl">🔍</div><p class="font-semibold">No reconozco un modelo Manaco</p>
-      <p class="text-sm text-mute">Confianza ${(r.prob*100).toFixed(0)}% · acerca el zapato, mejora la luz o usa un fondo liso</p></div>`; return;
+    const opc=(r.todas||ultimasTodas||[]).map((p,i)=>[CLASES[i],p]).filter(x=>x[0]!=="otro"&&modelo(x[0])).sort((a,b)=>b[1]-a[1]).slice(0,3);
+    box.innerHTML=`<div class="fade"><div class="flex items-center gap-3 mb-3"><div class="w-12 h-12 shrink-0 rounded-full bg-aviso-50 grid place-items-center text-xl">🤔</div>
+      <div><p class="font-semibold leading-tight">La IA no está segura</p><p class="text-xs text-mute">Confianza ${(r.prob*100).toFixed(0)}% · acerca el zapato, mejora la luz o usa un fondo liso</p></div></div>
+      ${opc.length?`<p class="text-sm font-semibold mb-1">¿Es alguno de estos?</p>${opc.map(([k,p])=>`<button onclick="elegir('${k}',${p})" class="w-full flex items-center gap-3 text-left text-sm py-2 px-2 -mx-2 rounded-xl hover:bg-suave"><img src="${modelo(k).imagen}" class="w-12 h-12 object-contain rounded-lg bg-suave" alt=""><span class="flex-1 min-w-0"><span class="block truncate font-medium">${corto(modelo(k))}</span><span class="text-xs text-mute">${bs(modelo(k).precio_bs)}</span></span><span class="text-xs tabular-nums text-mute">${(p*100).toFixed(0)}%</span></button>`).join("")}`:""}
+      <p class="text-xs text-mute mt-3">Si no está en la lista, búscalo en <b>Ventas</b> por nombre.</p></div>`; return;
   }
   ultimaProb=r.prob;
   const c=modelo(r.clase), t=tiendaAct(), n=S.stock[c.id][t];
@@ -958,6 +964,7 @@ let MER=[], mf={f:"T",c:"Todos",a:"Todos",p:"Todos"}, mOrden={k:"v",dir:-1}, mPa
 const usd=n=>n>=1e9?(n/1e9).toFixed(2).replace(".",",")+" mil M USD":n>=1e6?(n/1e6).toFixed(1).replace(".",",")+" M USD":Math.round(n).toLocaleString("es-BO")+" USD";
 const millP=n=>n>=1e6?(n/1e6).toFixed(1).replace(".",",")+" M":Math.round(n).toLocaleString("es-BO");
 async function initMercado(){
+  if(innerWidth>=640) $("#mFiltrosBox").open=true; // en celular los filtros parten plegados
   try{MER=await (await fetch("mercado.json",{cache:"no-cache"})).json();}catch(e){$("#mFrase").textContent="No se pudo cargar la base de mercado."; return;}
   const chips=(id,key,opts)=>{$(id).innerHTML=opts.map(([v,t])=>`<button class="chip" data-k="${key}" data-val="${v}">${t}</button>`).join("");};
   chips("#fFlujo","f",[["T","Todo"],["I","Importación (compras)"],["E","Exportación (ventas)"]]);
@@ -976,6 +983,7 @@ function renderMercado(){
   if(!MER.length) return;
   $$("[data-k]").forEach(b=>{const on=String(mf[b.dataset.k])===b.dataset.val; b.classList.toggle("on",on); b.setAttribute("aria-pressed",on);});
   const R=filtrados(), V=R.reduce((a,r)=>a+r.v,0), Q=R.reduce((a,r)=>a+r.q,0), vpp=Q?V/Q:0;
+  $("#mFiltrosTxt").textContent=[{T:"Todo",I:"Importación",E:"Exportación"}[mf.f],mf.c==="Todos"?"todos los tipos":NOMM[mf.c],mf.a==="Todos"?"2020–2024":mf.a,mf.p==="Todos"?"todos los países":mf.p].join(" · ");
   const vI=R.filter(r=>r.f==="I").reduce((a,r)=>a+r.v,0), vE=R.filter(r=>r.f==="E").reduce((a,r)=>a+r.v,0);
   const que=mf.c==="Todos"?"calzado":"calzado "+NOMM[mf.c].toLowerCase(), cuando=mf.a==="Todos"?"entre 2020 y 2024":"en "+mf.a, donde=mf.p==="Todos"?"":` con ${esc(mf.p)}`;
   $("#mFrase").innerHTML=R.length?`<p class="titular text-2xl sm:text-3xl">${cuando[0].toUpperCase()+cuando.slice(1)}${donde}, España ${mf.f==="E"?"vendió":mf.f==="I"?"compró":"comerció"} <span class="text-[#FF6B93]">${millP(Q)} pares</span> de ${que} por <span class="text-[#FF6B93]">${usd(V)}</span>.</p>
@@ -1060,7 +1068,7 @@ function renderCaja(){
   const vendio=cj&&resumenSesion().transacciones>0, contado=!!borrador(t).cerrado, cerrada=cj&&!cj.abierta;
   const pasos=[["Abrir caja",!!cj],["Vender",vendio||cerrada],["Contar inventario",contado],["Arqueo y cierre",cerrada]];
   const sig=pasos.findIndex(p=>!p[1]);
-  const consejo=sig===-1?"Día cerrado. Puedes imprimir el Reporte Z.":sig===0?"Empieza abriendo la caja con el fondo para cambio.":sig===1?"Los vendedores ya pueden vender. Cuando termine el día, sigue con el conteo.":sig===2?`Antes de cerrar, <button class="underline font-semibold" onclick="ver('cierre')">haz el conteo de inventario →</button>`:"Cuenta el efectivo abajo y cierra la caja.";
+  const consejo=sig===-1?"Día cerrado. Puedes imprimir el Reporte Z.":cerrada&&!contado?`Caja cerrada, pero <b>falta el conteo de inventario</b>. <button class="underline font-semibold" onclick="ver('cierre')">Hacerlo ahora →</button>`:sig===0?"Empieza abriendo la caja con el fondo para cambio.":sig===1?"Los vendedores ya pueden vender. Cuando termine el día, sigue con el conteo.":sig===2?`Antes de cerrar, <button class="underline font-semibold" onclick="ver('cierre')">haz el conteo de inventario →</button>`:"Cuenta el efectivo abajo y cierra la caja.";
   $("#cajaBody").insertAdjacentHTML("afterbegin",`<div class="mb-5"><ol class="grid grid-cols-4 gap-1.5" aria-label="Pasos del día">${pasos.map(([n,ok],i)=>`<li class="text-center"><div class="h-1.5 rounded-full ${ok?"bg-ok":i===sig?"bg-marca":"bg-linea"}"></div><div class="text-[11px] mt-1.5 leading-tight ${i===sig?"font-bold text-tinta":ok?"text-ok":"text-mute"}">${ok?"✓ ":""}${n}</div></li>`).join("")}</ol>
     <p class="text-sm mt-3 rounded-xl bg-suave px-3 py-2">${consejo}</p></div>`);
 }
@@ -1113,7 +1121,7 @@ function renderCajaCuerpo(){
       <div class="rounded-2xl bg-ok-50 p-3 col-span-2 sm:col-span-1"><div class="text-xs text-mute">Utilidad bruta</div><div class="text-lg font-bold text-ok tabular-nums">${bsc(r.utilidad)}</div></div></div>
     <div class="grid grid-cols-2 gap-2 mb-4"><div class="rounded-2xl p-3 ${cj.dif===0?"bg-ok-50":"bg-marca-50"}"><div class="text-xs text-mute">Caja</div><div class="font-bold ${cj.dif===0?"text-ok":"text-marca"}">${cj.dif===0?"✓ Cuadra":(cj.dif>0?"Sobra ":"Falta ")+bsc(Math.abs(cj.dif))}</div></div>
       <div class="rounded-2xl p-3 ${!r.conteo?"bg-aviso-50":r.K.faltantes?"bg-marca-50":"bg-ok-50"}"><div class="text-xs text-mute">Inventario</div><div class="font-bold ${!r.conteo?"text-aviso":r.K.faltantes?"text-marca":"text-ok"}">${!r.conteo?"Conteo pendiente":r.K.faltantes?`Faltan ${r.K.faltantes} pares`:"✓ Cuadra"}</div></div></div>
-    <details class="group"><summary class="cursor-pointer font-semibold text-sm py-2 no-print">Ver detalle contable ▾</summary>
+    <details class="group"><summary class="cursor-pointer font-semibold text-sm py-2 no-print text-marca">Ver detalle contable</summary>
     <h3 class="eyebrow mb-1 mt-2">Cobros por método de pago</h3>${fila("💵 Efectivo",bsc(r.porPago.efectivo))}${fila("📱 QR",bsc(r.porPago.qr))}${fila("💳 Tarjeta",bsc(r.porPago.tarjeta))}${fila("Ticket promedio",bsc(r.ticketPromedio))}
     <h3 class="eyebrow mt-5 mb-1">Estado de resultados de la sesión</h3>${fila("Venta bruta (precio con IVA)",bsc(r.bruto))}${fila("(−) IVA débito fiscal 13 %",bsc(-r.iva))}${fila("= Venta neta",bsc(r.neto))}${fila("(−) Costo de lo vendido (simulado)",bsc(-r.costo))}${fila("= Utilidad bruta",bsc(r.utilidad),"text-ok")}${fila("Margen bruto (sobre venta neta)",r.margenBruto.toFixed(1).replace(".",",")+" %")}${fila("(−) IT 3 %",bsc(-r.it))}${fila("= Margen de contribución",bsc(r.contribucion))}
     <h3 class="eyebrow mt-5 mb-1">Arqueo de caja</h3>${fila("Fondo inicial",bsc(cj.fondo))}${fila("Ventas en efectivo",bsc(r.porPago.efectivo))}${fila("Ingresos / retiros",bsc(ing)+" / "+bsc(-ret))}${fila("Efectivo esperado",bsc(cj.esperado))}${fila("Efectivo contado",bsc(cj.contado))}${fila("Diferencia",(cj.dif>0?"+":"")+bsc(cj.dif),cj.dif===0?"text-ok":"text-marca")}
