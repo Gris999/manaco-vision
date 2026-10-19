@@ -2,133 +2,228 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#161b22">
 <title>Manaco Vision</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com/3.4.16"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2.1.1/dist/mobilenet.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+tailwind.config={theme:{extend:{fontFamily:{sans:["Inter","system-ui","sans-serif"]},
+  colors:{marca:{DEFAULT:"#c8102e",600:"#b00d27",50:"#fdecef"},tinta:"#161b22"}}}};
+</script>
 <style>
-  :root{--rojo:#c8102e;--tinta:#1f2937;--fondo:#f5f5f4}
-  body{background:var(--fondo);color:var(--tinta);font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
-  .tab-on{background:var(--rojo);color:#fff}
-  .card{background:#fff;border-radius:14px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
-  .kpi b{font-size:1.6rem;display:block;line-height:1.1}
-  video,canvas.preview{width:100%;border-radius:12px;background:#111;aspect-ratio:4/3;object-fit:cover}
-  .scan-frame{position:absolute;inset:12%;border:3px solid rgba(255,255,255,.85);border-radius:16px;pointer-events:none}
-  th,td{padding:.45rem .6rem;text-align:left}
-  tbody tr:nth-child(odd){background:#fafaf9}
+  body{background:#f4f5f7;-webkit-tap-highlight-color:transparent}
+  .card{background:#fff;border-radius:18px;box-shadow:0 1px 2px rgba(16,24,40,.06),0 1px 3px rgba(16,24,40,.08)}
+  .nav-item{display:flex;align-items:center;gap:.75rem;padding:.65rem .9rem;border-radius:12px;color:#c9d1d9;font-weight:500;width:100%}
+  .nav-item:hover{background:rgba(255,255,255,.06)}
+  .nav-item.on{background:#c8102e;color:#fff}
+  .tab-item{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10.5px;font-weight:600;color:#6b7280;flex:1;padding:6px 0}
+  .tab-item.on{color:#c8102e}
+  .tab-item svg,.nav-item svg{width:22px;height:22px}
+  .chip{padding:.35rem .8rem;border-radius:999px;font-size:.8rem;font-weight:600;border:1px solid #e5e7eb;background:#fff;white-space:nowrap}
+  .chip.on{background:#161b22;color:#fff;border-color:#161b22}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:.5rem;border-radius:12px;font-weight:600;padding:.7rem 1rem;transition:transform .05s}
+  .btn:active{transform:scale(.97)}
+  .btn-p{background:#c8102e;color:#fff}.btn-p:hover{background:#b00d27}
+  .btn-s{background:#fff;border:1px solid #e5e7eb;color:#161b22}
+  .stepper button{width:38px;height:38px;border-radius:10px;background:#f3f4f6;font-weight:700;font-size:1.2rem}
+  .stepper input{width:52px;text-align:center;font-weight:700;font-size:1.05rem;background:transparent}
+  video{width:100%;height:100%;object-fit:cover}
+  .scan-frame{position:absolute;inset:14%;border-radius:20px;box-shadow:0 0 0 9999px rgba(0,0,0,.28);pointer-events:none}
+  .scan-frame::before,.scan-frame::after{content:"";position:absolute;inset:-2px;border-radius:20px;border:3px solid transparent;
+    background:linear-gradient(#fff,#fff) top left/36px 3px no-repeat,linear-gradient(#fff,#fff) top left/3px 36px no-repeat,
+    linear-gradient(#fff,#fff) top right/36px 3px no-repeat,linear-gradient(#fff,#fff) top right/3px 36px no-repeat}
+  .scan-frame::after{transform:rotate(180deg)}
+  .scan-line{position:absolute;left:16%;right:16%;height:2px;background:linear-gradient(90deg,transparent,#ff4d6a,transparent);animation:scan 2.2s ease-in-out infinite;display:none}
+  .scanning .scan-line{display:block}
+  @keyframes scan{0%,100%{top:16%}50%{top:84%}}
+  .pb-safe{padding-bottom:calc(env(safe-area-inset-bottom) + 76px)}
+  @media(min-width:1024px){.pb-safe{padding-bottom:2rem}}
+  .bottom-bar{padding-bottom:env(safe-area-inset-bottom)}
+  #toast{transition:all .25s;transform:translate(-50%,20px);opacity:0;pointer-events:none}
+  #toast.show{transform:translate(-50%,0);opacity:1}
+  .fade{animation:fade .25s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  input[type=number]::-webkit-inner-spin-button{appearance:none}
+  .scroll-x{overflow-x:auto;scrollbar-width:none}.scroll-x::-webkit-scrollbar{display:none}
 </style>
 </head>
-<body>
-<header class="bg-white border-b sticky top-0 z-10">
-  <div class="max-w-6xl mx-auto px-4 py-3 flex flex-wrap items-center gap-3">
-    <div class="flex items-center gap-2 mr-auto">
-      <div class="w-9 h-9 rounded-lg grid place-items-center text-white font-bold" style="background:var(--rojo)">M</div>
-      <div><div class="font-bold leading-tight">Manaco Vision</div><div class="text-xs text-stone-500">Inventario inteligente con visión artificial</div></div>
+<body class="font-sans text-tinta antialiased">
+
+<!-- Íconos -->
+<svg width="0" height="0" class="absolute">
+  <symbol id="i-scan" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="12" r="3.5"/></symbol>
+  <symbol id="i-box" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5M12 13v8"/></symbol>
+  <symbol id="i-cash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 10v4M18 10v4"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></symbol>
+  <symbol id="i-cam" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 7h3l2-3h6l2 3h3a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="4"/></symbol>
+  <symbol id="i-img" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></symbol>
+  <symbol id="i-flip" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12a9 9 0 0 1 15.5-6.2L21 8M21 3v5h-5M21 12a9 9 0 0 1-15.5 6.2L3 16M3 21v-5h5"/></symbol>
+  <symbol id="i-store" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9h16l-1-5H5zM5 9v11h14V9M10 20v-6h4v6"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></symbol>
+</svg>
+
+<div class="lg:flex min-h-screen">
+  <!-- Menú lateral (escritorio) -->
+  <aside class="hidden lg:flex lg:flex-col w-64 shrink-0 bg-tinta text-white p-5 sticky top-0 h-screen">
+    <div class="flex items-center gap-3 mb-8">
+      <div class="w-10 h-10 rounded-xl bg-marca grid place-items-center font-extrabold text-lg">M</div>
+      <div><div class="font-bold leading-tight">Manaco Vision</div><div class="text-xs text-gray-400">Inventario inteligente</div></div>
     </div>
-    <label class="text-sm">Tienda
-      <select id="tienda" class="ml-1 border rounded-md px-2 py-1 text-sm"></select>
-    </label>
+    <nav class="space-y-1" id="navSide"></nav>
+    <div class="mt-auto space-y-3">
+      <label class="block text-xs text-gray-400">Tienda activa
+        <select class="selTienda mt-1 w-full bg-white/10 text-white rounded-lg px-3 py-2 text-sm border border-white/10"></select>
+      </label>
+      <div class="estadoIA text-xs text-gray-400 flex items-center gap-2"><span class="dot w-2 h-2 rounded-full bg-amber-400"></span><span class="txt">Cargando IA…</span></div>
+    </div>
+  </aside>
+
+  <div class="flex-1 min-w-0">
+    <!-- Barra superior (móvil) -->
+    <header class="lg:hidden sticky top-0 z-20 bg-tinta text-white px-4 pt-[calc(env(safe-area-inset-top)+10px)] pb-3">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-marca grid place-items-center font-extrabold">M</div>
+        <div class="mr-auto"><div class="font-bold leading-tight text-[15px]" id="tituloMovil">Escáner</div>
+          <div class="estadoIA text-[11px] text-gray-400 flex items-center gap-1.5"><span class="dot w-1.5 h-1.5 rounded-full bg-amber-400"></span><span class="txt">Cargando IA…</span></div></div>
+        <label class="flex items-center gap-1.5 bg-white/10 rounded-lg pl-2 pr-1 py-1 text-xs">
+          <svg class="w-4 h-4"><use href="#i-store"/></svg>
+          <select class="selTienda bg-transparent text-white text-xs max-w-[118px] outline-none"></select>
+        </label>
+      </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-4 lg:px-8 py-4 lg:py-8 pb-safe">
+      <!-- ESCÁNER -->
+      <section id="v-escaner" class="vista grid grid-cols-1 lg:grid-cols-5 gap-4 lg:gap-6">
+        <div class="lg:col-span-3">
+          <div class="hidden lg:block mb-4"><h1 class="text-2xl font-bold">Escáner</h1><p class="text-gray-500 text-sm">Apunta la cámara al zapato para ver su stock y venderlo.</p></div>
+          <div class="card overflow-hidden">
+            <div id="visor" class="relative overflow-hidden bg-black aspect-[4/5] sm:aspect-[4/3]">
+              <video id="video" playsinline muted></video>
+              <div id="placeholderCam" class="absolute inset-0 grid place-items-center text-center text-gray-300 p-6">
+                <div><svg class="w-14 h-14 mx-auto mb-3 opacity-70"><use href="#i-cam"/></svg>
+                <p class="font-semibold text-white">Cámara apagada</p><p class="text-sm">Toca "Activar cámara" o sube una foto</p></div>
+              </div>
+              <div class="scan-frame"></div><div class="scan-line"></div>
+              <div id="liveChip" class="hidden absolute left-3 right-3 bottom-3 bg-black/70 backdrop-blur text-white rounded-xl px-3 py-2 text-sm">
+                <div class="flex justify-between"><span id="liveNombre" class="font-semibold truncate"></span><span id="livePct" class="tabular-nums"></span></div>
+                <div class="h-1.5 bg-white/20 rounded-full mt-1.5 overflow-hidden"><div id="liveBar" class="h-full bg-marca rounded-full transition-all"></div></div>
+              </div>
+            </div>
+            <div class="p-3 grid grid-cols-3 gap-2">
+              <button id="btnCam" class="btn btn-p col-span-1 text-sm"><svg class="w-5 h-5"><use href="#i-cam"/></svg><span>Activar</span></button>
+              <button id="btnFlip" class="btn btn-s text-sm"><svg class="w-5 h-5"><use href="#i-flip"/></svg>Girar</button>
+              <label class="btn btn-s text-sm cursor-pointer"><svg class="w-5 h-5"><use href="#i-img"/></svg>Foto<input id="foto" type="file" accept="image/*" capture="environment" class="hidden"></label>
+            </div>
+          </div>
+        </div>
+        <div class="lg:col-span-2 lg:pt-[68px]">
+          <div class="card p-5" id="resultado"></div>
+        </div>
+      </section>
+
+      <!-- INVENTARIO -->
+      <section id="v-inventario" class="vista hidden">
+        <div class="flex flex-wrap items-end gap-3 mb-4">
+          <div class="mr-auto"><h1 class="text-2xl font-bold">Inventario</h1><p class="text-gray-500 text-sm" id="invResumen"></p></div>
+          <label class="relative w-full sm:w-72"><svg class="w-5 h-5 absolute left-3 top-2.5 text-gray-400"><use href="#i-search"/></svg>
+            <input id="buscar" placeholder="Buscar modelo…" class="w-full pl-10 pr-3 py-2.5 rounded-xl border border-gray-200 bg-white text-sm"></label>
+        </div>
+        <div class="scroll-x flex gap-2 mb-4" id="filtros"></div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3" id="gridInv"></div>
+      </section>
+
+      <!-- VENTAS -->
+      <section id="v-ventas" class="vista hidden">
+        <div class="mb-4"><h1 class="text-2xl font-bold">Ventas</h1><p class="text-gray-500 text-sm" id="vTienda"></p></div>
+        <div class="grid grid-cols-3 gap-3 mb-4" id="vKpis"></div>
+        <div class="grid grid-cols-1 lg:grid-cols-5 gap-4">
+          <div class="card p-4 lg:col-span-2 h-fit">
+            <h2 class="font-semibold mb-3">Registrar venta</h2>
+            <div class="flex gap-3 items-center mb-3">
+              <img id="vImg" class="w-16 h-16 rounded-xl bg-gray-50 object-contain shrink-0" alt="">
+              <select id="vModelo" class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-white"></select>
+            </div>
+            <div class="flex items-center justify-between mb-4">
+              <span class="text-sm text-gray-500">Cantidad</span>
+              <div class="stepper flex items-center gap-1"><button data-d="-1">−</button><input id="vCant" type="number" min="1" value="1"><button data-d="1">+</button></div>
+            </div>
+            <button id="vBtn" class="btn btn-p w-full">Registrar venta</button>
+          </div>
+          <div class="lg:col-span-3">
+            <h2 class="font-semibold mb-2">Ventas de hoy</h2>
+            <div class="space-y-2" id="listaVentas"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- CIERRE -->
+      <section id="v-cierre" class="vista hidden">
+        <div class="mb-4"><h1 class="text-2xl font-bold">Cierre del día</h1>
+          <p class="text-gray-500 text-sm">Cuenta los pares físicos de <b id="cTienda"></b>. El sistema compara con lo esperado (inicio del día − ventas) y detecta faltantes.</p></div>
+        <div id="cRes" class="mb-4"></div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" id="listaCierre"></div>
+        <div class="sticky bottom-[84px] lg:bottom-4 mt-4">
+          <button id="cBtn" class="btn btn-p w-full shadow-lg py-3.5"><svg class="w-5 h-5"><use href="#i-moon"/></svg>Cerrar el día y conciliar</button>
+        </div>
+      </section>
+
+      <!-- DASHBOARD -->
+      <section id="v-dashboard" class="vista hidden">
+        <div class="mb-4 flex flex-wrap items-end gap-2"><div class="mr-auto"><h1 class="text-2xl font-bold">Dashboard</h1>
+          <p class="text-gray-500 text-sm">Indicadores de los últimos 30 días · todas las tiendas</p></div>
+          <button id="btnReset" class="text-xs text-gray-500 underline">Reiniciar datos de demostración</button></div>
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5" id="kpis"></div>
+        <div id="alertas" class="mb-5"></div>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8">
+          <div class="card p-4"><h3 class="font-semibold mb-2">Ventas diarias (Bs)</h3><div class="relative h-56"><canvas id="chDia"></canvas></div></div>
+          <div class="card p-4"><h3 class="font-semibold mb-2">Ventas por categoría</h3><div class="relative h-56"><canvas id="chCat"></canvas></div></div>
+          <div class="card p-4"><h3 class="font-semibold mb-2">Ventas por tienda (Bs)</h3><div class="relative h-56"><canvas id="chTienda"></canvas></div></div>
+          <div class="card p-4"><h3 class="font-semibold mb-2">Pares vendidos por modelo</h3><div class="relative h-72"><canvas id="chModelo"></canvas></div></div>
+        </div>
+        <h2 class="text-xl font-bold">Inteligencia de mercado</h2>
+        <p class="text-gray-500 text-sm mb-3">Base de comercio exterior 2020–2024 (España): es una referencia externa, no son ventas de Manaco.</p>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <figure class="card p-3"><img src="img/1_import_vs_export.png" class="rounded-lg" alt="Importaciones vs exportaciones"><figcaption class="text-sm mt-2 text-gray-600">Las importaciones superan a las exportaciones; en deportivo, unas <b>3 veces</b>.</figcaption></figure>
+          <figure class="card p-3"><img src="img/2_socios.png" class="rounded-lg" alt="Principales socios"><figcaption class="text-sm mt-2 text-gray-600">Proveedores principales: Grecia, Países Bajos y Vietnam. Destinos: Indonesia y Vietnam.</figcaption></figure>
+          <figure class="card p-3"><img src="img/3_valor_por_par.png" class="rounded-lg" alt="Valor por par"><figcaption class="text-sm mt-2 text-gray-600">El cuero/cuero vale <b>casi el doble por par</b> (≈ 45 contra ≈ 25 USD).</figcaption></figure>
+        </div>
+      </section>
+    </main>
   </div>
-  <nav class="max-w-6xl mx-auto px-4 pb-2 flex gap-1 overflow-x-auto text-sm" id="tabs">
-    <button data-v="escaner" class="px-3 py-1.5 rounded-full tab-on">📷 Escáner</button>
-    <button data-v="inventario" class="px-3 py-1.5 rounded-full">📦 Inventario</button>
-    <button data-v="ventas" class="px-3 py-1.5 rounded-full">💰 Ventas</button>
-    <button data-v="cierre" class="px-3 py-1.5 rounded-full">🌙 Cierre del día</button>
-    <button data-v="dashboard" class="px-3 py-1.5 rounded-full">📊 Dashboard</button>
-  </nav>
-</header>
+</div>
 
-<main class="max-w-6xl mx-auto px-4 py-5">
-  <!-- ESCÁNER -->
-  <section id="v-escaner" class="grid md:grid-cols-2 gap-5">
-    <div class="card p-4">
-      <div class="relative">
-        <video id="video" playsinline muted></video>
-        <div class="scan-frame"></div>
-        <div id="estadoIA" class="absolute top-2 left-2 text-xs bg-black/70 text-white px-2 py-1 rounded">Cargando modelo de IA…</div>
-      </div>
-      <div class="flex flex-wrap gap-2 mt-3">
-        <button id="btnCam" class="px-4 py-2 rounded-lg text-white font-semibold" style="background:var(--rojo)">Activar cámara</button>
-        <label class="px-4 py-2 rounded-lg border cursor-pointer">Subir foto<input id="foto" type="file" accept="image/*" capture="environment" class="hidden"></label>
-      </div>
-      <p class="text-xs text-stone-500 mt-2">Apunta la cámara al zapato y mantenlo dentro del recuadro.</p>
-    </div>
-    <div class="card p-5" id="resultado">
-      <div class="text-stone-500">Esperando un zapato…</div>
-    </div>
-  </section>
-
-  <!-- INVENTARIO -->
-  <section id="v-inventario" class="hidden">
-    <div class="card p-4 overflow-x-auto">
-      <div class="flex items-center justify-between mb-3"><h2 class="font-bold text-lg">Inventario por tienda</h2>
-        <span class="text-xs text-stone-500">🔴 stock bajo (&lt; 5 pares)</span></div>
-      <table class="w-full text-sm" id="tablaInv"></table>
-    </div>
-  </section>
-
-  <!-- VENTAS -->
-  <section id="v-ventas" class="hidden grid md:grid-cols-3 gap-5">
-    <div class="card p-4">
-      <h2 class="font-bold text-lg mb-3">Registrar venta</h2>
-      <select id="vModelo" class="w-full border rounded-md px-2 py-2 mb-2"></select>
-      <input id="vCant" type="number" min="1" value="1" class="w-full border rounded-md px-2 py-2 mb-3">
-      <button id="vBtn" class="w-full py-2 rounded-lg text-white font-semibold" style="background:var(--rojo)">Vender</button>
-      <p id="vMsg" class="text-sm mt-2"></p>
-    </div>
-    <div class="card p-4 md:col-span-2 overflow-x-auto">
-      <h2 class="font-bold text-lg mb-3">Ventas de hoy · <span id="vTienda"></span></h2>
-      <table class="w-full text-sm" id="tablaVentas"></table>
-    </div>
-  </section>
-
-  <!-- CIERRE -->
-  <section id="v-cierre" class="hidden">
-    <div class="card p-4 overflow-x-auto">
-      <h2 class="font-bold text-lg">Cierre del día · <span id="cTienda"></span></h2>
-      <p class="text-sm text-stone-500 mb-3">Cuenta los pares físicos y escríbelos. El sistema compara con lo esperado (stock inicial − ventas) y detecta faltantes.</p>
-      <table class="w-full text-sm" id="tablaCierre"></table>
-      <button id="cBtn" class="mt-4 px-5 py-2 rounded-lg text-white font-semibold" style="background:var(--rojo)">Cerrar el día</button>
-      <div id="cRes" class="mt-4"></div>
-    </div>
-  </section>
-
-  <!-- DASHBOARD -->
-  <section id="v-dashboard" class="hidden">
-    <h2 class="font-bold text-lg mb-3">Indicadores de gestión (últimos 30 días · todas las tiendas)</h2>
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5" id="kpis"></div>
-    <div class="grid md:grid-cols-2 gap-5 mb-5">
-      <div class="card p-4"><h3 class="font-semibold mb-2">Ventas diarias (Bs)</h3><div style="position:relative;height:260px"><canvas id="chDia"></canvas></div></div>
-      <div class="card p-4"><h3 class="font-semibold mb-2">Ventas por categoría (Bs)</h3><div style="position:relative;height:260px"><canvas id="chCat"></canvas></div></div>
-      <div class="card p-4"><h3 class="font-semibold mb-2">Ventas por tienda (Bs)</h3><div style="position:relative;height:260px"><canvas id="chTienda"></canvas></div></div>
-      <div class="card p-4"><h3 class="font-semibold mb-2">Pares vendidos por modelo</h3><div style="position:relative;height:260px"><canvas id="chModelo"></canvas></div></div>
-    </div>
-    <h2 class="font-bold text-lg mb-1">Inteligencia de mercado (base de comercio exterior 2020–2024)</h2>
-    <p class="text-sm text-stone-500 mb-3">Referencia externa: datos de España, no son ventas de Manaco.</p>
-    <div class="grid md:grid-cols-3 gap-5">
-      <figure class="card p-3"><img src="img/1_import_vs_export.png" alt="Importaciones vs exportaciones"><figcaption class="text-sm mt-2">Las importaciones superan a las exportaciones en las 3 categorías; en deportivo, unas 3 veces más.</figcaption></figure>
-      <figure class="card p-3"><img src="img/2_socios.png" alt="Principales socios"><figcaption class="text-sm mt-2">Proveedores principales: Grecia, Países Bajos y Vietnam. Destinos: Indonesia y Vietnam.</figcaption></figure>
-      <figure class="card p-3"><img src="img/3_valor_por_par.png" alt="Valor por par"><figcaption class="text-sm mt-2">El calzado de cuero/cuero vale casi el doble por par (unos 45 USD contra unos 25): es una oportunidad para diferenciarse.</figcaption></figure>
-    </div>
-  </section>
-</main>
+<!-- Barra inferior (móvil) -->
+<nav class="lg:hidden fixed bottom-0 inset-x-0 z-30 bg-white/95 backdrop-blur border-t border-gray-200 bottom-bar">
+  <div class="flex max-w-lg mx-auto" id="navBottom"></div>
+</nav>
+<div id="toast" class="fixed left-1/2 bottom-[150px] lg:bottom-8 z-40 bg-tinta text-white text-sm font-medium px-4 py-3 rounded-xl shadow-xl max-w-[90vw]"></div>
 
 <script>
 const TIENDAS=["La Paz - El Prado","Cochabamba - Heroínas","Santa Cruz - Ventura Mall"];
-const UMBRAL=0.80, KEY="manacoVision_v1";
-let CAT=[], CLASES=[], net=null, head=null, S=null, charts={};
-const $=s=>document.querySelector(s), bs=n=>"Bs "+n.toLocaleString("es-BO",{maximumFractionDigits:0});
+const VISTAS=[["escaner","Escáner","i-scan"],["inventario","Inventario","i-box"],["ventas","Ventas","i-cash"],["cierre","Cierre","i-moon"],["dashboard","Dashboard","i-chart"]];
+const UMBRAL=0.80, KEY="manacoVision_v1", BAJO=5;
+let CAT=[], CLASES=[], net=null, head=null, S=null, charts={}, vista="escaner", filtroCat="Todas", tienda=TIENDAS[0];
+const $=s=>document.querySelector(s), $$=s=>document.querySelectorAll(s);
+const bs=n=>"Bs "+Math.round(n).toLocaleString("es-BO");
 const hoy=()=>new Date().toISOString().slice(0,10);
-const tiendaAct=()=>$("#tienda").value;
+const tiendaAct=()=>tienda;
 const modelo=id=>CAT.find(c=>c.id===id);
+const corto=c=>c.nombre.split(" - ")[0].replace(/^(DEPORTIVO|ZAPATO DE VESTIR|ZAPATO FORMAL|ZAPATO|CASUAL CORDONES|ZAPATILLAS|BOTIN)\s+/i,"").toLowerCase().replace(/(^|\s)\S/g,m=>m.toUpperCase());
+const stockTotal=id=>TIENDAS.reduce((a,t)=>a+S.stock[id][t],0);
 
 function guardar(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+let tt; function toast(msg){const t=$("#toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(tt); tt=setTimeout(()=>t.classList.remove("show"),2400);}
+
 function semilla(){
-  // Datos simulados: stock inicial e historial de 30 días
   let r=42; const rnd=()=>(r=(r*9301+49297)%233280)/233280;
-  const st={}; CAT.forEach(c=>{st[c.id]={}; TIENDAS.forEach(t=>st[c.id][t]=Math.floor(6+rnd()*20))});
+  const st={}; CAT.forEach(c=>{st[c.id]={}; TIENDAS.forEach(t=>st[c.id][t]=Math.floor(3+rnd()*22))});
   const peso={"Deportivo":1.4,"Casual cuero (suela caucho)":1.0,"Formal cuero/cuero":0.7};
   const ventas=[];
   for(let d=30; d>=1; d--){
@@ -151,74 +246,115 @@ async function init(){
   CAT.forEach(c=>{if(!c.precio_bs) c.precio_bs=189.3});
   try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){}
   if(!S||!S.stock) {S=semilla(); guardar();}
-  $("#tienda").innerHTML=TIENDAS.map(t=>`<option>${t}</option>`).join("");
+  $$(".selTienda").forEach(sel=>{sel.innerHTML=TIENDAS.map(t=>`<option value="${t}">${t}</option>`).join(""); sel.onchange=()=>{tienda=sel.value; $$(".selTienda").forEach(o=>o.value=tienda); render(); if(ultimo&&ultimo!=="otro") mostrar({clase:ultimo,prob:ultimaProb});};});
+  $("#navSide").innerHTML=VISTAS.map(([v,n,i])=>`<button data-v="${v}" class="nav-item"><svg><use href="#${i}"/></svg>${n}</button>`).join("");
+  $("#navBottom").innerHTML=VISTAS.map(([v,n,i])=>`<button data-v="${v}" class="tab-item"><svg><use href="#${i}"/></svg>${n}</button>`).join("");
+  $$("[data-v]").forEach(b=>b.onclick=()=>ver(b.dataset.v));
   $("#vModelo").innerHTML=CAT.map(c=>`<option value="${c.id}">${c.nombre}</option>`).join("");
-  $("#tienda").onchange=render;
-  document.querySelectorAll("#tabs button").forEach(b=>b.onclick=()=>ver(b.dataset.v));
-  render(); cargarIA();
+  $("#vModelo").onchange=()=>{$("#vImg").src=modelo($("#vModelo").value).imagen};
+  $$(".stepper button").forEach(b=>b.onclick=()=>{const i=$("#vCant"); i.value=Math.max(1,(+i.value||1)+(+b.dataset.d));});
+  const cats=["Todas",...new Set(CAT.map(c=>c.categoria)),"Stock bajo"];
+  $("#filtros").innerHTML=cats.map(c=>`<button class="chip" data-f="${c}">${c}</button>`).join("");
+  $$("[data-f]").forEach(b=>b.onclick=()=>{filtroCat=b.dataset.f; renderInv();});
+  $("#buscar").oninput=renderInv;
+  $("#btnReset").onclick=()=>{if(confirm("¿Reiniciar los datos de demostración?")){S=semilla(); guardar(); render(); toast("Datos reiniciados");}};
+  $("#vImg").src=CAT[0].imagen;
+  resultadoVacio(); ver("escaner"); cargarIA();
 }
 function ver(v){
-  document.querySelectorAll("#tabs button").forEach(b=>b.classList.toggle("tab-on",b.dataset.v===v));
-  document.querySelectorAll("main>section").forEach(s=>s.classList.toggle("hidden",s.id!=="v-"+v));
+  vista=v;
+  $$("[data-v]").forEach(b=>b.classList.toggle("on",b.dataset.v===v));
+  $$(".vista").forEach(s=>s.classList.toggle("hidden",s.id!=="v-"+v));
+  $("#tituloMovil").textContent=VISTAS.find(x=>x[0]===v)[1];
+  window.scrollTo({top:0});
   render();
 }
-function render(){renderInv();renderVentas();renderCierre();if(!$("#v-dashboard").classList.contains("hidden"))renderDash();}
+function render(){
+  if(vista==="inventario") renderInv();
+  if(vista==="ventas") renderVentas();
+  if(vista==="cierre") renderCierre();
+  if(vista==="dashboard") renderDash();
+}
 
 /* ---------- IA ---------- */
+function estadoIA(txt,color){$$(".estadoIA").forEach(e=>{e.querySelector(".txt").textContent=txt; e.querySelector(".dot").className="dot w-2 h-2 rounded-full "+color;});}
 async function cargarIA(){
   try{
     [net,head]=await Promise.all([mobilenet.load({version:2,alpha:1.0,modelUrl:"mobilenet/model.json",inputRange:[0,1]}),tf.loadLayersModel("modelo/model.json")]);
     CLASES=await (await fetch("modelo/clases.json")).json();
-    $("#estadoIA").textContent="IA lista ✓";
-  }catch(e){$("#estadoIA").textContent="Error al cargar la IA";console.error(e)}
+    estadoIA("IA lista · "+(CLASES.length-1)+" modelos","bg-emerald-400");
+  }catch(e){estadoIA("Error al cargar la IA","bg-red-500");console.error(e)}
+}
+function predecir(fuente){
+  return tf.tidy(()=>Array.from(head.predict(net.infer(fuente,true)).dataSync()));
 }
 function clasificar(fuente){
-  return tf.tidy(()=>{
-    const emb=net.infer(fuente,true);
-    const p=head.predict(emb).dataSync();
-    let i=p.indexOf(Math.max(...p)); return {clase:CLASES[i],prob:p[i]};
-  });
+  const p=predecir(fuente); const i=p.indexOf(Math.max(...p)); return {clase:CLASES[i],prob:p[i],todas:p};
 }
-let loop=null, ultimo=null, estable=0;
-$("#btnCam").onclick=async()=>{
+let loop=null, stream=null, ultimo=null, ultimaProb=0, estable=0, facing="environment";
+async function abrirCam(){
   try{
-    const st=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"},audio:false});
-    const v=$("#video"); v.srcObject=st; await v.play();
+    stream?.getTracks().forEach(t=>t.stop());
+    stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:facing,width:{ideal:1280}},audio:false});
+    const v=$("#video"); v.srcObject=stream; await v.play();
+    $("#placeholderCam").classList.add("hidden"); $("#visor").classList.add("scanning"); $("#liveChip").classList.remove("hidden");
+    $("#btnCam span").textContent="Detener";
     clearInterval(loop); loop=setInterval(()=>{
       if(!net||v.readyState<2) return;
       const r=clasificar(v);
+      const valido=r.clase!=="otro"&&r.prob>=UMBRAL;
+      $("#liveNombre").textContent=valido?corto(modelo(r.clase)):"Buscando zapato…";
+      $("#livePct").textContent=valido?(r.prob*100).toFixed(0)+"%":"";
+      $("#liveBar").style.width=(valido?r.prob*100:8)+"%";
       if(r.clase===ultimo) estable++; else {estable=0; ultimo=r.clase;}
-      if(estable>=2) mostrar(r);
+      if(estable===2) mostrar(r);
     },350);
-  }catch(e){alert("No se pudo abrir la cámara. Usa \"Subir foto\" o abre la página con HTTPS.");}
-};
+  }catch(e){toast("No se pudo abrir la cámara. Usa \"Foto\".");}
+}
+function cerrarCam(){
+  clearInterval(loop); stream?.getTracks().forEach(t=>t.stop()); stream=null;
+  $("#placeholderCam").classList.remove("hidden"); $("#visor").classList.remove("scanning"); $("#liveChip").classList.add("hidden");
+  $("#btnCam span").textContent="Activar";
+}
+$("#btnCam").onclick=()=>stream?cerrarCam():abrirCam();
+$("#btnFlip").onclick=()=>{facing=facing==="environment"?"user":"environment"; if(stream) abrirCam(); else toast("Cámara "+(facing==="user"?"frontal":"trasera")+" seleccionada");};
 $("#foto").onchange=e=>{
   const f=e.target.files[0]; if(!f) return;
-  const img=new Image(); img.onload=()=>{ if(net) mostrar(clasificar(img)); }; img.src=URL.createObjectURL(f);
+  if(!net){toast("La IA aún está cargando…");return;}
+  const img=new Image(); img.onload=()=>{ const r=clasificar(img); ultimo=r.clase; mostrar(r); }; img.src=URL.createObjectURL(f);
+  e.target.value="";
 };
+function resultadoVacio(){
+  $("#resultado").innerHTML=`<div class="text-center py-8 text-gray-500"><svg class="w-12 h-12 mx-auto mb-3 text-gray-300"><use href="#i-scan"/></svg>
+    <p class="font-semibold text-tinta">Esperando un zapato</p><p class="text-sm">El modelo, su precio y el stock aparecerán aquí.</p></div>`;
+}
 function mostrar(r){
   const box=$("#resultado");
   if(r.clase==="otro"||r.prob<UMBRAL){
-    box.innerHTML=`<div class="text-stone-500">🔍 No reconozco un modelo Manaco <span class="text-xs">(confianza ${(r.prob*100).toFixed(0)}%)</span></div>`; return;
+    box.innerHTML=`<div class="fade text-center py-6"><div class="text-4xl mb-2">🔍</div><p class="font-semibold">No reconozco un modelo Manaco</p>
+      <p class="text-sm text-gray-500">Confianza ${(r.prob*100).toFixed(0)}% · acerca el zapato o mejora la luz</p></div>`; return;
   }
+  ultimaProb=r.prob;
   const c=modelo(r.clase), t=tiendaAct(), n=S.stock[c.id][t];
-  const otras=TIENDAS.filter(x=>x!==t).map(x=>`<li>${x}: <b>${S.stock[c.id][x]}</b></li>`).join("");
-  box.innerHTML=`
-   <div class="flex gap-4">
-     <img src="${c.imagen}" class="w-28 h-28 object-contain rounded-lg bg-stone-50">
-     <div><div class="text-xs uppercase tracking-wide text-stone-500">${c.marca} · ${c.categoria}</div>
+  const top=r.todas?r.todas.map((p,i)=>[CLASES[i],p]).filter(x=>x[0]!=="otro").sort((a,b)=>b[1]-a[1]).slice(0,3):null;
+  box.innerHTML=`<div class="fade">
+   <div class="flex gap-4 items-center">
+     <img src="${c.imagen}" class="w-24 h-24 object-contain rounded-2xl bg-gray-50 shrink-0" alt="">
+     <div class="min-w-0"><div class="text-[11px] uppercase tracking-wider text-gray-500 font-semibold">${c.marca} · ${c.categoria}</div>
        <div class="font-bold text-lg leading-tight">${c.nombre}</div>
-       <div class="text-sm">Precio: <b>${bs(c.precio_bs)}</b> · Confianza IA: <b>${(r.prob*100).toFixed(1)}%</b></div></div>
+       <div class="text-sm mt-1"><b>${bs(c.precio_bs)}</b> <span class="text-emerald-600 font-semibold ml-2">✓ ${(r.prob*100).toFixed(1)}%</span></div></div>
    </div>
-   <div class="mt-4 p-4 rounded-xl ${n<5?'bg-red-50':'bg-green-50'}">
-     <div class="text-sm">Stock en ${t}</div><div class="text-4xl font-bold">${n} <span class="text-base font-normal">pares</span></div>
-     ${n<5?'<div class="text-red-700 text-sm mt-1">⚠️ Stock bajo: hay que reponer</div>':''}
+   <div class="mt-4 rounded-2xl p-4 ${n<BAJO?'bg-marca-50':'bg-emerald-50'} flex items-end justify-between">
+     <div><div class="text-xs text-gray-600">Stock en ${t}</div><div class="text-5xl font-extrabold tabular-nums leading-none mt-1">${n}<span class="text-base font-medium text-gray-500 ml-1">pares</span></div></div>
+     ${n<BAJO?'<span class="text-xs font-semibold text-marca bg-white px-2 py-1 rounded-lg">⚠️ Reponer</span>':'<span class="text-xs font-semibold text-emerald-700 bg-white px-2 py-1 rounded-lg">Disponible</span>'}
    </div>
-   <ul class="text-sm mt-3 text-stone-600">Otras tiendas: ${otras}</ul>
-   <div class="flex gap-2 mt-4">
-     <button class="flex-1 py-2 rounded-lg text-white font-semibold" style="background:var(--rojo)" onclick="vender('${c.id}',1)">💰 Vender 1 par</button>
-     <button class="flex-1 py-2 rounded-lg border" onclick="reponer('${c.id}',5)">➕ Reponer 5</button>
-   </div>`;
+   <div class="grid grid-cols-2 gap-2 mt-3">${TIENDAS.filter(x=>x!==t).map(x=>`<div class="rounded-xl bg-gray-50 px-3 py-2"><div class="text-[11px] text-gray-500 truncate">${x}</div><div class="font-bold">${S.stock[c.id][x]} pares</div></div>`).join("")}</div>
+   <div class="grid grid-cols-2 gap-2 mt-4">
+     <button class="btn btn-p" onclick="vender('${c.id}',1)">Vender 1 par</button>
+     <button class="btn btn-s" onclick="reponer('${c.id}',5)">+5 reponer</button>
+   </div>
+   ${top?`<div class="mt-5"><div class="text-xs font-semibold text-gray-500 mb-2">Lo que ve la IA</div>${top.map(([k,p])=>`<div class="flex items-center gap-2 text-xs mb-1.5"><span class="w-28 truncate">${corto(modelo(k))}</span><div class="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden"><div class="h-full ${k===c.id?'bg-marca':'bg-gray-300'}" style="width:${(p*100).toFixed(1)}%"></div></div><span class="w-10 text-right tabular-nums">${(p*100).toFixed(0)}%</span></div>`).join("")}</div>`:""}
+  </div>`;
 }
 
 /* ---------- OPERACIONES ---------- */
@@ -229,45 +365,70 @@ function asegurarInicio(t){
 }
 function vender(id,cant){
   const t=tiendaAct(), c=modelo(id); asegurarInicio(t);
-  if(S.stock[id][t]<cant){alert("Sin stock suficiente");return false;}
+  if(S.stock[id][t]<cant){toast("Sin stock suficiente en "+t);return false;}
   S.stock[id][t]-=cant;
   S.ventas.push({fecha:hoy(),hora:new Date().toTimeString().slice(0,5),id,tienda:t,cant,precio:c.precio_bs});
-  guardar(); render(); if(ultimo===id) mostrar({clase:id,prob:1}); return true;
+  guardar(); render(); toast(`✓ Venta: ${cant} × ${corto(c)} · ${bs(cant*c.precio_bs)}`);
+  if(ultimo===id) mostrar({clase:id,prob:ultimaProb||1}); return true;
 }
-function reponer(id,cant){const t=tiendaAct(); asegurarInicio(t); S.stock[id][t]+=cant; S.inicioDia[hoy()+"|"+t][id]+=cant; guardar(); render(); mostrar({clase:id,prob:1});}
-$("#vBtn").onclick=()=>{const id=$("#vModelo").value,n=+$("#vCant").value||1; if(vender(id,n)) $("#vMsg").textContent=`✓ Venta registrada: ${n} × ${modelo(id).nombre}`;};
+function reponer(id,cant){
+  const t=tiendaAct(); asegurarInicio(t); S.stock[id][t]+=cant; S.inicioDia[hoy()+"|"+t][id]+=cant;
+  guardar(); render(); toast(`+${cant} pares de ${corto(modelo(id))}`); if(ultimo===id) mostrar({clase:id,prob:ultimaProb||1});
+}
+$("#vBtn").onclick=()=>{const id=$("#vModelo").value,n=+$("#vCant").value||1; if(vender(id,n)) $("#vCant").value=1;};
 
 function renderInv(){
-  $("#tablaInv").innerHTML=`<thead><tr class="border-b"><th>Modelo</th><th>Categoría</th><th>Precio</th>${TIENDAS.map(t=>`<th>${t.split(" - ")[0]}</th>`).join("")}<th>Total</th></tr></thead><tbody>`+
-   CAT.map(c=>{const v=TIENDAS.map(t=>S.stock[c.id][t]); return `<tr><td class="flex items-center gap-2"><img src="${c.imagen}" class="w-10 h-10 object-contain">${c.nombre}</td><td>${c.categoria}</td><td>${bs(c.precio_bs)}</td>${v.map(n=>`<td class="${n<5?'text-red-600 font-bold':''}">${n<5?'🔴 ':''}${n}</td>`).join("")}<td><b>${v.reduce((a,b)=>a+b,0)}</b></td></tr>`}).join("")+"</tbody>";
+  const q=$("#buscar").value.trim().toLowerCase();
+  $$("[data-f]").forEach(b=>b.classList.toggle("on",b.dataset.f===filtroCat));
+  const lista=CAT.filter(c=>(filtroCat==="Todas"||c.categoria===filtroCat||(filtroCat==="Stock bajo"&&TIENDAS.some(t=>S.stock[c.id][t]<BAJO)))&&c.nombre.toLowerCase().includes(q));
+  const tot=CAT.reduce((a,c)=>a+stockTotal(c.id),0), bajos=CAT.filter(c=>TIENDAS.some(t=>S.stock[c.id][t]<BAJO)).length;
+  $("#invResumen").textContent=`${CAT.length} modelos · ${tot} pares en ${TIENDAS.length} tiendas · ${bajos} con stock bajo`;
+  $("#gridInv").innerHTML=lista.map(c=>`<div class="card p-4 fade">
+    <div class="flex gap-3 items-center">
+      <img src="${c.imagen}" class="w-16 h-16 rounded-xl bg-gray-50 object-contain shrink-0" alt="">
+      <div class="min-w-0 flex-1"><div class="font-semibold leading-tight truncate">${corto(c)}</div>
+        <div class="text-xs text-gray-500 truncate">${c.marca} · ${c.categoria}</div><div class="text-sm font-semibold mt-0.5">${bs(c.precio_bs)}</div></div>
+      <div class="text-right"><div class="text-2xl font-extrabold tabular-nums">${stockTotal(c.id)}</div><div class="text-[10px] text-gray-500">pares</div></div>
+    </div>
+    <div class="grid grid-cols-3 gap-1.5 mt-3">${TIENDAS.map(t=>{const n=S.stock[c.id][t],me=t===tiendaAct();return `<div class="rounded-lg px-2 py-1.5 text-center ${n<BAJO?'bg-marca-50 text-marca':'bg-gray-50'} ${me?'ring-2 ring-tinta/80':''}"><div class="text-[10px] truncate">${t.split(" - ")[0]}</div><div class="font-bold">${n}</div></div>`}).join("")}</div>
+  </div>`).join("")||`<p class="text-gray-500">Sin resultados</p>`;
 }
 function renderVentas(){
   const t=tiendaAct(); $("#vTienda").textContent=t;
   const vs=S.ventas.filter(v=>v.fecha===hoy()&&v.tienda===t).reverse();
-  const tot=vs.reduce((a,v)=>a+v.cant*v.precio,0);
-  $("#tablaVentas").innerHTML=`<thead><tr class="border-b"><th>Hora</th><th>Modelo</th><th>Cant.</th><th>Total</th></tr></thead><tbody>`+
-    (vs.length?vs.map(v=>`<tr><td>${v.hora}</td><td>${modelo(v.id).nombre}</td><td>${v.cant}</td><td>${bs(v.cant*v.precio)}</td></tr>`).join(""):`<tr><td colspan="4" class="text-stone-500">Aún no hay ventas hoy</td></tr>`)+
-    `</tbody><tfoot><tr class="border-t font-bold"><td colspan="3">Total del día</td><td>${bs(tot)}</td></tr></tfoot>`;
+  const tot=vs.reduce((a,v)=>a+v.cant*v.precio,0), pares=vs.reduce((a,v)=>a+v.cant,0);
+  $("#vKpis").innerHTML=[["Ventas hoy",bs(tot)],["Pares",pares],["Transacciones",vs.length]].map(([k,v])=>`<div class="card p-3"><div class="text-[11px] text-gray-500">${k}</div><div class="text-lg sm:text-xl font-bold tabular-nums">${v}</div></div>`).join("");
+  $("#listaVentas").innerHTML=vs.length?vs.map(v=>{const c=modelo(v.id);return `<div class="card p-3 flex items-center gap-3 fade">
+    <img src="${c.imagen}" class="w-12 h-12 rounded-lg bg-gray-50 object-contain" alt=""><div class="flex-1 min-w-0"><div class="font-semibold text-sm truncate">${corto(c)}</div><div class="text-xs text-gray-500">${v.hora} · ${v.cant} par(es)</div></div>
+    <div class="font-bold tabular-nums">${bs(v.cant*v.precio)}</div></div>`}).join("")
+    :`<div class="card p-6 text-center text-gray-500 text-sm">Aún no hay ventas hoy en esta tienda.<br>Usa el escáner o el formulario.</div>`;
 }
 function renderCierre(){
   const t=tiendaAct(); $("#cTienda").textContent=t; const ini=asegurarInicio(t);
-  $("#tablaCierre").innerHTML=`<thead><tr class="border-b"><th>Modelo</th><th>Inicio del día</th><th>Vendidos hoy</th><th>Esperado</th><th>Conteo físico</th></tr></thead><tbody>`+
-    CAT.map(c=>{const vend=S.ventas.filter(v=>v.fecha===hoy()&&v.tienda===t&&v.id===c.id).reduce((a,v)=>a+v.cant,0);
-      return `<tr><td>${c.nombre}</td><td>${ini[c.id]}</td><td>${vend}</td><td><b>${S.stock[c.id][t]}</b></td><td><input data-id="${c.id}" type="number" min="0" value="${S.stock[c.id][t]}" class="w-20 border rounded px-2 py-1"></td></tr>`}).join("")+"</tbody>";
+  $("#listaCierre").innerHTML=CAT.map(c=>{const vend=S.ventas.filter(v=>v.fecha===hoy()&&v.tienda===t&&v.id===c.id).reduce((a,v)=>a+v.cant,0);
+    return `<div class="card p-3 flex items-center gap-3">
+      <img src="${c.imagen}" class="w-12 h-12 rounded-lg bg-gray-50 object-contain shrink-0" alt="">
+      <div class="flex-1 min-w-0"><div class="font-semibold text-sm truncate">${corto(c)}</div>
+        <div class="text-[11px] text-gray-500">Inicio ${ini[c.id]} − vendidos ${vend} = <b class="text-tinta">esperado ${S.stock[c.id][t]}</b></div></div>
+      <div class="stepper flex items-center gap-1"><button type="button" onclick="this.nextElementSibling.stepDown();marcar(this)">−</button>
+        <input data-id="${c.id}" type="number" min="0" value="${S.stock[c.id][t]}" oninput="marcar(this)"><button type="button" onclick="this.previousElementSibling.stepUp();marcar(this)">+</button></div>
+    </div>`}).join("");
 }
+function marcar(el){const inp=el.closest(".stepper").querySelector("input"); const esp=S.stock[inp.dataset.id][tiendaAct()]; inp.classList.toggle("text-marca",+inp.value<esp); inp.classList.toggle("text-emerald-600",+inp.value>esp);}
 $("#cBtn").onclick=()=>{
   const t=tiendaAct(); let falt=0, monto=0, filas=[];
-  document.querySelectorAll("#tablaCierre input").forEach(inp=>{
-    const id=inp.dataset.id, esp=S.stock[id][t], fis=+inp.value, dif=fis-esp;
+  $$("#listaCierre input").forEach(inp=>{
+    const id=inp.dataset.id, esp=S.stock[id][t], fis=Math.max(0,+inp.value||0), dif=fis-esp;
     S.cierres.push({fecha:hoy(),tienda:t,id,esperado:esp,fisico:fis,dif});
     if(dif!==0){filas.push({id,esp,fis,dif}); if(dif<0){falt+=-dif; monto+=-dif*modelo(id).precio_bs;}}
     S.stock[id][t]=fis;
   });
-  guardar();
+  guardar(); renderCierre();
   $("#cRes").innerHTML = filas.length
-    ? `<div class="p-4 rounded-xl bg-red-50"><b>⚠️ Se detectaron diferencias:</b><ul class="mt-2 text-sm">${filas.map(f=>`<li>${modelo(f.id).nombre}: el sistema esperaba <b>${f.esp}</b> y se contaron <b>${f.fis}</b> → <b class="${f.dif<0?'text-red-700':'text-green-700'}">${f.dif>0?'+':''}${f.dif} par(es)</b></li>`).join("")}</ul><div class="mt-2">Faltante total: <b>${falt} pares · ${bs(monto)}</b></div></div>`
-    : `<div class="p-4 rounded-xl bg-green-50"><b>✓ Inventario cuadrado.</b> El sistema y el conteo físico coinciden.</div>`;
-  renderInv();
+    ? `<div class="card p-4 fade bg-marca-50"><div class="flex items-center gap-3"><div class="text-3xl">⚠️</div><div><div class="font-bold">Se detectaron diferencias</div><div class="text-sm">Faltante: <b>${falt} ${falt===1?"par":"pares"} · ${bs(monto)}</b></div></div></div>
+       <div class="mt-3 space-y-1.5">${filas.map(f=>`<div class="flex justify-between text-sm bg-white rounded-lg px-3 py-2"><span class="truncate mr-2">${corto(modelo(f.id))}: esperado <b>${f.esp}</b>, contado <b>${f.fis}</b></span><b class="${f.dif<0?'text-marca':'text-emerald-600'}">${f.dif>0?'+':''}${f.dif}</b></div>`).join("")}</div></div>`
+    : `<div class="card p-4 fade bg-emerald-50 flex items-center gap-3"><div class="text-3xl">✅</div><div><div class="font-bold">Inventario cuadrado</div><div class="text-sm">El sistema y el conteo físico coinciden.</div></div></div>`;
+  window.scrollTo({top:0,behavior:"smooth"}); toast(filas.length?"Cierre con diferencias":"Cierre sin diferencias");
 };
 
 /* ---------- DASHBOARD ---------- */
@@ -278,23 +439,25 @@ function renderDash(){
   const hoyBs=S.ventas.filter(v=>v.fecha===hoy()).reduce((a,v)=>a+m(v),0);
   const porMod={}; CAT.forEach(c=>porMod[c.id]=0); V.forEach(v=>porMod[v.id]+=v.cant);
   const orden=Object.entries(porMod).sort((a,b)=>b[1]-a[1]);
-  const stockTot=CAT.reduce((a,c)=>a+TIENDAS.reduce((b,t)=>b+S.stock[c.id][t],0),0);
+  const stockTot=CAT.reduce((a,c)=>a+stockTotal(c.id),0);
   const C=S.cierres.filter(c=>c.fecha>=lim), ok=C.filter(c=>c.dif===0).length;
   const faltP=C.filter(c=>c.dif<0).reduce((a,c)=>a-c.dif,0), faltBs=C.filter(c=>c.dif<0).reduce((a,c)=>a-c.dif*modelo(c.id).precio_bs,0);
-  const bajos=CAT.reduce((a,c)=>a+TIENDAS.filter(t=>S.stock[c.id][t]<5).length,0);
-  const K=[["Ventas hoy",bs(hoyBs)],["Ventas 30 días",bs(tot)],["Pares vendidos",pares.toLocaleString()],["Ticket promedio por par",bs(tot/Math.max(pares,1))],
-    ["Modelo más vendido",modelo(orden[0][0]).nombre.split(" - ")[0]],["Modelo más lento",modelo(orden.at(-1)[0]).nombre.split(" - ")[0]],
-    ["Exactitud de inventario",(C.length?ok/C.length*100:100).toFixed(1)+"%"],["Faltantes detectados",`${faltP} pares · ${bs(faltBs)}`],
-    ["Rotación (30 días)",(pares/Math.max(stockTot,1)).toFixed(2)+"×"],["Alertas de stock bajo",bajos],["Stock total",stockTot+" pares"],["Tiendas conectadas",TIENDAS.length]];
-  $("#kpis").innerHTML=K.map(([k,v])=>`<div class="card p-3 kpi"><span class="text-xs text-stone-500">${k}</span><b>${v}</b></div>`).join("");
+  const bajos=[]; CAT.forEach(c=>TIENDAS.forEach(t=>{if(S.stock[c.id][t]<BAJO) bajos.push([c,t,S.stock[c.id][t]])}));
+  const K=[["Ventas 30 días",bs(tot),"💰"],["Ventas hoy",bs(hoyBs),"📅"],["Pares vendidos",pares.toLocaleString("es-BO"),"👟"],["Ticket por par",bs(tot/Math.max(pares,1)),"🏷️"],
+    ["Exactitud inventario",(C.length?ok/C.length*100:100).toFixed(1)+"%","🎯"],["Faltantes",`${faltP} · ${bs(faltBs)}`,"⚠️"],
+    ["Rotación 30 días",(pares/Math.max(stockTot,1)).toFixed(2)+"×","🔄"],["Stock total",stockTot+" pares","📦"],
+    ["Más vendido",corto(modelo(orden[0][0])),"🏆"],["Más lento",corto(modelo(orden.at(-1)[0])),"🐢"],["Alertas stock bajo",bajos.length,"🔴"],["Tiendas",TIENDAS.length,"🏬"]];
+  $("#kpis").innerHTML=K.map(([k,v,e])=>`<div class="card p-3.5"><div class="flex justify-between text-[11px] text-gray-500"><span>${k}</span><span>${e}</span></div><div class="text-lg sm:text-2xl font-bold mt-1 leading-tight truncate tabular-nums">${v}</div></div>`).join("");
+  $("#alertas").innerHTML=bajos.length?`<div class="card p-4"><div class="font-semibold mb-2">🔴 Reposición sugerida</div><div class="scroll-x flex gap-2">${bajos.map(([c,t,n])=>`<div class="shrink-0 rounded-xl bg-marca-50 px-3 py-2 text-sm"><b>${corto(c)}</b><div class="text-xs text-gray-600">${t.split(" - ")[0]} · quedan ${n}</div></div>`).join("")}</div></div>`:"";
   const dias=[...new Set(V.map(v=>v.fecha))].sort();
-  const g=(id,cfg)=>{charts[id]?.destroy(); cfg.options=Object.assign({responsive:true,maintainAspectRatio:false},cfg.options||{}); charts[id]=new Chart($("#"+id),cfg);};
-  const R="#c8102e", pal=["#c8102e","#2e86c1","#7d8c4a","#e0a43a"];
-  g("chDia",{type:"line",data:{labels:dias.map(d=>d.slice(5)),datasets:[{data:dias.map(d=>V.filter(v=>v.fecha===d).reduce((a,v)=>a+m(v),0)),borderColor:R,backgroundColor:R+"22",fill:true,tension:.3}]},options:{plugins:{legend:{display:false}}}});
+  const g=(id,cfg)=>{charts[id]?.destroy(); cfg.options=Object.assign({responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}},cfg.options||{}); charts[id]=new Chart($("#"+id),cfg);};
+  Chart.defaults.font.family="Inter, system-ui, sans-serif"; Chart.defaults.color="#6b7280";
+  const R="#c8102e", pal=["#c8102e","#2e86c1","#7d8c4a"];
+  g("chDia",{type:"line",data:{labels:dias.map(d=>d.slice(8)+"/"+d.slice(5,7)),datasets:[{data:dias.map(d=>V.filter(v=>v.fecha===d).reduce((a,v)=>a+m(v),0)),borderColor:R,backgroundColor:R+"1f",fill:true,tension:.35,pointRadius:0,borderWidth:2.5}]},options:{scales:{x:{grid:{display:false},ticks:{maxTicksLimit:7}},y:{grid:{color:"#eef0f3"}}}}});
   const cats=[...new Set(CAT.map(c=>c.categoria))];
-  g("chCat",{type:"doughnut",data:{labels:cats,datasets:[{data:cats.map(k=>V.filter(v=>modelo(v.id).categoria===k).reduce((a,v)=>a+m(v),0)),backgroundColor:pal}]}});
-  g("chTienda",{type:"bar",data:{labels:TIENDAS,datasets:[{data:TIENDAS.map(t=>V.filter(v=>v.tienda===t).reduce((a,v)=>a+m(v),0)),backgroundColor:"#2e86c1"}]},options:{plugins:{legend:{display:false}}}});
-  g("chModelo",{type:"bar",data:{labels:orden.map(o=>modelo(o[0]).nombre.split(" - ")[0]),datasets:[{data:orden.map(o=>o[1]),backgroundColor:R}]},options:{indexAxis:"y",plugins:{legend:{display:false}}}});
+  g("chCat",{type:"doughnut",data:{labels:cats,datasets:[{data:cats.map(k=>V.filter(v=>modelo(v.id).categoria===k).reduce((a,v)=>a+m(v),0)),backgroundColor:pal,borderWidth:0}]},options:{cutout:"62%",plugins:{legend:{display:true,position:"bottom",labels:{boxWidth:10,font:{size:11}}}}}});
+  g("chTienda",{type:"bar",data:{labels:TIENDAS.map(t=>t.split(" - ")[0]),datasets:[{data:TIENDAS.map(t=>V.filter(v=>v.tienda===t).reduce((a,v)=>a+m(v),0)),backgroundColor:"#2e86c1",borderRadius:8}]},options:{scales:{x:{grid:{display:false}},y:{grid:{color:"#eef0f3"}}}}});
+  g("chModelo",{type:"bar",data:{labels:orden.map(o=>corto(modelo(o[0]))),datasets:[{data:orden.map(o=>o[1]),backgroundColor:R,borderRadius:6}]},options:{indexAxis:"y",scales:{x:{grid:{color:"#eef0f3"}},y:{grid:{display:false},ticks:{font:{size:11}}}}}});
 }
 init();
 </script>
