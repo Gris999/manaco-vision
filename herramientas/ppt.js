@@ -41,15 +41,24 @@ T(s, "Fuente: base de comercio exterior de calzado (país reportante: España). 
 pie(s);
 s.addNotes("(60 s) Limpiamos la base: 240 registros, sin nulos, sin registros 'Mundo', y agregamos 10 duplicados. Hallazgo clave: el calzado de cuero vale casi el doble por par. El deportivo es donde más presiona el importado barato. Conclusión: Manaco no debe pelear por precio, sino por su fortaleza, el cuero. Limitación honesta: son datos de España, una referencia externa, y el valor es en aduana.");
 
-// 4 Solución
-s = pres.addSlide(); s.background = { color: BL }; titulo(s, "Manaco Vision: cada venta se vuelve un dato");
-const pasos = [["Escanea", "La cámara reconoce el modelo"], ["Consulta", "Stock en esta y otras tiendas"], ["Vende", "Se descuenta automáticamente"], ["Cierra el día", "Esperado vs. físico: detecta faltantes"], ["Decide", "Dashboard de KPIs para Gerencia"]];
-pasos.forEach(([h, d], i) => { const x = 0.5 + i * 1.84; card(s, x, 1.4, 1.65, 2.0); circ(s, x + 0.57, 1.6, i + 1); T(s, h, { x: x + 0.1, y: 2.25, w: 1.45, h: 0.35, align: "center", fontSize: 14, bold: true }); T(s, d, { x: x + 0.1, y: 2.6, w: 1.45, h: 0.7, align: "center", fontSize: 11, color: MUTE });
-  if (i < 4) T(s, "›", { x: x + 1.65, y: 2.1, w: 0.19, h: 0.4, align: "center", fontSize: 20, bold: true, color: ROJO }); });
-T(s, [{ text: "Tecnología: ", options: { bold: true } }, { text: "IA MobileNetV2 + TensorFlow.js (corre en el celular) · Web HTTPS · Chart.js · sin hardware adicional: usa los celulares de las tiendas" }], { x: 0.5, y: 3.75, w: 9, h: 0.5, fontSize: 13 });
-T(s, "Resuelve: inventario a ciegas · datos dispersos · producción sin evidencia · enfoque en la línea de cuero", { x: 0.5, y: 4.3, w: 9, h: 0.4, fontSize: 12, color: ROJO, bold: true });
+// 4 Solución: un sistema, tres roles + dos fuentes de datos
+s = pres.addSlide(); s.background = { color: BL }; titulo(s, "Manaco Vision: un sistema, tres roles");
+const roles = [["👟", "Vendedor", "Escanea el zapato, ve precio y stock, y vende", "Escáner · Ventas"],
+  ["🏬", "Encargado", "Repone y cierra el día: detecta faltantes", "Inventario · Cierre"],
+  ["📊", "Gerente", "Decide con datos de las 3 tiendas y del mercado", "Resumen · Mercado"]];
+roles.forEach(([ic, h, d, p], i) => { const x = 0.5 + i * 3.05; card(s, x, 1.2, 2.85, 1.95);
+  s.addShape(pres.shapes.OVAL, { x: x + 0.2, y: 1.38, w: 0.55, h: 0.55, fill: { color: BL }, line: { color: BL } });
+  T(s, ic, { x: x + 0.2, y: 1.38, w: 0.55, h: 0.55, align: "center", valign: "middle", fontSize: 18 });
+  T(s, h, { x: x + 0.9, y: 1.43, w: 1.85, h: 0.45, fontSize: 16, bold: true, valign: "middle" });
+  T(s, d, { x: x + 0.2, y: 2.05, w: 2.5, h: 0.6, fontSize: 11, color: MUTE, valign: "top" });
+  T(s, p, { x: x + 0.2, y: 2.68, w: 2.5, h: 0.3, fontSize: 10, bold: true, color: ROJO });
+  if (i < 2) T(s, "›", { x: x + 2.85, y: 1.95, w: 0.2, h: 0.4, align: "center", fontSize: 20, bold: true, color: ROJO }); });
+T(s, "Dos fuentes de datos", { x: 0.5, y: 3.35, w: 9, h: 0.3, fontSize: 13, bold: true });
+card(s, 0.5, 3.7, 4.4, 1.25, "FDE8EE"); card(s, 5.1, 3.7, 4.4, 1.25, GRIS);
+T(s, [{ text: "Excel del caso → Mercado", options: { bold: true, breakLine: true } }, { text: "230 registros de comercio de calzado (España, 2020–2024). Sirve para la estrategia: el cuero vale casi el doble por par." }], { x: 0.7, y: 3.8, w: 4.0, h: 1.05, fontSize: 11, valign: "top" });
+T(s, [{ text: "Catálogo de la tienda en línea → IA e inventario", options: { bold: true, breakLine: true } }, { text: "725 modelos reales con fotos y precios. El Excel no trae modelos; ventas y stock son simulados." }], { x: 5.3, y: 3.8, w: 4.0, h: 1.05, fontSize: 11, valign: "top" });
 pie(s);
-s.addNotes("(75 s) Nuestra solución tiene 5 pasos. El vendedor apunta la cámara y la IA reconoce el modelo; ve el stock en su tienda y en las demás; registra la venta y el stock baja solo; al cierre del día cuenta, y el sistema compara lo esperado con lo físico y avisa si falta algo; la Gerencia ve todo en un dashboard. No necesita hardware nuevo: usa los celulares que ya existen.");
+s.addNotes("(75 s) Manaco Vision es un solo sistema con tres roles. El VENDEDOR escanea el zapato con el celular, ve precio y stock, y vende. El ENCARGADO repone y, al cierre, el sistema compara lo esperado con lo contado y detecta faltantes. El GERENTE ve el resumen de las 3 tiendas y el mercado para decidir. Usamos dos fuentes: el Excel del caso para la estrategia de mercado, y el catálogo real de la tienda en línea para la IA, porque el Excel no trae modelos de zapatos. Las ventas y el stock son simulados porque no tenemos los datos internos.");
 
 // 5 Demo
 s = pres.addSlide(); s.background = { color: BL }; titulo(s, "Prototipo real: 725 modelos del catálogo");

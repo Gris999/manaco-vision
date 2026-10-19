@@ -119,6 +119,11 @@ tailwind.config={theme:{extend:{
       <div class="text-marca text-3xl font-extrabold italic tracking-tight leading-none">manaco</div>
       <div class="eyebrow mt-1">Vision · Inventario inteligente</div>
     </div>
+    <button class="btnRol w-full flex items-center gap-3 rounded-2xl bg-suave p-3 mb-5 text-left hover:bg-linea" aria-label="Cambiar de rol">
+      <span class="rolIco w-10 h-10 rounded-full bg-marca text-white grid place-items-center text-lg shrink-0"></span>
+      <span class="min-w-0 flex-1"><span class="eyebrow block">Entraste como</span><span class="rolTxt font-semibold block truncate"></span></span>
+      <span class="text-xs font-semibold text-marca">Cambiar</span>
+    </button>
     <nav class="space-y-1" id="navSide"></nav>
     <div class="mt-auto space-y-3">
       <label class="block"><span class="eyebrow">Tienda activa</span>
@@ -136,10 +141,10 @@ tailwind.config={theme:{extend:{
       <div class="flex items-center gap-3">
         <div class="mr-auto min-w-0">
           <div class="text-2xl font-extrabold italic tracking-tight leading-none">manaco</div>
-          <div class="estadoIA text-[11px] text-white/85 flex items-center gap-1.5 mt-0.5" role="status"><span class="dot w-1.5 h-1.5 rounded-full bg-white/60"></span><span class="txt">Cargando IA…</span></div>
+          <button class="btnRol text-[11px] text-white/90 flex items-center gap-1 mt-0.5 font-medium" aria-label="Cambiar de rol"><span class="rolIco"></span><span class="rolTxt"></span> ▾</button>
         </div>
-        <button class="btnInstalar hidden bg-white text-marca rounded-full px-3 py-1.5 text-xs font-semibold" aria-label="Instalar la app">Instalar</button>
-        <label class="flex items-center gap-1.5 bg-white/15 rounded-full pl-3 pr-2 py-1.5 text-xs">
+        <button class="btnInstalar hidden shrink-0 bg-white text-marca rounded-full w-9 h-9 grid place-items-center" aria-label="Instalar la app" title="Instalar la app"><svg class="w-5 h-5" aria-hidden="true"><use href="#i-download"/></svg></button>
+        <label class="tiendaHeader shrink-0 flex items-center gap-1.5 bg-white/15 rounded-full pl-3 pr-2 py-1.5 text-xs">
           <svg class="w-4 h-4 shrink-0" aria-hidden="true"><use href="#i-store"/></svg>
           <select class="selTienda bg-transparent text-white text-xs max-w-[120px] outline-none" aria-label="Tienda activa"></select>
         </label>
@@ -152,7 +157,8 @@ tailwind.config={theme:{extend:{
       <section id="v-escaner" class="vista grid grid-cols-1 lg:grid-cols-5 gap-5 lg:gap-8" aria-labelledby="t-esc">
         <div class="lg:col-span-3">
           <div class="mb-4"><div class="eyebrow">Paso 1 · Reconocer</div><h1 id="t-esc" class="titular text-3xl lg:text-4xl">Escáner</h1>
-            <p class="text-mute text-sm mt-1">Apunta la cámara al zapato: verás el modelo, el precio y el stock.</p></div>
+            <p class="text-mute text-sm mt-1">Apunta la cámara al zapato: verás el modelo, el precio y el stock.</p>
+            <div class="estadoIA lg:hidden text-xs text-mute flex items-center gap-2 mt-2" role="status"><span class="dot w-2 h-2 rounded-full bg-aviso"></span><span class="txt">Cargando IA…</span></div></div>
           <div class="rounded-[22px] overflow-hidden bg-tinta">
             <div id="visor" class="relative overflow-hidden aspect-[4/5] sm:aspect-[4/3]">
               <video id="video" playsinline muted aria-label="Vista de la cámara"></video>
@@ -310,6 +316,22 @@ tailwind.config={theme:{extend:{
 <nav class="lg:hidden fixed bottom-0 inset-x-0 z-30 bg-white/95 backdrop-blur border-t border-linea bottom-bar" aria-label="Navegación">
   <div class="flex max-w-lg mx-auto" id="navBottom"></div>
 </nav>
+<!-- Pantalla de inicio: elegir rol -->
+<div id="inicio" class="hidden fixed inset-0 z-[60] bg-white overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="tInicio">
+  <div class="bg-marca text-white px-6 pt-[calc(env(safe-area-inset-top)+28px)] pb-14">
+    <div class="max-w-4xl mx-auto">
+      <div class="text-4xl font-extrabold italic tracking-tight leading-none">manaco</div>
+      <h1 id="tInicio" class="titular text-3xl sm:text-5xl mt-5">¿Quién eres hoy?</h1>
+      <p class="text-white/85 mt-2 max-w-xl">Cada rol ve solo lo que necesita para su trabajo. Puedes cambiar de rol cuando quieras.</p>
+    </div>
+  </div>
+  <div class="max-w-4xl mx-auto px-6 -mt-8 pb-10">
+    <label class="block card p-4 mb-4 bg-white max-w-md"><span class="eyebrow">1 · Tu tienda (vendedor y encargado)</span><select id="inicioTienda" class="campo mt-1.5"></select></label>
+    <div class="eyebrow mb-2">2 · Elige tu rol</div>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="rolesGrid"></div>
+    <p class="text-xs text-mute mt-6">Prototipo académico · caso de estudio Manaco. Sin contraseñas: en producción cada rol tendría su usuario.</p>
+  </div>
+</div>
 <!-- Instrucciones de instalación (iPhone / navegadores sin botón automático) -->
 <div id="modalIOS" class="hidden fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="tIOS">
   <div class="bg-white rounded-3xl p-6 w-full max-w-sm fade">
@@ -329,6 +351,15 @@ tailwind.config={theme:{extend:{
 <script>
 const TIENDAS=["La Paz - El Prado","Cochabamba - Heroínas","Santa Cruz - Ventura Mall"];
 const VISTAS=[["escaner","Escáner","i-scan"],["inventario","Inventario","i-box"],["ventas","Ventas","i-cash"],["cierre","Cierre","i-moon"],["dashboard","Resumen","i-chart"],["mercado","Mercado","i-globe"]];
+const ROLES={
+  vendedor:{nombre:"Vendedor",ico:"👟",vistas:["escaner","ventas"],desc:"Atiende al cliente: escanea el zapato, ve precio y stock, y registra la venta.",tareas:["Reconocer el modelo con la cámara","Consultar stock en las 3 tiendas","Registrar la venta"]},
+  encargado:{nombre:"Encargado de tienda",ico:"🏬",vistas:["inventario","cierre","escaner"],desc:"Cuida el stock de su tienda: repone y concilia el inventario al cerrar.",tareas:["Revisar stock y alertas","Reponer modelos","Cierre del día y faltantes"]},
+  gerente:{nombre:"Gerente",ico:"📊",vistas:["dashboard","mercado","inventario"],desc:"Decide con datos de las 3 tiendas y del mercado.",tareas:["Resumen y semáforo del negocio","Qué hacer hoy","Mercado: base del Excel"]},
+};
+let rol=null; try{rol=localStorage.getItem("mv_rol")}catch(e){}
+if(!ROLES[rol]) rol=null;
+const vistasRol=()=>rol?ROLES[rol].vistas:VISTAS.map(v=>v[0]);
+const duenoVista=v=>Object.values(ROLES).find(r=>r.vistas.includes(v))?.nombre||"";
 const UMBRAL=0.55, KEY="manacoVision_v5", BAJO=5;
 const NOMC={"Deportivo":"Deportivo","Casual cuero (suela caucho)":"Casual","Formal cuero/cuero":"Formal de cuero"};
 let invMax=24, cMax=30, CAT=[], IDX={}, CLASES=[], net=null, head=null, S=null, charts={}, vista="escaner", filtroCat="Todas", tienda=TIENDAS[0];
@@ -371,9 +402,15 @@ async function init(){
   try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){}
   if(!S||!S.stock||CAT.some(c=>!S.stock[c.id])) {S=semilla(); guardar();}
   $$(".selTienda").forEach(sel=>{sel.innerHTML=TIENDAS.map(t=>`<option value="${t}">${t}</option>`).join(""); sel.onchange=()=>{tienda=sel.value; $$(".selTienda").forEach(o=>o.value=tienda); render(); if(ultimo&&ultimo!=="otro") mostrar({clase:ultimo,prob:ultimaProb}); toast("Tienda: "+tienda);};});
-  $("#navSide").innerHTML=VISTAS.map(([v,n,i])=>`<button data-v="${v}" class="nav-item"><svg aria-hidden="true"><use href="#${i}"/></svg>${n}</button>`).join("");
-  $("#navBottom").innerHTML=VISTAS.map(([v,n,i])=>`<button data-v="${v}" class="tab-item"><svg aria-hidden="true"><use href="#${i}"/></svg>${n}</button>`).join("");
-  $$("[data-v]").forEach(b=>b.onclick=()=>ver(b.dataset.v));
+  armarNav();
+  $$(".btnRol").forEach(b=>b.onclick=abrirInicio);
+  $("#inicioTienda").innerHTML=TIENDAS.map(t=>`<option value="${t}">${t}</option>`).join("");
+  $("#rolesGrid").innerHTML=Object.entries(ROLES).map(([k,r])=>`<button data-rol="${k}" class="card text-left p-5 hover:border-tinta hover:shadow-lg transition bg-white flex flex-col">
+    <span class="w-14 h-14 rounded-full bg-suave grid place-items-center text-3xl">${r.ico}</span>
+    <span class="font-bold text-xl mt-4">${r.nombre}</span><span class="text-sm text-mute mt-1">${r.desc}</span>
+    <ul class="mt-4 space-y-1.5 text-sm">${r.tareas.map(t=>`<li class="flex gap-2"><span class="text-marca">●</span>${t}</li>`).join("")}</ul>
+    <span class="btn btn-n mt-5 w-full">Entrar como ${r.nombre.split(" ")[0]}</span></button>`).join("");
+  $$("[data-rol]").forEach(b=>b.onclick=()=>elegirRol(b.dataset.rol));
   // Ventas
   const llenarSel=q=>{const L=[...CAT].filter(c=>!q||(c.nombre+" "+c.marca).toLowerCase().includes(q)).sort((a,b)=>a.nombre.localeCompare(b.nombre)).slice(0,300);
     $("#vModelo").innerHTML=L.map(c=>`<option value="${c.id}">${esc(c.nombre)} · ${bs(c.precio_bs)}</option>`).join("")||`<option value="">Sin resultados</option>`; $("#vModelo").onchange();};
@@ -396,10 +433,28 @@ async function init(){
   $("#dTienda").innerHTML=`<option value="Todas">Las 3 tiendas</option>`+TIENDAS.map(t=>`<option>${t}</option>`).join("");
   $("#dTienda").onchange=e=>{dTie=e.target.value; renderDash();};
   $("#btnReset").onclick=()=>{if(confirm("¿Reiniciar los datos de demostración? Se perderán las ventas y cierres registrados.")){S=semilla(); guardar(); render(); toast("Datos reiniciados");}};
-  resultadoVacio(); ver(location.hash.slice(1)||"escaner"); cargarIA(); initMercado();
+  const rp=new URLSearchParams(location.search).get("rol"); if(ROLES[rp]) {rol=rp; try{localStorage.setItem("mv_rol",rol)}catch(e){}}
+  resultadoVacio(); cargarIA(); initMercado();
+  if(rol){armarNav(); ver(location.hash.slice(1)||ROLES[rol].vistas[0]);} else {ver("escaner"); abrirInicio();}
+}
+function armarNav(){
+  const V=VISTAS.filter(([v])=>vistasRol().includes(v)).sort((a,b)=>vistasRol().indexOf(a[0])-vistasRol().indexOf(b[0]));
+  $("#navSide").innerHTML=V.map(([v,n,i])=>`<button data-v="${v}" class="nav-item"><svg aria-hidden="true"><use href="#${i}"/></svg>${n}</button>`).join("");
+  $("#navBottom").innerHTML=V.map(([v,n,i])=>`<button data-v="${v}" class="tab-item"><svg aria-hidden="true"><use href="#${i}"/></svg>${n}</button>`).join("");
+  $$("#navSide [data-v],#navBottom [data-v]").forEach(b=>b.onclick=()=>ver(b.dataset.v));
+  $$(".tiendaHeader").forEach(e=>e.classList.toggle("hidden",rol==="gerente"));
+  const r=ROLES[rol]; $$(".rolTxt").forEach(e=>e.textContent=r?r.nombre:"Elegir rol"); $$(".rolIco").forEach(e=>e.textContent=r?r.ico:"👤");
+}
+function abrirInicio(){ $("#inicioTienda").value=tienda; $("#inicio").classList.remove("hidden"); if(stream) cerrarCam(); }
+function elegirRol(k){
+  rol=k; try{localStorage.setItem("mv_rol",k)}catch(e){}
+  tienda=$("#inicioTienda").value; $$(".selTienda").forEach(o=>o.value=tienda);
+  $("#inicio").classList.add("hidden"); armarNav(); ver(ROLES[k].vistas[0]);
+  toast(`${ROLES[k].ico} Entraste como ${ROLES[k].nombre}${k!=="gerente"?" · "+tienda.split(" - ")[0]:""}`);
 }
 function ver(v){
-  if(!VISTAS.some(x=>x[0]===v)) v="escaner";
+  if(!VISTAS.some(x=>x[0]===v)) v=vistasRol()[0];
+  if(!vistasRol().includes(v)){toast(`Esa pantalla es del ${duenoVista(v)}. Toca "${ROLES[rol].nombre}" arriba para cambiar de rol.`); return;}
   vista=v; history.replaceState(null,"","#"+v);
   $$("[data-v]").forEach(b=>{b.classList.toggle("on",b.dataset.v===v); b.setAttribute("aria-current",b.dataset.v===v?"page":"false");});
   $$(".vista").forEach(s=>s.classList.toggle("hidden",s.id!=="v-"+v));
@@ -624,7 +679,7 @@ function renderDash(){
   const peorT=Object.entries(porTiendaF).sort((a,b)=>b[1]-a[1])[0];
   const acc=[];
   bajos.slice(0,3).forEach(([c,t,n])=>acc.push({txt:`Reponer <b>${corto(c)}</b> en ${esc(t.split(" - ")[0])}`,sub:`${n===1?"Queda 1 par":"Quedan "+n+" pares"}`,btn:"+10",fn:`reponer('${c.id}',10,'${t}')`}));
-  if(peorT) acc.push({txt:`Revisar faltantes en <b>${esc(peorT[0].split(" - ")[0])}</b>`,sub:`${peorT[1]} pares no aparecieron al contar`,btn:"Ir",fn:`tienda='${peorT[0]}';$$('.selTienda').forEach(o=>o.value=tienda);ver('cierre')`});
+  if(peorT) acc.push({txt:`Revisar faltantes en <b>${esc(peorT[0].split(" - ")[0])}</b>`,sub:`${peorT[1]} pares no aparecieron al contar`,btn:rol==="gerente"?"Avisar":"Ir",fn:rol==="gerente"?`toast('📨 Aviso enviado al Encargado de ${peorT[0].split(" - ")[0]}: revisar ${peorT[1]} pares faltantes')`:`tienda='${peorT[0]}';$$('.selTienda').forEach(o=>o.value=tienda);ver('cierre')`});
   if(orden[0]) acc.push({txt:`Asegurar stock de <b>${corto(modelo(orden[0][0]))}</b>`,sub:`Es el más vendido: ${orden[0][1].p} pares`,btn:"Ver",fn:`ver('inventario');$('#buscar').value=${JSON.stringify(modelo(orden[0][0]).nombre.split(" - ")[0])};renderInv()`});
   acc.push({txt:`Impulsar la <b>línea de cuero</b>`,sub:`En el mercado vale casi el doble por par`,btn:"Ver",fn:`ver('mercado')`});
   $("#acciones").innerHTML=acc.slice(0,5).map((a,i)=>`<li class="flex gap-3 items-center rounded-2xl border border-linea p-3"><span class="w-7 h-7 shrink-0 rounded-full bg-tinta text-white grid place-items-center text-xs font-bold">${i+1}</span>

@@ -19,7 +19,23 @@ Prototipo académico (caso de estudio **Manaco**, 6.º semestre de Ingeniería d
 - Ejemplo del docente: había 10 pares, se vendieron 2, deberían quedar 8, pero quedan 7. Ese faltante hoy nadie lo detecta.
 - En el contexto externo, el calzado importado barato (sobre todo deportivo) presiona los precios.
 
-## 2. Qué hace la app (6 vistas)
+## 2. Roles
+
+Al entrar, la app pregunta **"¿Quién eres hoy?"** (sin contraseña, porque es un prototipo):
+
+| Rol | Pantallas | Para qué |
+|---|---|---|
+| 👟 Vendedor | Escáner, Ventas | Reconocer el zapato, ver precio y stock, y vender |
+| 🏬 Encargado de tienda | Inventario, Cierre, Escáner | Reponer y conciliar el inventario al cerrar |
+| 📊 Gerente | Resumen, Mercado, Inventario | Decidir con datos de las 3 tiendas y del mercado |
+
+Deep link: `?rol=vendedor|encargado|gerente`.
+
+## Fuentes de datos
+1. **Excel del caso** (comercio exterior, España): 230 registros → vista *Mercado* y estrategia.
+2. **Catálogo público de la tienda en línea** (bata.com.bo): 725 modelos → IA e inventario. El Excel no contiene modelos de zapatos.
+
+## 3. Qué hace la app (6 vistas)
 
 | Vista | Para quién | Función |
 |---|---|---|
