@@ -2,7 +2,7 @@
 
 Prototipo académico (caso de estudio **Manaco**, 6.º semestre de Ingeniería de Sistemas, Ciencia de Datos e Inteligencia de Negocios) que propone un **inventario inteligente con visión artificial** para las tiendas de calzado de Manaco (Bata Bolivia).
 
-**Demo en vivo:** https://manaco.datahuba.com (respaldo: https://gris999.github.io/manaco-vision/)
+**Demo en vivo:** https://gris999.github.io/manaco-vision/ (próximamente también en manaco.datahuba.com)
 
 ## Instalar la app (acceso directo)
 - **Android (Chrome/Edge):** abre el enlace y toca **Instalar app** (o menú ⋮ → *Instalar app*).
