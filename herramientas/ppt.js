@@ -15,7 +15,7 @@ T(s, "manaco", { x: 0.6, y: 0.55, w: 4, h: 0.6, fontSize: 30, bold: true, italic
 T(s, "CASO DE ESTUDIO EMPRESARIAL", { x: 0.6, y: 1.15, w: 6, h: 0.3, fontSize: 11, color: "FFD1DD", charSpacing: 2 });
 T(s, "Manaco Vision", { x: 0.6, y: 1.5, w: 6, h: 0.9, fontFace: "Poppins", fontSize: 42, bold: true, color: BL });
 T(s, "Inventario inteligente con visión artificial para decidir con datos", { x: 0.6, y: 2.3, w: 5.6, h: 0.8, fontSize: 17, color: BL });
-T(s, "Equipo consultor: ____________ / ____________", { x: 0.6, y: 3.9, w: 5.5, h: 0.3, fontSize: 13, color: BL });
+T(s, "Equipo consultor: Pedro Alaca · Rodrigo Viveros", { x: 0.6, y: 3.9, w: 5.5, h: 0.3, fontSize: 13, color: BL });
 T(s, "20 de octubre de 2026", { x: 0.6, y: 4.25, w: 5.5, h: 0.3, fontSize: 13, color: "FFD1DD" });
 card(s, 6.9, 1.1, 2.5, 3.1, BL);
 s.addImage({ path: G("qr_app.png"), x: 7.15, y: 1.3, w: 2.0, h: 2.0 });

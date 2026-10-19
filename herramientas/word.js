@@ -37,7 +37,7 @@ const portada = [
   new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 600 }, children: [TR({ text: "Inventario inteligente con visión artificial y analítica de datos para la toma de decisiones", size: 28 })] }),
   p("Carrera: Ingeniería de Sistemas, Ciencia de Datos e Inteligencia de Negocios", { alignment: AlignmentType.CENTER }),
   p("Nivel: 6.º semestre · Modalidad: Aprendizaje Basado en Retos (ABR)", { alignment: AlignmentType.CENTER }),
-  p("Equipo consultor: ______________________  /  ______________________", { alignment: AlignmentType.CENTER, spacing: { before: 600 } }),
+  p([b("Equipo consultor: "), "Pedro Alaca · Rodrigo Viveros"], { alignment: AlignmentType.CENTER, spacing: { before: 600 } }),
   p("Docente: ______________________", { alignment: AlignmentType.CENTER }),
   p("Fecha: 20 de octubre de 2026", { alignment: AlignmentType.CENTER }),
   p([b("Prototipo en línea: "), new ExternalHyperlink({ link: "https://gris999.github.io/manaco-vision/", children: [TR({ text: "https://gris999.github.io/manaco-vision/", style: "Hyperlink" })] })], { alignment: AlignmentType.CENTER, spacing: { before: 400 } }),
@@ -201,7 +201,8 @@ const prot = [
 
 function rubrica(titulo, quien) {
   const fases = [["N.º", 0.5], ["Nombre completo", 2.5], ["Fase 1 – Comprensión del caso", 1.3], ["Fase 2 – Diagnóstico empresarial", 1.3], ["Fase 3 – Propuesta estratégica", 1.3], ["Fase 4 – Análisis financiero y marketing", 1.3]];
-  const filas = n => Array.from({ length: n }, (_, i) => [String(i + 1), "", "", "", "", ""]);
+  const EQUIPO = ["Pedro Alaca", "Rodrigo Viveros"];
+  const filas = n => Array.from({ length: n }, (_, i) => [String(i + 1), EQUIPO[i] || "", "", "", "", ""]);
   return [
     h1(titulo),
     p("Escala: 0 (no se presentó) · 25 (muy poco desarrollado) · 50 (poco desarrollado) · 75 (aceptable) · 100 (óptimo)"),
@@ -212,7 +213,7 @@ function rubrica(titulo, quien) {
 }
 
 const doc = new Document({
-  creator: "Equipo consultor", title: "Manaco Vision — Caso Manaco",
+  creator: "Pedro Alaca y Rodrigo Viveros", title: "Manaco Vision — Caso Manaco",
   styles: {
     default: { document: { run: { font: "Poppins", size: 20 } } },
     paragraphStyles: [
