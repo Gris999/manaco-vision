@@ -75,6 +75,7 @@ tailwind.config={theme:{extend:{
   <symbol id="i-img" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></symbol>
   <symbol id="i-flip" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12a9 9 0 0 1 15.5-6.2L21 8M21 3v5h-5M21 12a9 9 0 0 1-15.5 6.2L3 16M3 21v-5h5"/></symbol>
   <symbol id="i-store" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9h16l-1-5H5zM5 9v11h14V9M10 20v-6h4v6"/></symbol>
+  <symbol id="i-globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></symbol>
   <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></symbol>
 </svg>
 
@@ -147,6 +148,7 @@ tailwind.config={theme:{extend:{
         </div>
         <div class="scroll-x flex gap-2 mb-4" id="filtros"></div>
         <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3" id="gridInv"></div>
+        <button id="invMas" onclick="invMax+=24;renderInv()" class="btn btn-s w-full mt-4 hidden"></button>
       </section>
 
       <!-- VENTAS -->
@@ -178,9 +180,40 @@ tailwind.config={theme:{extend:{
         <div class="mb-4"><h1 class="text-2xl font-bold">Cierre del día</h1>
           <p class="text-gray-500 text-sm">Cuenta los pares físicos de <b id="cTienda"></b>. El sistema compara con lo esperado (inicio del día − ventas) y detecta faltantes.</p></div>
         <div id="cRes" class="mb-4"></div>
+        <label class="relative block mb-3"><svg class="w-5 h-5 absolute left-3 top-2.5 text-gray-400"><use href="#i-search"/></svg>
+          <input id="cBuscar" placeholder="Buscar modelo a contar… (● = vendido hoy)" class="w-full pl-10 pr-3 py-2.5 rounded-xl border border-gray-200 bg-white text-sm"></label>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" id="listaCierre"></div>
+        <button id="cMas" onclick="cMax+=30;renderCierre()" class="btn btn-s w-full mt-3 hidden"></button>
         <div class="sticky bottom-[84px] lg:bottom-4 mt-4">
           <button id="cBtn" class="btn btn-p w-full shadow-lg py-3.5"><svg class="w-5 h-5"><use href="#i-moon"/></svg>Cerrar el día y conciliar</button>
+        </div>
+      </section>
+
+      <!-- MERCADO -->
+      <section id="v-mercado" class="vista hidden">
+        <div class="mb-4"><h1 class="text-3xl">Mercado de calzado</h1>
+          <p class="text-gray-500 text-sm">Toda la base de comercio exterior (230 registros depurados · 2020–2024 · España). Filtra y descubre qué se compra, qué se vende y cuánto vale cada par.</p></div>
+        <div class="card p-4 mb-4 space-y-3">
+          <div><div class="text-xs font-semibold text-gray-500 mb-1.5">Movimiento</div><div class="scroll-x flex gap-2" id="fFlujo"></div></div>
+          <div><div class="text-xs font-semibold text-gray-500 mb-1.5">Tipo de zapato</div><div class="scroll-x flex gap-2" id="fCat"></div></div>
+          <div class="flex flex-wrap gap-3 items-end">
+            <div><div class="text-xs font-semibold text-gray-500 mb-1.5">Año</div><div class="scroll-x flex gap-2" id="fAnio"></div></div>
+            <label class="text-xs font-semibold text-gray-500">País<select id="fPais" class="block mt-1.5 border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white text-tinta font-normal"></select></label>
+          </div>
+        </div>
+        <div id="mFrase" class="rounded-[22px] bg-tinta text-crema p-5 mb-4"></div>
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6" id="mKpis"></div>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+          <div class="card p-5"><h2 class="text-xl mb-1">¿Cómo cambió cada año?</h2><p class="text-gray-500 text-sm mb-3">Millones de USD. Ojo: no todos los años tienen la misma cantidad de registros.</p><div class="relative h-60"><canvas id="chAnios"></canvas></div></div>
+          <div class="card p-5"><h2 class="text-xl mb-1">¿Con qué países?</h2><p class="text-gray-500 text-sm mb-3">Los 8 socios con más dinero en la selección</p><div class="space-y-2.5" id="mPaises"></div></div>
+        </div>
+        <div class="card p-5 mb-6"><h2 class="text-xl mb-1">¿Pesa más en dinero o en cantidad?</h2>
+          <p class="text-gray-500 text-sm mb-4">Si la barra de dinero es más larga que la de pares, ese tipo de zapato vale más por unidad.</p><div class="space-y-5" id="mVQ"></div></div>
+        <div class="card p-4 sm:p-5">
+          <div class="flex flex-wrap items-center gap-2 mb-3"><h2 class="text-xl mr-auto">Todos los registros</h2><span class="text-sm text-gray-500" id="mCuenta"></span></div>
+          <div class="hidden md:block overflow-x-auto"><table class="w-full text-sm"><thead><tr class="text-left text-gray-500 border-b border-gray-200" id="mHead"></tr></thead><tbody id="mTabla"></tbody></table></div>
+          <div class="md:hidden space-y-2" id="mCards"></div>
+          <div class="flex items-center justify-between mt-4"><button id="mPrev" class="btn btn-s py-2 text-sm">← Anterior</button><span class="text-sm text-gray-500" id="mPag"></span><button id="mNext" class="btn btn-s py-2 text-sm">Siguiente →</button></div>
         </div>
       </section>
 
@@ -228,6 +261,7 @@ tailwind.config={theme:{extend:{
           <div class="card p-5"><div class="text-3xl mb-2">🚢</div><div class="font-display text-3xl font-semibold text-marca">3×</div><p class="text-sm mt-1"><b>En deportivo entra 3 veces más de lo que sale.</b> Ahí compite el zapato importado barato.</p></div>
           <div class="card p-5"><div class="text-3xl mb-2">💡</div><div class="font-display text-2xl font-semibold text-marca leading-tight">Conclusión</div><p class="text-sm mt-1">Conviene <b>competir con calidad en cuero</b>, no bajando precios contra el importado.</p></div>
         </div>
+        <button onclick="ver('mercado')" class="btn btn-p w-full sm:w-auto mb-4">Explorar toda la base del mercado →</button>
         <div class="card p-5 mb-6"><h3 class="text-lg mb-1">Valor promedio por par (USD)</h3><p class="text-gray-500 text-sm mb-3">Barra más alta = el par vale más dinero</p><div class="relative h-56"><canvas id="chMercado"></canvas></div></div>
         <div class="text-center"><button id="btnReset" class="text-xs text-gray-500 underline">Reiniciar datos de demostración</button></div>
       </section>
@@ -243,9 +277,9 @@ tailwind.config={theme:{extend:{
 
 <script>
 const TIENDAS=["La Paz - El Prado","Cochabamba - Heroínas","Santa Cruz - Ventura Mall"];
-const VISTAS=[["escaner","Escáner","i-scan"],["inventario","Inventario","i-box"],["ventas","Ventas","i-cash"],["cierre","Cierre","i-moon"],["dashboard","Dashboard","i-chart"]];
-const UMBRAL=0.80, KEY="manacoVision_v1", BAJO=5;
-let CAT=[], CLASES=[], net=null, head=null, S=null, charts={}, vista="escaner", filtroCat="Todas", tienda=TIENDAS[0];
+const VISTAS=[["escaner","Escáner","i-scan"],["inventario","Inventario","i-box"],["ventas","Ventas","i-cash"],["cierre","Cierre","i-moon"],["dashboard","Dashboard","i-chart"],["mercado","Mercado","i-globe"]];
+const UMBRAL=0.55, KEY="manacoVision_v3", BAJO=5;
+let invMax=24, cMax=30, CAT=[], CLASES=[], net=null, head=null, S=null, charts={}, vista="escaner", filtroCat="Todas", tienda=TIENDAS[0];
 const $=s=>document.querySelector(s), $$=s=>document.querySelectorAll(s);
 const bs=n=>"Bs "+Math.round(n).toLocaleString("es-BO");
 const hoy=()=>new Date().toISOString().slice(0,10);
@@ -259,18 +293,19 @@ let tt; function toast(msg){const t=$("#toast"); t.textContent=msg; t.classList.
 
 function semilla(){
   let r=42; const rnd=()=>(r=(r*9301+49297)%233280)/233280;
-  const st={}; CAT.forEach(c=>{st[c.id]={}; TIENDAS.forEach(t=>st[c.id][t]=Math.floor(3+rnd()*22))});
+  const st={}; CAT.forEach(c=>{st[c.id]={}; TIENDAS.forEach(t=>st[c.id][t]=rnd()<0.03?1+Math.floor(rnd()*4):5+Math.floor(rnd()*20))});
   const peso={"Deportivo":1.4,"Casual cuero (suela caucho)":1.0,"Formal cuero/cuero":0.7};
   const ventas=[];
   for(let d=30; d>=1; d--){
     const f=new Date(Date.now()-d*864e5).toISOString().slice(0,10);
     TIENDAS.forEach((t,ti)=>CAT.forEach(c=>{
-      const n=Math.floor(rnd()*3*peso[c.categoria]*(1+ti*0.2));
+      if(rnd()>Math.min(1,30/CAT.length)) return;
+      const n=1+Math.floor(rnd()*2*peso[c.categoria]*(1+ti*0.2));
       if(n>0) ventas.push({fecha:f,hora:"12:00",id:c.id,tienda:t,cant:n,precio:c.precio_bs});
     }));
   }
   const cierres=[];
-  for(let d=7; d>=1; d--){
+  for(let d=3; d>=1; d--){
     const f=new Date(Date.now()-d*864e5).toISOString().slice(0,10);
     TIENDAS.forEach(t=>CAT.forEach(c=>{const dif=rnd()<0.08?-1:0; cierres.push({fecha:f,tienda:t,id:c.id,esperado:10,fisico:10+dif,dif})}));
   }
@@ -278,24 +313,25 @@ function semilla(){
 }
 
 async function init(){
-  CAT=await (await fetch("catalogo.json")).json();
+  CAT=await (await fetch("catalogo.json",{cache:"no-cache"})).json();
   CAT.forEach(c=>{if(!c.precio_bs) c.precio_bs=189.3});
   try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){}
-  if(!S||!S.stock) {S=semilla(); guardar();}
+  if(!S||!S.stock||CAT.some(c=>!S.stock[c.id])) {S=semilla(); guardar();}
   $$(".selTienda").forEach(sel=>{sel.innerHTML=TIENDAS.map(t=>`<option value="${t}">${t}</option>`).join(""); sel.onchange=()=>{tienda=sel.value; $$(".selTienda").forEach(o=>o.value=tienda); render(); if(ultimo&&ultimo!=="otro") mostrar({clase:ultimo,prob:ultimaProb});};});
   $("#navSide").innerHTML=VISTAS.map(([v,n,i])=>`<button data-v="${v}" class="nav-item"><svg><use href="#${i}"/></svg>${n}</button>`).join("");
   $("#navBottom").innerHTML=VISTAS.map(([v,n,i])=>`<button data-v="${v}" class="tab-item"><svg><use href="#${i}"/></svg>${n}</button>`).join("");
   $$("[data-v]").forEach(b=>b.onclick=()=>ver(b.dataset.v));
-  $("#vModelo").innerHTML=CAT.map(c=>`<option value="${c.id}">${c.nombre}</option>`).join("");
+  $("#vModelo").innerHTML=[...CAT].sort((a,b)=>a.nombre.localeCompare(b.nombre)).map(c=>`<option value="${c.id}">${c.nombre}</option>`).join("");
   $("#vModelo").onchange=()=>{$("#vImg").src=modelo($("#vModelo").value).imagen};
   $$(".stepper button").forEach(b=>b.onclick=()=>{const i=$("#vCant"); i.value=Math.max(1,(+i.value||1)+(+b.dataset.d));});
-  const cats=["Todas",...new Set(CAT.map(c=>c.categoria)),"Stock bajo"];
+  const cats=["Todas",...new Set(CAT.map(c=>c.seccion).filter(Boolean)),...new Set(CAT.map(c=>c.categoria)),"Stock bajo"];
   $("#filtros").innerHTML=cats.map(c=>`<button class="chip" data-f="${c}">${c}</button>`).join("");
-  $$("[data-f]").forEach(b=>b.onclick=()=>{filtroCat=b.dataset.f; renderInv();});
-  $("#buscar").oninput=renderInv;
+  $$("[data-f]").forEach(b=>b.onclick=()=>{filtroCat=b.dataset.f; invMax=24; renderInv();});
+  $("#buscar").oninput=()=>{invMax=24; renderInv();};
+  $("#cBuscar").oninput=()=>{cMax=30; renderCierre();};
   $("#btnReset").onclick=()=>{if(confirm("¿Reiniciar los datos de demostración?")){S=semilla(); guardar(); render(); toast("Datos reiniciados");}};
   $("#vImg").src=CAT[0].imagen;
-  resultadoVacio(); ver("escaner"); cargarIA();
+  resultadoVacio(); ver("escaner"); cargarIA(); initMercado();
 }
 function ver(v){
   vista=v;
@@ -310,14 +346,15 @@ function render(){
   if(vista==="ventas") renderVentas();
   if(vista==="cierre") renderCierre();
   if(vista==="dashboard") renderDash();
+  if(vista==="mercado") renderMercado();
 }
 
 /* ---------- IA ---------- */
 function estadoIA(txt,color){$$(".estadoIA").forEach(e=>{e.querySelector(".txt").textContent=txt; e.querySelector(".dot").className="dot w-2 h-2 rounded-full "+color;});}
 async function cargarIA(){
   try{
-    [net,head]=await Promise.all([mobilenet.load({version:2,alpha:1.0,modelUrl:"mobilenet/model.json",inputRange:[0,1]}),tf.loadLayersModel("modelo/model.json")]);
-    CLASES=await (await fetch("modelo/clases.json")).json();
+    [net,head]=await Promise.all([mobilenet.load({version:2,alpha:1.0,modelUrl:"mobilenet/model.json",inputRange:[0,1]}),tf.loadLayersModel("modelo/model.json",{requestInit:{cache:"no-cache"}})]);
+    CLASES=await (await fetch("modelo/clases.json",{cache:"no-cache"})).json();
     estadoIA("IA lista · "+(CLASES.length-1)+" modelos","bg-emerald-400");
   }catch(e){estadoIA("Error al cargar la IA","bg-red-500");console.error(e)}
 }
@@ -364,7 +401,10 @@ function resultadoVacio(){
   $("#resultado").innerHTML=`<div class="text-center py-8 text-gray-500"><svg class="w-12 h-12 mx-auto mb-3 text-gray-300"><use href="#i-scan"/></svg>
     <p class="font-semibold text-tinta">Esperando un zapato</p><p class="text-sm">El modelo, su precio y el stock aparecerán aquí.</p></div>`;
 }
+let ultimasTodas=null;
+function elegir(k,p){ultimo=k; mostrar({clase:k,prob:Math.max(p,UMBRAL),todas:ultimasTodas});}
 function mostrar(r){
+  if(r.todas) ultimasTodas=r.todas;
   const box=$("#resultado");
   if(r.clase==="otro"||r.prob<UMBRAL){
     box.innerHTML=`<div class="fade text-center py-6"><div class="text-4xl mb-2">🔍</div><p class="font-semibold">No reconozco un modelo Manaco</p>
@@ -372,7 +412,7 @@ function mostrar(r){
   }
   ultimaProb=r.prob;
   const c=modelo(r.clase), t=tiendaAct(), n=S.stock[c.id][t];
-  const top=r.todas?r.todas.map((p,i)=>[CLASES[i],p]).filter(x=>x[0]!=="otro").sort((a,b)=>b[1]-a[1]).slice(0,3):null;
+  const TD=r.todas||ultimasTodas; const top=TD?TD.map((p,i)=>[CLASES[i],p]).filter(x=>x[0]!=="otro").sort((a,b)=>b[1]-a[1]).slice(0,3):null;
   box.innerHTML=`<div class="fade">
    <div class="flex gap-4 items-center">
      <img src="${c.imagen}" class="w-24 h-24 object-contain rounded-2xl bg-gray-50 shrink-0" alt="">
@@ -389,7 +429,7 @@ function mostrar(r){
      <button class="btn btn-p" onclick="vender('${c.id}',1)">Vender 1 par</button>
      <button class="btn btn-s" onclick="reponer('${c.id}',5)">+5 reponer</button>
    </div>
-   ${top?`<div class="mt-5"><div class="text-xs font-semibold text-gray-500 mb-2">Lo que ve la IA</div>${top.map(([k,p])=>`<div class="flex items-center gap-2 text-xs mb-1.5"><span class="w-28 truncate">${corto(modelo(k))}</span><div class="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden"><div class="h-full ${k===c.id?'bg-marca':'bg-gray-300'}" style="width:${(p*100).toFixed(1)}%"></div></div><span class="w-10 text-right tabular-nums">${(p*100).toFixed(0)}%</span></div>`).join("")}</div>`:""}
+   ${top?`<div class="mt-5"><div class="text-xs font-semibold text-gray-500 mb-2">Lo que ve la IA · toca otra opción si no es este</div>${top.map(([k,p])=>`<div onclick="elegir('${k}',${p})" class="flex items-center gap-2 text-xs mb-1 py-1 px-1.5 -mx-1.5 rounded-lg cursor-pointer hover:bg-gray-50 ${k===c.id?'bg-gray-50':''}"><img src="${modelo(k).imagen}" class="w-7 h-7 object-contain rounded" alt=""><span class="w-28 truncate">${corto(modelo(k))}</span><div class="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden"><div class="h-full ${k===c.id?'bg-marca':'bg-gray-300'}" style="width:${(p*100).toFixed(1)}%"></div></div><span class="w-10 text-right tabular-nums">${(p*100).toFixed(0)}%</span></div>`).join("")}</div>`:""}
   </div>`;
 }
 
@@ -416,18 +456,20 @@ $("#vBtn").onclick=()=>{const id=$("#vModelo").value,n=+$("#vCant").value||1; if
 function renderInv(){
   const q=$("#buscar").value.trim().toLowerCase();
   $$("[data-f]").forEach(b=>b.classList.toggle("on",b.dataset.f===filtroCat));
-  const lista=CAT.filter(c=>(filtroCat==="Todas"||c.categoria===filtroCat||(filtroCat==="Stock bajo"&&TIENDAS.some(t=>S.stock[c.id][t]<BAJO)))&&c.nombre.toLowerCase().includes(q));
+  const lista=CAT.filter(c=>(filtroCat==="Todas"||c.categoria===filtroCat||c.seccion===filtroCat||(filtroCat==="Stock bajo"&&TIENDAS.some(t=>S.stock[c.id][t]<BAJO)))&&c.nombre.toLowerCase().includes(q));
   const tot=CAT.reduce((a,c)=>a+stockTotal(c.id),0), bajos=CAT.filter(c=>TIENDAS.some(t=>S.stock[c.id][t]<BAJO)).length;
   $("#invResumen").textContent=`${CAT.length} modelos · ${tot} pares en ${TIENDAS.length} tiendas · ${bajos} con stock bajo`;
-  $("#gridInv").innerHTML=lista.map(c=>`<div class="card p-4 fade">
+  $("#gridInv").innerHTML=lista.slice(0,invMax).map(c=>`<div class="card p-4 fade">
     <div class="flex gap-3 items-center">
-      <img src="${c.imagen}" class="w-16 h-16 rounded-xl bg-gray-50 object-contain shrink-0" alt="">
+      <img src="${c.imagen}" loading="lazy" class="w-16 h-16 rounded-xl bg-gray-50 object-contain shrink-0" alt="">
       <div class="min-w-0 flex-1"><div class="font-semibold leading-tight truncate">${corto(c)}</div>
         <div class="text-xs text-gray-500 truncate">${c.marca} · ${c.categoria}</div><div class="text-sm font-semibold mt-0.5">${bs(c.precio_bs)}</div></div>
       <div class="text-right"><div class="text-2xl font-extrabold tabular-nums">${stockTotal(c.id)}</div><div class="text-[10px] text-gray-500">pares</div></div>
     </div>
     <div class="grid grid-cols-3 gap-1.5 mt-3">${TIENDAS.map(t=>{const n=S.stock[c.id][t],me=t===tiendaAct();return `<div class="rounded-lg px-2 py-1.5 text-center ${n<BAJO?'bg-marca-50 text-marca':'bg-gray-50'} ${me?'ring-2 ring-tinta/80':''}"><div class="text-[10px] truncate">${t.split(" - ")[0]}</div><div class="font-bold">${n}</div></div>`}).join("")}</div>
   </div>`).join("")||`<p class="text-gray-500">Sin resultados</p>`;
+  $("#invMas").classList.toggle("hidden",lista.length<=invMax);
+  $("#invMas").textContent=`Mostrar más (${lista.length-invMax} restantes)`;
 }
 function renderVentas(){
   const t=tiendaAct(); $("#vTienda").textContent=t;
@@ -441,10 +483,14 @@ function renderVentas(){
 }
 function renderCierre(){
   const t=tiendaAct(); $("#cTienda").textContent=t; const ini=asegurarInicio(t);
-  $("#listaCierre").innerHTML=CAT.map(c=>{const vend=S.ventas.filter(v=>v.fecha===hoy()&&v.tienda===t&&v.id===c.id).reduce((a,v)=>a+v.cant,0);
+  const q=($("#cBuscar").value||"").trim().toLowerCase();
+  const mov=new Set(S.ventas.filter(v=>v.fecha===hoy()&&v.tienda===t).map(v=>v.id));
+  const lista=CAT.filter(c=>c.nombre.toLowerCase().includes(q)).sort((a,b)=>mov.has(b.id)-mov.has(a.id));
+  $("#cMas").classList.toggle("hidden",lista.length<=cMax); $("#cMas").textContent=`Mostrar más (${lista.length-cMax} restantes)`;
+  $("#listaCierre").innerHTML=lista.slice(0,cMax).map(c=>{const vend=S.ventas.filter(v=>v.fecha===hoy()&&v.tienda===t&&v.id===c.id).reduce((a,v)=>a+v.cant,0);
     return `<div class="card p-3 flex items-center gap-3">
-      <img src="${c.imagen}" class="w-12 h-12 rounded-lg bg-gray-50 object-contain shrink-0" alt="">
-      <div class="flex-1 min-w-0"><div class="font-semibold text-sm truncate">${corto(c)}</div>
+      <img src="${c.imagen}" loading="lazy" class="w-12 h-12 rounded-lg bg-gray-50 object-contain shrink-0" alt="">
+      <div class="flex-1 min-w-0"><div class="font-semibold text-sm truncate">${mov.has(c.id)?'<span class="text-marca">●</span> ':''}${corto(c)}</div>
         <div class="text-[11px] text-gray-500">Inicio ${ini[c.id]} − vendidos ${vend} = <b class="text-tinta">esperado ${S.stock[c.id][t]}</b></div></div>
       <div class="stepper flex items-center gap-1"><button type="button" onclick="this.nextElementSibling.stepDown();marcar(this)">−</button>
         <input data-id="${c.id}" type="number" min="0" value="${S.stock[c.id][t]}" oninput="marcar(this)"><button type="button" onclick="this.previousElementSibling.stepUp();marcar(this)">+</button></div>
@@ -556,6 +602,70 @@ function renderDash(){
   // Mercado
   g("chMercado",{type:"bar",data:{labels:["Casual cuero","Deportivo","Formal cuero"],datasets:[{data:[24.7,26.1,43.6],backgroundColor:["#d6a77f","#d6a77f","#b5562b"],borderRadius:10,barPercentage:.6}]},
     options:{plugins:{legend:{display:false},tooltip:{backgroundColor:"#2a1d17",callbacks:{label:c=>"≈ "+c.raw+" USD por par"}}},scales:{x:{grid:{display:false}},y:{grid:{color:"#f2ece5"},border:{display:false},ticks:{callback:v=>v+" $"}}}}});
+}
+/* ---------- MERCADO (base completa del Excel) ---------- */
+let MER=[], mf={f:"T",c:"Todos",a:"Todos",p:"Todos"}, mOrden={k:"v",dir:-1}, mPagina=0;
+const NOMC={"Deportivo":"Deportivo","Casual cuero (suela caucho)":"Casual de cuero","Formal cuero/cuero":"Formal de cuero"};
+const usd=n=>n>=1e9?(n/1e9).toFixed(2).replace(".",",")+" mil M USD":n>=1e6?(n/1e6).toFixed(1).replace(".",",")+" M USD":Math.round(n).toLocaleString("es-BO")+" USD";
+const millP=n=>n>=1e6?(n/1e6).toFixed(1).replace(".",",")+" M":Math.round(n).toLocaleString("es-BO");
+async function initMercado(){
+  MER=await (await fetch("mercado.json",{cache:"no-cache"})).json();
+  const chips=(id,key,opts)=>{$(id).innerHTML=opts.map(([v,t])=>`<button class="chip" data-k="${key}" data-val="${v}">${t}</button>`).join("");};
+  chips("#fFlujo","f",[["T","Todo"],["I","Importación (compras)"],["E","Exportación (ventas)"]]);
+  chips("#fCat","c",[["Todos","Todos"],...Object.entries(NOMC)]);
+  chips("#fAnio","a",[["Todos","Todos"],...[...new Set(MER.map(r=>r.a))].sort().map(a=>[a,a])]);
+  $("#fPais").innerHTML=`<option value="Todos">Todos los países</option>`+[...new Set(MER.map(r=>r.s))].sort().map(s=>`<option>${s}</option>`).join("");
+  $$("[data-k]").forEach(b=>b.onclick=()=>{mf[b.dataset.k]=b.dataset.val; mPagina=0; renderMercado();});
+  $("#fPais").onchange=e=>{mf.p=e.target.value; mPagina=0; renderMercado();};
+  $("#mPrev").onclick=()=>{mPagina=Math.max(0,mPagina-1); renderTablaM();};
+  $("#mNext").onclick=()=>{mPagina++; renderTablaM();};
+}
+function filtrados(){return MER.filter(r=>(mf.f==="T"||r.f===mf.f)&&(mf.c==="Todos"||r.c===mf.c)&&(mf.a==="Todos"||String(r.a)===String(mf.a))&&(mf.p==="Todos"||r.s===mf.p));}
+function renderMercado(){
+  if(!MER.length) return;
+  $$("[data-k]").forEach(b=>b.classList.toggle("on",String(mf[b.dataset.k])===b.dataset.val));
+  const R=filtrados(), V=R.reduce((a,r)=>a+r.v,0), Q=R.reduce((a,r)=>a+r.q,0), vpp=Q?V/Q:0;
+  const sI=R.filter(r=>r.f==="I"), sE=R.filter(r=>r.f==="E");
+  const vI=sI.reduce((a,r)=>a+r.v,0), vE=sE.reduce((a,r)=>a+r.v,0);
+  const que=mf.c==="Todos"?"calzado":"calzado "+NOMC[mf.c].toLowerCase(), cuando=mf.a==="Todos"?"entre 2020 y 2024":"en "+mf.a, donde=mf.p==="Todos"?"":` con ${mf.p}`;
+  $("#mFrase").innerHTML=R.length?`<p class="font-display text-xl sm:text-2xl leading-snug">${cuando[0].toUpperCase()+cuando.slice(1)}${donde}, España ${mf.f==="E"?"vendió":mf.f==="I"?"compró":"comerció"} <span class="text-[#f0b48e]">${millP(Q)} pares</span> de ${que} por <span class="text-[#f0b48e]">${usd(V)}</span>.</p>
+    <p class="text-sm text-gray-300 mt-2">Cada par valió en promedio <b class="text-white">${vpp.toFixed(1).replace(".",",")} USD</b>${mf.f==="T"&&vE?` · Por cada dólar que vendió, compró ${(vI/vE).toFixed(1).replace(".",",")}`:""}.</p>`
+    :`<p class="font-display text-xl">No hay registros con estos filtros.</p>`;
+  $("#mKpis").innerHTML=[["💵","Dinero total",usd(V)],["👟","Pares",millP(Q)],["🏷️","Valor por par",vpp.toFixed(1).replace(".",",")+" USD"],["🗂️","Registros",R.length+" de "+MER.length]]
+    .map(([e,k,v])=>`<div class="card p-4"><div class="text-lg">${e}</div><div class="text-xs text-gray-500 mt-1">${k}</div><div class="font-display text-xl sm:text-2xl font-semibold tabular-nums leading-tight">${v}</div></div>`).join("");
+  // Años
+  const anios=[...new Set(MER.map(r=>r.a))].sort();
+  const serie=f=>anios.map(a=>R.filter(r=>r.a===a&&r.f===f).reduce((x,r)=>x+r.v,0)/1e6);
+  const ds=[]; if(mf.f!=="E") ds.push({label:"Importación",data:serie("I"),backgroundColor:"#b5562b",borderRadius:6}); if(mf.f!=="I") ds.push({label:"Exportación",data:serie("E"),backgroundColor:"#2a1d17",borderRadius:6});
+  charts.chAnios?.destroy();
+  charts.chAnios=new Chart($("#chAnios"),{type:"bar",data:{labels:anios,datasets:ds},options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{position:"bottom",labels:{boxWidth:10,usePointStyle:true}},tooltip:{backgroundColor:"#2a1d17",callbacks:{label:c=>c.dataset.label+": "+usd(c.raw*1e6)}}},
+    scales:{x:{grid:{display:false}},y:{grid:{color:"#f2ece5"},border:{display:false},ticks:{callback:v=>v.toLocaleString("es-BO")+" M"}}}}});
+  // Países
+  const ps={}; R.forEach(r=>ps[r.s]=(ps[r.s]||0)+r.v); const top=Object.entries(ps).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  $("#mPaises").innerHTML=top.map(([s,v],i)=>`<div><div class="flex justify-between text-sm mb-1"><span class="font-semibold">${i+1}. ${s}</span><span class="tabular-nums text-gray-600">${usd(v)}</span></div><div class="h-2.5 bg-gray-100 rounded-full overflow-hidden"><div class="h-full rounded-full ${i<3?'bg-marca':'bg-gray-300'}" style="width:${v/top[0][1]*100}%"></div></div></div>`).join("")||`<p class="text-sm text-gray-500">Sin datos</p>`;
+  // Valor vs cantidad
+  $("#mVQ").innerHTML=Object.entries(NOMC).map(([k,n])=>{const s=R.filter(r=>r.c===k), v=s.reduce((a,r)=>a+r.v,0), q=s.reduce((a,r)=>a+r.q,0), pv=V?v/V*100:0, pq=Q?q/Q*100:0;
+    return `<div><div class="flex justify-between items-baseline mb-1.5"><span class="font-semibold">${n}</span><span class="text-sm text-gray-500">${q?(v/q).toFixed(1).replace(".",","):"–"} USD por par</span></div>
+      <div class="flex items-center gap-2 text-xs mb-1"><span class="w-14 text-gray-500">Dinero</span><div class="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden"><div class="h-full bg-marca rounded-full" style="width:${pv}%"></div></div><span class="w-10 text-right tabular-nums font-semibold">${pv.toFixed(0)}%</span></div>
+      <div class="flex items-center gap-2 text-xs"><span class="w-14 text-gray-500">Pares</span><div class="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden"><div class="h-full bg-[#d6a77f] rounded-full" style="width:${pq}%"></div></div><span class="w-10 text-right tabular-nums font-semibold">${pq.toFixed(0)}%</span></div></div>`}).join("");
+  renderTablaM();
+}
+function renderTablaM(){
+  const R=filtrados().map(r=>({...r,p:r.v/r.q})).sort((a,b)=>{const x=a[mOrden.k],y=b[mOrden.k]; return (x>y?1:x<y?-1:0)*mOrden.dir;});
+  const POR=15, pags=Math.max(1,Math.ceil(R.length/POR)); mPagina=Math.min(mPagina,pags-1);
+  const pg=R.slice(mPagina*POR,(mPagina+1)*POR);
+  const cols=[["a","Año"],["f","Movimiento"],["c","Tipo"],["s","País"],["v","Dinero (USD)"],["q","Pares"],["p","USD/par"]];
+  $("#mHead").innerHTML=cols.map(([k,t])=>`<th class="py-2 px-2 font-semibold cursor-pointer select-none whitespace-nowrap" data-o="${k}">${t}${mOrden.k===k?(mOrden.dir>0?" ↑":" ↓"):""}</th>`).join("");
+  $$("[data-o]").forEach(th=>th.onclick=()=>{mOrden={k:th.dataset.o,dir:mOrden.k===th.dataset.o?-mOrden.dir:-1}; renderTablaM();});
+  const flujo=f=>f==="I"?`<span class="text-marca font-semibold">Importación</span>`:`<span class="font-semibold">Exportación</span>`;
+  $("#mTabla").innerHTML=pg.map(r=>`<tr class="border-b border-gray-100"><td class="py-2 px-2">${r.a}</td><td class="px-2">${flujo(r.f)}</td><td class="px-2">${NOMC[r.c]}</td><td class="px-2">${r.s}</td><td class="px-2 tabular-nums">${r.v.toLocaleString("es-BO")}</td><td class="px-2 tabular-nums">${r.q.toLocaleString("es-BO")}</td><td class="px-2 tabular-nums font-semibold">${r.p.toFixed(2).replace(".",",")}</td></tr>`).join("");
+  $("#mCards").innerHTML=pg.map(r=>`<div class="rounded-xl bg-gray-50 p-3"><div class="flex justify-between text-sm"><span class="font-semibold">${r.s} · ${r.a}</span>${flujo(r.f)}</div><div class="text-xs text-gray-500">${NOMC[r.c]}</div>
+    <div class="grid grid-cols-3 gap-2 mt-2 text-xs"><div><div class="text-gray-500">Dinero</div><b>${usd(r.v)}</b></div><div><div class="text-gray-500">Pares</div><b>${millP(r.q)}</b></div><div><div class="text-gray-500">Por par</div><b>${r.p.toFixed(1).replace(".",",")} USD</b></div></div></div>`).join("");
+  $("#mCuenta").textContent=`${R.length} registros`;
+  $("#mPag").textContent=`Página ${mPagina+1} de ${pags}`;
+  $("#mPrev").disabled=mPagina===0; $("#mNext").disabled=mPagina>=pags-1;
+  $("#mPrev").classList.toggle("opacity-40",mPagina===0); $("#mNext").classList.toggle("opacity-40",mPagina>=pags-1);
 }
 init();
 </script>
