@@ -1,0 +1,112 @@
+[
+ {
+  "id": "deportivo_credo_azul_hombre",
+  "productId": "10017718",
+  "nombre": "DEPORTIVO CREDO AZUL - HOMBRE",
+  "marca": "Power",
+  "categoria": "Deportivo",
+  "precio_bs": 209.3,
+  "url": "https://www.bata.com.bo/deportivo-credo-running-azul-hombre-84999302/p",
+  "imagen": "img/deportivo_credo_azul_hombre.jpg",
+  "n_fotos": 18
+ },
+ {
+  "id": "deportivo_cancha_azul_negro_hombre",
+  "productId": "10017984",
+  "nombre": "DEPORTIVO CANCHA AZUL/NEGRO - HOMBRE",
+  "marca": "Power",
+  "categoria": "Deportivo",
+  "precio_bs": 321.3,
+  "url": "https://www.bata.com.bo/deportivo-cancha-negro-azul-hombre-futbol-8419625m/p",
+  "imagen": "img/deportivo_cancha_azul_negro_hombre.jpg",
+  "n_fotos": 18
+ },
+ {
+  "id": "deportivo_energy_ripple_negro_naranja_ho",
+  "productId": "10017722",
+  "nombre": "DEPORTIVO ENERGY RIPPLE NEGRO/NARANJA - HOMBRE",
+  "marca": "Power",
+  "categoria": "Deportivo",
+  "precio_bs": 349.3,
+  "url": "https://www.bata.com.bo/deportivo-energy-rippe-negro-naranja-hombre-84965298/p",
+  "imagen": "img/deportivo_energy_ripple_negro_naranja_ho.jpg",
+  "n_fotos": 18
+ },
+ {
+  "id": "deportivo_wave_blanco_infantil",
+  "productId": "10017818",
+  "nombre": "DEPORTIVO WAVE BLANCO - INFANTIL",
+  "marca": "Power",
+  "categoria": "Deportivo",
+  "precio_bs": 0.0,
+  "url": "https://www.bata.com.bo/deportivo-power-wave-blanco-infantil-4411014y/p",
+  "imagen": "img/deportivo_wave_blanco_infantil.jpg",
+  "n_fotos": 15
+ },
+ {
+  "id": "casual_cordones_perrie_cafe_hombre",
+  "productId": "10017597",
+  "nombre": "CASUAL CORDONES PERRIE CAFE - HOMBRE",
+  "marca": "Bata",
+  "categoria": "Casual cuero (suela caucho)",
+  "precio_bs": 349.3,
+  "url": "https://www.bata.com.bo/casual-cordones-perrie-cafe-82140099/p",
+  "imagen": "img/casual_cordones_perrie_cafe_hombre.jpg",
+  "n_fotos": 18
+ },
+ {
+  "id": "zapatillas_runa_caf_hombre",
+  "productId": "10017617",
+  "nombre": "ZAPATILLAS RUNA CAFÉ - HOMBRE",
+  "marca": "Bata",
+  "categoria": "Casual cuero (suela caucho)",
+  "precio_bs": 419.3,
+  "url": "https://www.bata.com.bo/zapatillas-bata-runa-hombre-cafe-84630061/p",
+  "imagen": "img/zapatillas_runa_caf_hombre.jpg",
+  "n_fotos": 18
+ },
+ {
+  "id": "botin_lima_caf_hombre",
+  "productId": "10017783",
+  "nombre": "BOTIN LIMA CAFÉ - HOMBRE",
+  "marca": "Bata",
+  "categoria": "Casual cuero (suela caucho)",
+  "precio_bs": 391.3,
+  "url": "https://www.bata.com.bo/botin-lima-bata-cafe-hombre-8014005z/p",
+  "imagen": "img/botin_lima_caf_hombre.jpg",
+  "n_fotos": 18
+ },
+ {
+  "id": "zapato_de_vestir_ricky_iv_negro",
+  "productId": "10017469",
+  "nombre": "ZAPATO DE VESTIR RICKY IV - NEGRO",
+  "marca": "Manaco",
+  "categoria": "Formal cuero/cuero",
+  "precio_bs": 251.3,
+  "url": "https://www.bata.com.bo/zapato-de-vestir-negro-hombre-manaco-ricky-iv-82464380/p",
+  "imagen": "img/zapato_de_vestir_ricky_iv_negro.jpg",
+  "n_fotos": 18
+ },
+ {
+  "id": "zapato_formal_daha_caf_hombre",
+  "productId": "10016271",
+  "nombre": "ZAPATO FORMAL  DAHA CAFÉ - HOMBRE",
+  "marca": "Bata Comfit",
+  "categoria": "Formal cuero/cuero",
+  "precio_bs": 459.0,
+  "url": "https://www.bata.com.bo/zapatos-casuales-casual-hombre-zapatoselegantes-zapatosparavestir-bata-comfit-8414002p/p",
+  "imagen": "img/zapato_formal_daha_caf_hombre.jpg",
+  "n_fotos": 5
+ },
+ {
+  "id": "zapato_loafer_tonka_negro_hombre",
+  "productId": "10017764",
+  "nombre": "ZAPATO LOAFER TONKA NEGRO - HOMBRE",
+  "marca": "Bata",
+  "categoria": "Formal cuero/cuero",
+  "precio_bs": 349.3,
+  "url": "https://www.bata.com.bo/zapato-loafer-tonka-bata-hombre-82160108/p",
+  "imagen": "img/zapato_loafer_tonka_negro_hombre.jpg",
+  "n_fotos": 18
+ }
+]
