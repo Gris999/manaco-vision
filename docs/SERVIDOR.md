@@ -2,12 +2,15 @@
 
 ## ¿Dónde está la base de datos?
 
-| Qué | Dónde |
-|---|---|
-| **Archivo de la base de datos (SQLite)** | `app/server/datos/manaco.db` en la Mac (más `manaco.db-wal` y `manaco.db-shm`, que son el diario de escritura de SQLite) |
-| Motor | SQLite, integrado en Node 22 (`node:sqlite`); no requiere instalar un servidor de base de datos |
-| ¿Se sube a GitHub? | **No**: está en `.gitignore` porque contiene datos y contraseñas cifradas |
-| Copia en cada celular | IndexedDB del navegador, base `manacoVision` (estado, borradores y cola sin enviar) |
+| Entorno | Dónde | Motor |
+|---|---|---|
+| **Producción (en internet)** | **Render**: servicio `manaco-vision-db` en el panel de Render (dashboard.render.com → manaco-vision-db). La API está en **https://manaco-vision-api.onrender.com** | **PostgreSQL** (columna `estado` y `datos` en JSONB) |
+| Desarrollo / respaldo en la Mac | `app/server/datos/manaco.db` | SQLite (`node:sqlite`) |
+| Copia en cada celular | IndexedDB del navegador, base `manacoVision` (estado, borradores y cola sin enviar) | IndexedDB |
+
+El servidor elige el motor solo: si existe la variable `DATABASE_URL` usa PostgreSQL; si no, SQLite (`server/almacen.js`, patrón *Repository*). Ninguna base se sube a GitHub.
+
+**Ver la base de Render**: en el panel → `manaco-vision-db` → *Connect* → copiar el *External Database URL* y abrirlo con `psql` o con la extensión *PostgreSQL* de VS Code. Desde la app, el Gerente ve la auditoría en `GET /api/acciones`.
 
 ### Tablas
 | Tabla | Contenido |
@@ -24,6 +27,22 @@
 - **Desde la app**: un usuario Gerente puede consultar `GET /api/acciones` (auditoría).
 
 ## ¿Cómo está publicado?
+
+### Opción principal: Render (no depende de la Mac)
+```
+Celular (https://gris999.github.io/manaco-vision)
+        │  HTTPS + token
+        ▼
+https://manaco-vision-api.onrender.com  (Node 22, servicio web gratis)
+        │
+        ▼
+PostgreSQL de Render (manaco-vision-db)
+```
+- Se despliega solo con cada `git push` a `main` (Blueprint `render.yaml`).
+- Varias instancias a la vez (por ejemplo, durante un despliegue) no se pisan: **concurrencia optimista** con `rev` y `SELECT … FOR UPDATE` (`tests/concurrencia.test.js`).
+- Plan gratis: se duerme tras 15 min sin uso (la primera petición tarda ~50 s) y la base gratis dura 30 días.
+
+### Opción de respaldo: túnel ngrok a la Mac
 
 ```
 Celular (https://gris999.github.io/manaco-vision)
