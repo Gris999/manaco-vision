@@ -31,9 +31,15 @@ Manaco no integra los datos de mercado con los datos internos de ventas, inventa
 | HU-13 | Gerente | ver devoluciones, defectos y entregas | controlar calidad y logística (E4) | Must | Tasas por periodo y tienda, con el origen del dato | ✅ |
 | HU-14 | Gerente | pedir reposición | evitar quiebres de stock | Should | El pedido llega al Encargado | ✅ |
 | HU-15 | Gerente | explorar la base de mercado del Excel | entender la competencia importada | Must | Filtros de flujo, categoría, año y país; valor por par | ✅ |
-| HU-16 | Gerente | exportar el Reporte Z y las ventas a Excel | llevarlo a contabilidad | Could | — | Pendiente |
+| HU-16 | Gerente / Encargado | exportar a Excel (reporte completo y Reporte Z) | llevarlo a contabilidad | Should | Archivo .xlsx real, una hoja por tema, validado con openpyxl | ✅ v24 |
 | HU-17 | Vendedor | emitir factura con NIT | cumplir con el SIN | Could | — | Fuera de alcance |
-| HU-18 | Gerente | segmentar clientes por compras | dirigir campañas | Could | Requiere registrar cliente en la venta | Pendiente |
+| HU-18 | Gerente | segmentar clientes por compras | dirigir campañas (E4) | Should | RFM relativo (VIP = top 10 %), acción comercial por segmento | ✅ v24 |
+| HU-21 | Vendedor | registrar al cliente en la venta | que acumule puntos (1 por cada Bs 10) | Should | CI/NIT validado; al anular se descuentan los puntos | ✅ v24 |
+| HU-22 | Encargado | registrar compras a proveedores con factura | tener costo real y crédito fiscal | Must | Costo promedio ponderado; crédito fiscal 13 %; kardex "compra" | ✅ v24 |
+| HU-23 | Gerente | registrar proveedores | controlar a quién se compra | Should | NIT único | ✅ v24 |
+| HU-24 | Encargado | enviar y recibir mercadería entre tiendas | equilibrar el stock | Must | Queda "en tránsito" hasta que el destino recibe | ✅ v24 |
+| HU-25 | Gerente | crear usuarios, desactivarlos y cambiar contraseñas | controlar el acceso | Must | Solo Gerencia; no puede desactivarse a sí mismo | ✅ v24 |
+| HU-26 | Gerente | ver el IVA a pagar del mes | cumplir con el SIN | Should | Débito − crédito fiscal | ✅ v24 |
 | HU-19 | Todos | entrar con mi usuario y contraseña | que nadie use un rol que no le corresponde | Must | El servidor impone rol y tienda; 10 intentos cada 5 min | ✅ v22 |
 | HU-20 | Encargado y Gerente | ver en mi celular lo que vendió otro celular | trabajar con un solo inventario | Must | Sincronización cada 20 s y al reconectar; sin internet, cola local | ✅ v22 |
 

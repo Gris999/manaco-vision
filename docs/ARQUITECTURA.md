@@ -65,6 +65,10 @@ flowchart TB
 | Conteo | `ui/conteo.js` | `listaDelDia`, `renderCierre`, `fijarConteo`, `resultadoConteo` | Encargado |
 | Caja | `ui/caja.js` | `abrirCaja`, `movCaja`, `actArqueo`, `cerrarCaja`, `resumenSesion` | Encargado |
 | Resumen | `ui/dashboard.js` | `renderDash` (KPIs, semáforo, acciones, gráficos, calidad, metas) | Gerente |
+| Movimientos | `ui/movimientos.js` | compras a proveedores, transferencias (enviar y recibir) | Encargado |
+| Clientes | `ui/clientes.js` | segmentación RFM y acción comercial | Gerente |
+| Administración | `ui/admin.js` | proveedores, usuarios (API), resumen fiscal, exportar a Excel | Gerente |
+| Excel | `js/xlsx.js` | genera .xlsx real (ZIP + XML) sin dependencias | Todos |
 | Mercado | `ui/mercado.js` | `initMercado`, `renderMercado`, `renderTablaM` | Gerente |
 | PWA | `ui/pwa.js` | instalación, offline, actualización, arranque | Todos |
 

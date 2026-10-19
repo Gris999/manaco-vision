@@ -36,7 +36,7 @@ Leyenda: ✅ cubierto · ⚠️ parcial (se explica) · ❌ no cubierto (se dice
 | Pide | Dónde | Estado |
 |---|---|---|
 | Comparar 2 alternativas (beneficio, costo, riesgo, indicador) | W, tabla de alternativas | ✅ |
-| Segmento de clientes + acción comercial | W (segmento basado en el Excel: casual de cuero frente al deportivo importado) | ⚠️ La app no registra clientes; HU-18 queda pendiente |
+| Segmento de clientes + acción comercial | W (segmento del Excel) + **App › Clientes**: segmentación RFM con acción comercial por segmento | ✅ v24 |
 | Indicadores de **ventas** | App › Resumen | ✅ |
 | Indicadores de **devoluciones** | App › Resumen › Calidad (anulaciones con motivo) | ✅ nuevo en v20 |
 | Indicadores de **defectos** | App › Resumen › Calidad (devoluciones clasificadas como "defecto") | ✅ nuevo en v20 |
@@ -56,6 +56,6 @@ Leyenda: ✅ cubierto · ⚠️ parcial (se explica) · ❌ no cubierto (se dice
 
 ## Qué sigue faltando (decirlo con honestidad en la defensa)
 1. **Producción y costos reales**: requieren datos internos de Manaco (ERP de planta).
-2. **Clientes**: no se registra quién compra, así que no hay segmentación con datos propios; el segmento sale del Excel de mercado.
+2. **Clientes**: resuelto en v24 (registro en la venta, puntos y RFM); los clientes de la demo son simulados.
 3. **Sincronización entre tiendas**: hoy cada celular guarda sus datos; en producción, API + PostgreSQL.
 4. **Facturación SIN, descuentos y carrito**: fuera del alcance del prototipo.
