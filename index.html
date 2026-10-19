@@ -91,7 +91,7 @@ tailwind.config={theme:{extend:{
   input[type=number]::-webkit-inner-spin-button{appearance:none}
   .scroll-x{overflow-x:auto;scrollbar-width:none}.scroll-x::-webkit-scrollbar{display:none}
   .barra{height:8px;background:#F5F5F5;border-radius:99px;overflow:hidden}.barra>i{display:block;height:100%;border-radius:99px}
-  @media print{body *{visibility:hidden!important}#reporteZ,#reporteZ *{visibility:visible!important}#reporteZ{position:absolute;left:0;top:0;width:100%;border:0}.no-print{display:none!important}}
+  @media print{#reporteZ details>*{display:block!important}body *{visibility:hidden!important}#reporteZ,#reporteZ *{visibility:visible!important}#reporteZ{position:absolute;left:0;top:0;width:100%;border:0}.no-print{display:none!important}}
   @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 </style>
 </head>
@@ -234,48 +234,48 @@ tailwind.config={theme:{extend:{
       <!-- CONTEO DE INVENTARIO -->
       <section id="v-cierre" class="vista hidden" aria-labelledby="t-cie">
         <div class="mb-4"><div class="eyebrow" id="cTienda"></div><h1 id="t-cie" class="titular text-3xl lg:text-4xl">Conteo de inventario</h1>
-          <p class="text-mute text-sm mt-1 max-w-2xl">Cuenta los pares de cada modelo. Tu avance se guarda solo, así que puedes contar por partes. Al terminar, cierra el conteo para conciliar.</p></div>
+          <details class="text-sm mt-1 max-w-2xl"><summary class="text-mute cursor-pointer">Cuenta los pares de cada modelo · <span class="underline">¿cómo funciona?</span></summary>
+            <ol class="mt-2 space-y-1 text-mute list-decimal pl-5"><li>Busca el modelo o recorre las páginas.</li><li>Si hay lo mismo que dice el sistema, toca <b>✓ Hay N</b>; si no, ajusta con − y +.</li><li>Tu avance se guarda solo: puedes contar por partes.</li><li>Al terminar, toca <b>Cerrar conteo</b>: las diferencias se registran en el kardex.</li></ol></details></div>
         <div id="cRes" class="mb-4" aria-live="polite"></div>
         <div id="cPanel">
-          <div class="card p-4 mb-4">
-            <div class="flex flex-wrap items-baseline justify-between gap-2"><span class="font-semibold" id="cProg"></span><span class="text-sm" id="cDifRes"></span></div>
-            <div class="barra mt-2 !h-2.5"><i id="cBar" class="bg-tinta transition-all" style="width:0"></i></div>
+          <div class="flex gap-2 mb-3">
+            <label class="relative flex-1 min-w-0"><span class="sr-only">Buscar modelo a contar</span><svg class="w-5 h-5 absolute left-4 top-3 text-mute" aria-hidden="true"><use href="#i-search"/></svg>
+              <input id="cBuscar" type="search" placeholder="Buscar…" class="campo pl-11"></label>
+            <select id="cSeccion" class="campo !w-32 sm:!w-48 shrink-0" aria-label="Sección"></select>
           </div>
-          <div class="flex flex-col sm:flex-row gap-3 mb-3">
-            <label class="relative flex-1"><span class="sr-only">Buscar modelo a contar</span><svg class="w-5 h-5 absolute left-4 top-3 text-mute" aria-hidden="true"><use href="#i-search"/></svg>
-              <input id="cBuscar" type="search" placeholder="Buscar modelo o marca…" class="campo pl-11"></label>
-            <select id="cSeccion" class="campo sm:!w-48" aria-label="Sección"></select>
-          </div>
-          <div class="scroll-x flex gap-2 mb-4" id="cFiltros" role="group" aria-label="Filtro del conteo"></div>
-          <div class="flex items-center justify-between mb-3 text-sm">
+          <div class="scroll-x flex gap-2 mb-3" id="cFiltros" role="group" aria-label="Filtro del conteo"></div>
+          <div class="flex items-center justify-between mb-3 text-xs gap-2">
             <span class="text-mute" id="cRango"></span>
-            <button id="cPagOk" class="font-semibold underline underline-offset-4">Marcar esta página como correcta</button>
+            <button id="cPagOk" class="btn btn-s !min-h-0 py-1.5 px-3 text-xs">✓ Toda la página cuadra</button>
           </div>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="listaCierre"></div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pb-6" id="listaCierre"></div>
           <nav class="flex items-center justify-between gap-2 mt-4" aria-label="Páginas del conteo">
             <button id="cPrev" class="btn btn-s !min-h-0 py-2 text-sm">← Anterior</button>
             <span class="text-sm text-mute" id="cPag"></span>
             <button id="cNext" class="btn btn-s !min-h-0 py-2 text-sm">Siguiente →</button>
           </nav>
-          <div class="sticky bottom-[88px] lg:bottom-6 mt-5"><button id="cBtn" class="btn btn-n w-full shadow-xl"><svg class="w-5 h-5" aria-hidden="true"><use href="#i-moon"/></svg>Cerrar conteo y conciliar</button></div>
+          <div class="sticky bottom-[84px] lg:bottom-6 mt-2 z-10"><div class="rounded-full bg-tinta text-white shadow-xl flex items-center gap-3 pl-5 pr-1.5 py-1.5">
+            <div class="flex-1 min-w-0"><div class="text-xs font-semibold truncate" id="cProg"></div><div class="barra !h-1.5 mt-1 !bg-white/20"><i id="cBar" class="bg-white transition-all" style="width:0"></i></div><div class="text-[11px] truncate" id="cDifRes"></div></div>
+            <button id="cBtn" class="btn btn-p !min-h-0 py-2.5 px-4 text-sm shrink-0">Cerrar conteo</button></div></div>
         </div>
       </section>
 
       <!-- DASHBOARD -->
       <section id="v-dashboard" class="vista hidden" aria-labelledby="t-das">
         <div class="flex flex-wrap items-end gap-3 mb-5">
-          <div class="mr-auto"><div class="eyebrow">Para Gerencia · explicado en simple</div><h1 id="t-das" class="titular text-3xl lg:text-4xl">Resumen del negocio</h1></div>
+          <div class="mr-auto"><div class="eyebrow">Para Gerencia · explicado en simple</div><h1 id="t-das" class="titular text-3xl lg:text-4xl">Resumen del negocio</h1>
+            <p class="text-xs text-mute mt-1">Mira el semáforo (verde, ámbar o rojo) y luego actúa en <b>¿Qué hacer hoy?</b></p></div>
           <div class="flex flex-wrap gap-2">
             <div class="flex gap-1 p-1 bg-suave rounded-full" role="group" aria-label="Periodo" id="dPeriodo"></div>
             <select id="dTienda" class="campo !w-auto !py-2 text-sm" aria-label="Tienda para el resumen"></select>
           </div>
         </div>
 
-        <div id="hero" class="rounded-[26px] bg-marca text-white p-6 sm:p-8 mb-6 relative overflow-hidden"></div>
+        <div id="hero" class="rounded-[26px] bg-marca text-white p-5 sm:p-8 mb-6 relative overflow-hidden"></div>
 
         <div class="flex items-baseline justify-between mb-3"><h2 class="font-bold text-xl">¿Cómo está el negocio?</h2>
           <span class="text-xs text-mute hidden sm:inline">● Bien &nbsp; ● Atención &nbsp; ● Actuar</span></div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 mb-8" id="salud"></div>
+        <div class="grid grid-cols-2 xl:grid-cols-4 gap-2.5 sm:gap-3 mb-8" id="salud"></div>
 
         <div class="grid grid-cols-1 lg:grid-cols-5 gap-5 mb-8">
           <div class="card p-5 lg:col-span-2">
@@ -370,10 +370,18 @@ tailwind.config={theme:{extend:{
     <p class="text-xs text-mute mt-6">Prototipo académico · caso de estudio Manaco. Sin contraseñas: en producción cada rol tendría su usuario.</p>
   </div>
 </div>
+<!-- Zapatos de muestra para apuntar la cámara desde otro teléfono -->
+<div id="muestra" class="hidden fixed inset-0 z-[70] bg-white flex flex-col" role="dialog" aria-modal="true" aria-label="Zapatos de muestra">
+  <div class="flex items-center justify-between p-4"><span class="text-sm text-mute">Apunta la cámara de otro teléfono a esta pantalla</span>
+    <button class="w-10 h-10 rounded-full bg-suave shrink-0" onclick="$('#muestra').classList.add('hidden')" aria-label="Cerrar">✕</button></div>
+  <div class="flex-1 grid place-items-center px-6"><img id="muestraImg" class="max-h-[60vh] max-w-full object-contain" alt=""></div>
+  <p id="muestraNombre" class="text-center font-semibold px-6"></p>
+  <div class="grid grid-cols-2 gap-3 p-4 pb-[calc(env(safe-area-inset-bottom)+16px)]"><button class="btn btn-s" onclick="iMuestra--;pintarMuestra()">← Anterior</button><button class="btn btn-n" onclick="iMuestra++;pintarMuestra()">Siguiente →</button></div>
+</div>
 <!-- Kardex: libro de movimientos de un modelo -->
 <div id="modalKardex" class="hidden fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="tKardex">
   <div class="bg-white rounded-3xl p-5 w-full max-w-lg max-h-[85vh] overflow-y-auto fade">
-    <div class="flex items-start justify-between gap-3 mb-3"><div><div class="eyebrow">Kardex · libro de movimientos</div><h2 id="tKardex" class="font-bold text-lg leading-tight"></h2></div>
+    <div class="flex items-start justify-between gap-3 mb-3"><div><div class="eyebrow">Ficha del modelo</div><h2 id="tKardex" class="font-bold text-lg leading-tight"></h2></div>
       <button class="w-9 h-9 rounded-full bg-suave shrink-0" onclick="$('#modalKardex').classList.add('hidden')" aria-label="Cerrar">✕</button></div>
     <div id="kardexBody"></div>
   </div>
@@ -399,9 +407,9 @@ const D=window.Dominio; // reglas de negocio puras (js/dominio.js, con pruebas e
 const TIENDAS=["La Paz - El Prado","Cochabamba - Heroínas","Santa Cruz - Ventura Mall"];
 const VISTAS=[["escaner","Escáner","i-scan"],["inventario","Inventario","i-box"],["ventas","Ventas","i-cash"],["cierre","Conteo","i-moon"],["caja","Caja","i-caja"],["dashboard","Resumen","i-chart"],["mercado","Mercado","i-globe"]];
 const ROLES={
-  vendedor:{nombre:"Vendedor",ico:"👟",vistas:["escaner","ventas"],desc:"Atiende al cliente: escanea el zapato, ve precio y stock, y registra la venta.",tareas:["Reconocer el modelo con la cámara","Consultar stock en las 3 tiendas","Registrar la venta"]},
-  encargado:{nombre:"Encargado de tienda",ico:"🏬",vistas:["caja","cierre","inventario","escaner"],desc:"Abre y cierra la caja, cuida el stock y concilia el inventario.",tareas:["Apertura y arqueo de caja","Conteo de inventario y faltantes","Reporte Z del día"]},
-  gerente:{nombre:"Gerente",ico:"📊",vistas:["dashboard","mercado","inventario"],desc:"Decide con datos de las 3 tiendas y del mercado.",tareas:["Resumen y semáforo del negocio","Qué hacer hoy","Mercado: base del Excel"]},
+  vendedor:{nombre:"Vendedor",ico:"👟",vistas:["escaner","ventas"],desc:"Escanea el zapato y vende.",tareas:["Reconocer el modelo con la cámara","Consultar stock en las 3 tiendas","Registrar la venta"]},
+  encargado:{nombre:"Encargado de tienda",ico:"🏬",vistas:["caja","cierre","inventario","escaner"],desc:"Abre y cierra la caja y cuenta el stock.",tareas:["Apertura y arqueo de caja","Conteo de inventario y faltantes","Reporte Z del día"]},
+  gerente:{nombre:"Gerente",ico:"📊",vistas:["dashboard","mercado","inventario"],desc:"Decide con datos de las 3 tiendas.",tareas:["Resumen y semáforo del negocio","Qué hacer hoy","Mercado: base del Excel"]},
 };
 let rol=null; try{rol=localStorage.getItem("mv_rol")}catch(e){}
 if(!ROLES[rol]) rol=null;
@@ -470,20 +478,21 @@ async function init(){
   if(!S||!S.stock||!S.cajas||CAT.some(c=>!S.stock[c.id])) S=semilla();
   D.migrar(S,CAT.map(c=>c.id),TIENDAS,hoy()); guardar();
   const errK=D.verificarKardex(S); if(errK.length) console.warn("Kardex descuadrado",errK);
-  $$(".selTienda").forEach(sel=>{sel.innerHTML=TIENDAS.map(t=>`<option value="${t}">${t}</option>`).join(""); sel.onchange=()=>{tienda=sel.value; $$(".selTienda").forEach(o=>o.value=tienda); render(); if(ultimo&&ultimo!=="otro") mostrar({clase:ultimo,prob:ultimaProb}); toast("Tienda: "+tienda);};});
+  $$(".selTienda").forEach(sel=>{sel.innerHTML=TIENDAS.map(t=>`<option value="${t}">${sel.closest("header")?t.split(" - ")[0]:t}</option>`).join(""); sel.onchange=()=>{tienda=sel.value; $$(".selTienda").forEach(o=>o.value=tienda); render(); if(ultimo&&ultimo!=="otro") mostrar({clase:ultimo,prob:ultimaProb}); toast("Tienda: "+tienda);};});
   armarNav();
   $$(".btnRol").forEach(b=>b.onclick=abrirInicio);
   $("#inicioTienda").innerHTML=TIENDAS.map(t=>`<option value="${t}">${t}</option>`).join("");
-  $("#rolesGrid").innerHTML=Object.entries(ROLES).map(([k,r])=>`<button data-rol="${k}" class="card text-left p-5 hover:border-tinta hover:shadow-lg transition bg-white flex flex-col">
-    <span class="w-14 h-14 rounded-full bg-suave grid place-items-center text-3xl">${r.ico}</span>
-    <span class="font-bold text-xl mt-4">${r.nombre}</span><span class="text-sm text-mute mt-1">${r.desc}</span>
-    <ul class="mt-4 space-y-1.5 text-sm">${r.tareas.map(t=>`<li class="flex gap-2"><span class="text-marca">●</span>${t}</li>`).join("")}</ul>
-    <span class="btn btn-n mt-5 w-full">Entrar como ${r.nombre.split(" ")[0]}</span></button>`).join("");
+  $("#rolesGrid").innerHTML=Object.entries(ROLES).map(([k,r])=>`<button data-rol="${k}" class="card text-left p-4 md:p-5 hover:border-tinta hover:shadow-lg transition bg-white flex md:flex-col items-center md:items-start gap-4">
+    <span class="w-14 h-14 shrink-0 rounded-full bg-suave grid place-items-center text-3xl">${r.ico}</span>
+    <span class="flex-1 min-w-0"><span class="font-bold text-lg block">${r.nombre}</span><span class="text-sm text-mute block leading-snug">${r.desc}</span>
+      <span class="text-xs text-marca font-semibold block mt-1.5">${r.vistas.map(v=>VISTAS.find(x=>x[0]===v)[1]).join(" · ")}</span></span>
+    <span class="w-9 h-9 shrink-0 rounded-full bg-tinta text-white grid place-items-center md:hidden" aria-hidden="true">›</span>
+    <span class="btn btn-n w-full hidden md:inline-flex mt-auto">Entrar</span></button>`).join("");
   $$("[data-rol]").forEach(b=>b.onclick=()=>elegirRol(b.dataset.rol));
   // Ventas
   const llenarSel=q=>{const L=[...CAT].filter(c=>!q||(c.nombre+" "+c.marca).toLowerCase().includes(q)).sort((a,b)=>a.nombre.localeCompare(b.nombre)).slice(0,300);
     $("#vModelo").innerHTML=L.map(c=>`<option value="${c.id}">${esc(c.nombre)} · ${bs(c.precio_bs)}</option>`).join("")||`<option value="">Sin resultados</option>`; $("#vModelo").onchange();};
-  $("#vModelo").onchange=()=>{const c=modelo($("#vModelo").value); $("#vImg").src=c?c.imagen:""; $("#vBtn").disabled=!c||!cajaAbierta();};
+  $("#vModelo").onchange=()=>{const c=modelo($("#vModelo").value); $("#vImg").src=c?c.imagen:"icons/icon-192.png"; $("#vImg").classList.toggle("opacity-30",!c); $("#vBtn").disabled=!c||!cajaAbierta();};
   $("#vBuscar").oninput=deb(e=>llenarSel(e.target.value.trim().toLowerCase()));
   llenarSel("");
   $$(".stepper button[data-d]").forEach(b=>b.onclick=()=>{const i=$("#vCant"); i.value=Math.min(99,Math.max(1,(parseInt(i.value)||1)+(+b.dataset.d)));});
@@ -495,7 +504,7 @@ async function init(){
   $("#buscar").oninput=deb(()=>{invMax=24; renderInv();});
   $("#invMas").onclick=()=>{invMax+=24; renderInv();};
   $("#cBuscar").oninput=deb(()=>{cPag=0; renderCierre();});
-  $("#cSeccion").innerHTML=`<option value="Todas">Todas las secciones</option>`+[...new Set(CAT.map(c=>c.seccion).filter(Boolean))].map(x=>`<option>${esc(x)}</option>`).join("");
+  $("#cSeccion").innerHTML=`<option value="Todas">Todas</option>`+[...new Set(CAT.map(c=>c.seccion).filter(Boolean))].map(x=>`<option>${esc(x)}</option>`).join("");
   $("#cSeccion").onchange=()=>{cPag=0; renderCierre();};
   $("#cPrev").onclick=()=>{cPag=Math.max(0,cPag-1); renderCierre(); $("#cRango").scrollIntoView({block:"center"});};
   $("#cNext").onclick=()=>{cPag++; renderCierre(); $("#cRango").scrollIntoView({block:"center"});};
@@ -506,6 +515,7 @@ async function init(){
   $("#dTienda").innerHTML=`<option value="Todas">Las 3 tiendas</option>`+TIENDAS.map(t=>`<option>${t}</option>`).join("");
   $("#dTienda").onchange=e=>{dTie=e.target.value; renderDash();};
   $("#btnReset").onclick=()=>{if(confirm("¿Reiniciar los datos de demostración? Se perderán las ventas y cierres registrados.")){S=semilla(); guardar(); render(); toast("Datos reiniciados");}};
+  if(new URLSearchParams(location.search).has("muestra")){ $("#inicio").classList.add("hidden"); abrirMuestra(); }
   const rp=new URLSearchParams(location.search).get("rol"); if(ROLES[rp]) {rol=rp; try{localStorage.setItem("mv_rol",rol)}catch(e){}}
   resultadoVacio(); cargarIA(); initMercado();
   if(rol){armarNav(); ver(location.hash.slice(1)||ROLES[rol].vistas[0]);} else {ver("escaner"); abrirInicio();}
@@ -568,7 +578,7 @@ async function abrirCam(){
     stream?.getTracks().forEach(t=>t.stop());
     stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:facing,width:{ideal:1280}},audio:false});
     const v=$("#video"); v.srcObject=stream; await v.play();
-    $("#placeholderCam").classList.add("hidden"); $("#visor").classList.add("scanning"); $("#liveChip").classList.remove("hidden");
+    $("#placeholderCam").classList.add("hidden"); $("#visor").classList.add("scanning"); placeholderOriginal(); $("#liveChip").classList.remove("hidden");
     $("#btnCam span").textContent="Detener";
     clearInterval(loop); loop=setInterval(()=>{
       if(!net||!head||v.readyState<2) return;
@@ -581,6 +591,8 @@ async function abrirCam(){
     },380);
   }catch(e){toast(e.name==="NotAllowedError"?"Permiso de cámara denegado. Actívalo en el navegador o usa \"Foto\".":"No se pudo abrir la cámara. Usa \"Foto\".");}
 }
+const PH_HTML=()=>`<div><svg class="w-14 h-14 mx-auto mb-3 opacity-80" aria-hidden="true"><use href="#i-cam"/></svg><p class="font-semibold text-white text-lg">Cámara apagada</p><p class="text-sm">Toca <b>Activar</b> o sube una foto del zapato</p></div>`;
+function placeholderOriginal(){ $("#placeholderCam").innerHTML=PH_HTML(); }
 function cerrarCam(){
   clearInterval(loop); stream?.getTracks().forEach(t=>t.stop()); stream=null;
   $("#placeholderCam").classList.remove("hidden"); $("#visor").classList.remove("scanning"); $("#liveChip").classList.add("hidden");
@@ -596,9 +608,37 @@ $("#foto").onchange=e=>{
   img.src=URL.createObjectURL(f); e.target.value="";
 };
 function resultadoVacio(){
-  $("#resultado").innerHTML=`<div class="text-center py-10"><div class="w-16 h-16 mx-auto mb-4 rounded-full bg-suave grid place-items-center"><svg class="w-8 h-8 text-mute" aria-hidden="true"><use href="#i-scan"/></svg></div>
-    <p class="font-semibold">Esperando un zapato</p><p class="text-sm text-mute">El modelo, su precio y el stock aparecerán aquí.</p></div>`;
+  $("#resultado").innerHTML=`<div class="py-2">
+    <p class="font-bold text-lg mb-3">¿Cómo se usa?</p>
+    <ol class="space-y-3 text-sm">
+      <li class="flex gap-3"><span class="w-7 h-7 shrink-0 rounded-full bg-tinta text-white grid place-items-center text-xs font-bold">1</span><span>Toca <b>Activar</b> y apunta la cámara al zapato (o sube una <b>Foto</b>).</span></li>
+      <li class="flex gap-3"><span class="w-7 h-7 shrink-0 rounded-full bg-tinta text-white grid place-items-center text-xs font-bold">2</span><span>Revisa el modelo. Si no es, toca el correcto en la lista.</span></li>
+      <li class="flex gap-3"><span class="w-7 h-7 shrink-0 rounded-full bg-tinta text-white grid place-items-center text-xs font-bold">3</span><span>Elige cómo paga el cliente y toca <b>Vender</b>.</span></li>
+    </ol>
+    <div class="rounded-2xl bg-suave p-4 mt-5">
+      <p class="text-sm font-semibold">¿No tienes zapatos a mano?</p>
+      <p class="text-xs text-mute mb-3">Prueba la IA con fotos reales del catálogo.</p>
+      <div class="grid grid-cols-1 gap-2">
+        <button class="btn btn-p !min-h-0 py-2.5 text-sm" onclick="probarEjemplo()">✨ Probar con un zapato de ejemplo</button>
+        <button class="btn btn-s !min-h-0 py-2.5 text-sm" onclick="abrirMuestra()">Mostrar zapatos para apuntar la cámara</button>
+      </div></div></div>`;
 }
+/* Modo prueba: simula lo que vería la cámara con una foto real del catálogo (fondo y ángulo al azar) */
+async function probarEjemplo(){
+  if(!net||!head){toast("La IA aún está cargando…");return;}
+  const c=CAT[Math.floor(Math.random()*CAT.length)], img=new Image(); img.src=c.imagen; await img.decode();
+  const cv=document.createElement("canvas"); cv.width=cv.height=320; const x=cv.getContext("2d");
+  x.fillStyle=["#d9d4cc","#c9d6e3","#e8e1d6","#bfc8bf","#ddd"][Math.floor(Math.random()*5)]; x.fillRect(0,0,320,320);
+  x.translate(160,160); x.rotate((Math.random()*30-15)*Math.PI/180); const w=200+Math.random()*80; x.drawImage(img,-w/2,-w/2,w,w);
+  const ph=$("#placeholderCam"); ph.innerHTML=`<img src="${cv.toDataURL("image/jpeg",.85)}" class="w-full h-full object-cover" alt="Foto de prueba"><span class="absolute top-3 left-3 text-[11px] font-semibold bg-white/90 text-tinta px-2 py-1 rounded-full">Modo prueba</span>`;
+  const r=clasificar(cv); ultimo=r.clase; mostrar(r);
+  if(r.clase!==c.id) toast(`La IA dudó: era ${c.nombre.split(" - ")[0]}. Puedes tocar el correcto en la lista.`);
+  if(innerWidth<1024) setTimeout(()=>$("#resultado").scrollIntoView({behavior:"smooth",block:"start"}),60);
+}
+/* Pantalla de muestra: abre fotos grandes para apuntar la cámara de OTRO teléfono */
+let iMuestra=0;
+function abrirMuestra(){ iMuestra=Math.floor(Math.random()*CAT.length); pintarMuestra(); $("#muestra").classList.remove("hidden"); if(stream) cerrarCam(); }
+function pintarMuestra(){ const c=CAT[(iMuestra%CAT.length+CAT.length)%CAT.length]; $("#muestraImg").src=c.imagen; $("#muestraNombre").textContent=c.nombre; }
 function elegir(k,p){ultimo=k; mostrar({clase:k,prob:Math.max(p,UMBRAL),todas:ultimasTodas});}
 function mostrar(r){
   if(r.todas) ultimasTodas=r.todas;
@@ -624,7 +664,7 @@ function mostrar(r){
    ${cajaAbierta()?`<div class="flex gap-2 mt-4 flex-wrap pagos">${chipsPago()}</div>`:`<div class="mt-4 rounded-xl bg-aviso-50 text-aviso text-sm px-3 py-2">🔒 ${cajaHoy()?"La caja ya se cerró hoy":"La caja aún no está abierta"}: el Encargado debe ${cajaHoy()?"abrir una nueva sesión":"abrirla"} para vender.</div>`}
    <div class="grid grid-cols-2 gap-2 mt-3">
      <button class="btn btn-p" onclick="vender('${c.id}',1)" ${n<1||!cajaAbierta()?"disabled":""}>Vender 1 par</button>
-     <button class="btn btn-s" onclick="reponer('${c.id}',5)">+5 reponer</button>
+     ${rol==="encargado"?`<button class="btn btn-s" onclick="reponer('${c.id}',5)">+5 reponer</button>`:`<button class="btn btn-s" onclick="verKardex('${c.id}')">Ver ficha</button>`}
    </div>
    ${top?`<div class="mt-5 pt-4 border-t border-linea"><div class="text-xs font-semibold mb-2">¿No es este? Toca el correcto</div>${top.map(([k,p])=>`<button onclick="elegir('${k}',${p})" class="w-full flex items-center gap-3 text-left text-sm py-1.5 px-2 -mx-2 rounded-xl hover:bg-suave ${k===c.id?'bg-suave':''}"><img src="${modelo(k).imagen}" class="w-9 h-9 object-contain rounded-lg bg-suave" alt=""><span class="flex-1 truncate">${corto(modelo(k))}</span><span class="barra w-16"><i class="${k===c.id?'bg-marca':'bg-[#CACACB]'}" style="width:${(p*100).toFixed(1)}%"></i></span><span class="w-9 text-right tabular-nums text-xs">${(p*100).toFixed(0)}%</span></button>`).join("")}</div>`:""}
   </div>`;
@@ -636,7 +676,9 @@ function asegurarInicio(t){
   if(!S.inicioDia[k]){S.inicioDia[k]={}; CAT.forEach(c=>S.inicioDia[k][c.id]=S.stock[c.id][t]);}
   return S.inicioDia[k];
 }
+let ultimaVenta={id:null,t:0};
 function vender(id,cant){
+  if(ultimaVenta.id===id&&Date.now()-ultimaVenta.t<900) return false; // evita ventas duplicadas por doble toque
   const t=tiendaAct(), c=modelo(id); cant=Math.max(1,parseInt(cant)||1);
   if(!c) return false;
   if(!cajaAbierta(t)){toast(cajaHoy(t)?`La caja de ${t.split(" - ")[0]} ya se cerró hoy.`:`Primero el Encargado debe abrir la caja de ${t.split(" - ")[0]}.`);return false;}
@@ -645,6 +687,7 @@ function vender(id,cant){
   const nro=(S.nroVenta[t]=(S.nroVenta[t]||0)+1), hora=new Date().toTimeString().slice(0,5);
   D.moverStock(S,{id,tienda:t,cant:-cant,tipo:"venta",ref:`Venta N° ${nro}`,fecha:hoy(),hora,costo:c.costo_bs});
   S.ventas.push({nro,fecha:hoy(),hora,sesion:sesionKey(t),id,tienda:t,cant,precio:c.precio_bs,costo:c.costo_bs,pago});
+  ultimaVenta={id,t:Date.now()};
   guardar(); render(); toast(`✓ Vendido: ${cant} × ${c.nombre.split(" - ")[0]} · ${bs(cant*c.precio_bs)} · ${PAGOS[pago][1]}`);
   if(ultimo===id) mostrar({clase:id,prob:ultimaProb||1}); return true;
 }
@@ -653,7 +696,11 @@ const TIPOMOV={inicial:["Saldo inicial","text-mute"],venta:["Venta","text-marca"
 function verKardex(id){
   const c=modelo(id), ts=rol==="gerente"?TIENDAS:[tiendaAct()];
   $("#tKardex").textContent=c.nombre;
-  $("#kardexBody").innerHTML=ts.map(t=>{const M=(S.movs||[]).filter(m=>m.id===id&&m.tienda===t), ultimo=M.at(-1)?.saldo, ok=ultimo===S.stock[id][t];
+  const cab=`<div class="flex gap-4 items-center mb-4"><img src="${c.imagen}" class="w-20 h-20 tile object-contain shrink-0" alt=""><div><div class="text-lg font-bold">${bs(c.precio_bs)}</div><div class="text-xs text-mute">${esc(c.marca)} · ${esc(NOMC[c.categoria]||c.categoria)}${c.seccion?" · "+esc(c.seccion):""}</div></div></div>
+    <div class="grid grid-cols-3 gap-2 mb-4">${TIENDAS.map(x=>{const m=S.stock[id][x];return `<div class="rounded-xl p-2 text-center ${m<BAJO?"bg-marca-50 text-marca":"bg-suave"} ${x===tiendaAct()&&rol!=="gerente"?"ring-2 ring-tinta":""}"><div class="text-[11px] truncate">${esc(x.split(" - ")[0])}</div><div class="text-xl font-extrabold">${m}</div></div>`}).join("")}</div>
+    ${rol==="encargado"?`<button class="btn btn-n w-full mb-4" onclick="reponer('${id}',5);verKardex('${id}')">+5 pares a ${esc(tiendaAct().split(" - ")[0])}</button>`:""}
+    <div class="eyebrow mb-2">Movimientos (kardex)</div>`;
+  $("#kardexBody").innerHTML=cab+ts.map(t=>{const M=(S.movs||[]).filter(m=>m.id===id&&m.tienda===t), ultimo=M.at(-1)?.saldo, ok=ultimo===S.stock[id][t];
     return `<div class="mb-4"><div class="flex justify-between items-center mb-2"><span class="font-semibold text-sm">${esc(t)}</span>
       <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full ${ok?"bg-ok-50 text-ok":"bg-marca-50 text-marca"}">${ok?"✓ Kardex = stock":"⚠ Descuadre"} · ${S.stock[id][t]} pares</span></div>
       <table class="w-full text-xs"><thead><tr class="text-left text-mute border-b border-linea"><th class="py-1.5 font-medium">Fecha</th><th class="font-medium">Movimiento</th><th class="text-right font-medium">Cant.</th><th class="text-right font-medium">Saldo</th></tr></thead>
@@ -677,17 +724,12 @@ function renderInv(){
   const tot=CAT.reduce((a,c)=>a+stockTotal(c.id),0), bajos=CAT.filter(c=>TIENDAS.some(t=>S.stock[c.id][t]<BAJO)).length;
   $("#invResumen").innerHTML=`<b class="text-tinta">${CAT.length}</b> modelos · <b class="text-tinta">${tot.toLocaleString("es-BO")}</b> pares · <b class="text-marca">${bajos}</b> con stock bajo`;
   const t=tiendaAct();
-  $("#gridInv").innerHTML=lista.slice(0,invMax).map(c=>{const n=S.stock[c.id][t], baj=TIENDAS.some(x=>S.stock[c.id][x]<BAJO); return `<article class="group fade">
-    <div class="tile aspect-square grid place-items-center relative overflow-hidden"><img src="${c.imagen}" loading="lazy" class="w-[82%] h-[82%] object-contain mix-blend-multiply group-hover:scale-105 transition" alt="${esc(c.nombre)}">
-      ${baj?'<span class="absolute top-2 left-2 text-[10px] font-semibold bg-marca text-white px-2 py-0.5 rounded-full">Stock bajo</span>':''}</div>
-    <div class="pt-2.5 px-0.5"><div class="font-semibold text-sm leading-tight line-clamp-2">${corto(c)}</div>
-      <div class="text-xs text-mute truncate">${esc(c.marca)} · ${esc(NOMC[c.categoria]||c.categoria)}</div>
-      <div class="flex items-baseline justify-between mt-1"><span class="font-semibold text-sm">${bs(c.precio_bs)}</span><span class="text-xs text-mute">${rol==="gerente"?`<b class="text-tinta text-sm">${stockTotal(c.id)}</b> en total`:`<b class="text-tinta text-sm ${n<BAJO?'!text-marca':''}">${n}</b> aquí · ${stockTotal(c.id)} total`}</span></div>
-      <div class="flex gap-1 mt-1.5">${TIENDAS.map(x=>{const m=S.stock[c.id][x];return `<span title="${esc(x)}: ${m} pares" class="flex-1 text-center text-[10px] rounded-md py-0.5 ${m<BAJO?'bg-marca-50 text-marca font-semibold':'bg-suave'} ${x===t?'ring-1 ring-tinta':''}">${x.split(" ")[0].slice(0,3)} ${m}</span>`}).join("")}</div>
-      <div class="grid ${rol==="encargado"?"grid-cols-2":"grid-cols-1"} gap-1.5 mt-2">
-        ${rol==="encargado"?`<button class="btn btn-s !min-h-0 py-1.5 text-xs" onclick="reponer('${c.id}',5)">+5 reponer</button>`:""}
-        <button class="btn btn-s !min-h-0 py-1.5 text-xs" onclick="verKardex('${c.id}')">Movimientos</button></div></div>
-  </article>`}).join("")||`<p class="text-mute col-span-full py-10 text-center">Sin resultados para "${esc(q)}"</p>`;
+  $("#gridInv").innerHTML=lista.slice(0,invMax).map(c=>{const n=rol==="gerente"?stockTotal(c.id):S.stock[c.id][t], baj=rol==="gerente"?TIENDAS.some(x=>S.stock[c.id][x]<BAJO):n<BAJO; return `<button class="group fade text-left" onclick="verKardex('${c.id}')" aria-label="Ver ${esc(c.nombre)}">
+    <div class="tile aspect-square grid place-items-center relative overflow-hidden"><img src="${c.imagen}" loading="lazy" class="w-[82%] h-[82%] object-contain mix-blend-multiply group-hover:scale-105 transition" alt="">
+      <span class="absolute bottom-2 right-2 text-xs font-bold px-2 py-0.5 rounded-full ${baj?"bg-marca text-white":"bg-white text-tinta"}">${n} ${rol==="gerente"?"en total":"aquí"}</span></div>
+    <div class="pt-2 px-0.5"><div class="font-semibold text-sm leading-tight line-clamp-2">${corto(c)}</div>
+      <div class="text-xs text-mute mt-0.5">${bs(c.precio_bs)} · ${esc(c.marca)}</div></div>
+  </button>`}).join("")||`<p class="text-mute col-span-full py-10 text-center">Sin resultados para "${esc(q)}"</p>`;
   const ped=(S.pedidos||[]).map((p,i)=>[p,i]).filter(([p])=>!p.recibido&&p.tienda===t&&rol==="encargado");
   $("#invPedidos").innerHTML=ped.length?`<div class="rounded-2xl bg-aviso-50 p-4 mb-5"><div class="font-semibold text-sm mb-2">📦 Pedidos de reposición de Gerencia (${ped.length})</div>${ped.map(([p,i])=>`<div class="flex items-center justify-between gap-2 text-sm py-1"><span class="truncate">${p.cant} pares · ${corto(modelo(p.id))}</span><button class="btn btn-n !min-h-0 py-1.5 px-3 text-xs" onclick="recibirPedido(${i})">Recibir</button></div>`).join("")}</div>`:"";
   $("#invMas").classList.toggle("hidden",lista.length<=invMax);
@@ -726,9 +768,9 @@ function renderCierre(){
   if(B.cerrado) return;
   const contados=Object.keys(B.valores).length, difs=Object.entries(B.valores).filter(([id,v])=>v!==S.stock[id][t]);
   const faltan=difs.reduce((a,[id,v])=>a+Math.max(0,S.stock[id][t]-v),0);
-  $("#cProg").textContent=`Contados ${contados} de ${CAT.length} modelos`;
+  $("#cProg").textContent=`Contados ${contados} de ${CAT.length}`;
   $("#cBar").style.width=(contados/CAT.length*100)+"%";
-  $("#cDifRes").innerHTML=difs.length?`<span class="text-marca font-semibold">${difs.length} con diferencia · faltan ${faltan} ${faltan===1?"par":"pares"}</span>`:`<span class="text-ok font-semibold">Sin diferencias por ahora</span>`;
+  $("#cDifRes").innerHTML=difs.length?`<span class="text-[#FF8FAE]">${difs.length} con diferencia · faltan ${faltan} ${faltan===1?"par":"pares"}</span>`:`<span class="text-white/70">Sin diferencias por ahora</span>`;
   const nV=Object.keys(vend).length;
   const F=[["todos","Todos"],["vendidos",`● Vendidos hoy (${nV})`],["pendientes",`Pendientes (${CAT.length-contados})`],["diferencias",`Con diferencia (${difs.length})`]];
   $("#cFiltros").innerHTML=F.map(([k,n])=>`<button class="chip ${cFiltro===k?"on":""}" data-cf="${k}" aria-pressed="${cFiltro===k}">${n}</button>`).join("");
@@ -752,7 +794,11 @@ function renderCierre(){
         ${hecho?`<button class="text-xs text-mute underline" onclick="fijarConteo('${c.id}','')">Deshacer</button>`:`<button class="btn btn-s !min-h-0 py-1.5 px-3 text-xs" onclick="fijarConteo('${c.id}',${esp})">✓ Hay ${esp}</button>`}
       </div></div>`}).join("")||`<p class="text-mute col-span-full text-center py-8">No hay modelos en este filtro.</p>`;
 }
-function fijarConteo(id,val){const B=borrador(); if(val===""||val==null){delete B.valores[id];} else B.valores[id]=Math.max(0,parseInt(val)||0); guardar(); renderCierre();}
+function fijarConteo(id,val){const B=borrador(), n=parseInt(val);
+  if(val===""||val==null) delete B.valores[id];
+  else if(!Number.isFinite(n)){toast("Escribe un número de pares"); renderCierre(); return;}
+  else B.valores[id]=Math.max(0,n);
+  guardar(); renderCierre();}
 function ajustarConteo(id,d){const B=borrador(), base=B.valores[id]??S.stock[id][tiendaAct()]; fijarConteo(id,Math.max(0,base+d));}
 function resultadoConteo(R){
   if(!R) return "";
@@ -804,8 +850,8 @@ function renderDash(){
   $("#hero").innerHTML=`<div class="absolute -right-16 -bottom-24 w-72 h-72 rounded-full bg-white/10"></div><div class="absolute right-24 -top-20 w-40 h-40 rounded-full bg-white/10"></div>
     <div class="relative">
       <div class="text-sm text-white/80 mb-2">${nombrePer[0].toUpperCase()+nombrePer.slice(1)} · ${esc(donde)}${dPer>1?` · ${W.desde.slice(8)}/${W.desde.slice(5,7)} al ${W.hasta.slice(8)}/${W.hasta.slice(5,7)}`:""}</div>
-      <p class="titular text-3xl sm:text-5xl">${R.pares.toLocaleString("es-BO")} pares vendidos<br><span class="text-white/90">${bs(R.bruto)} facturados</span></p>
-      <div class="flex flex-wrap gap-2 mt-5 text-sm">
+      <p class="titular text-2xl sm:text-5xl">${bs(R.bruto)} facturados<br><span class="text-white/85 text-xl sm:text-3xl">${R.pares.toLocaleString("es-BO")} pares vendidos</span></p>
+      <div class="flex flex-wrap gap-1.5 sm:gap-2 mt-4 text-xs sm:text-sm">
         ${tend!=null?`<span class="px-3 py-1.5 rounded-full bg-white text-tinta font-semibold"><span class="${tend>=0?'text-ok':'text-marca'}">${flecha(tend)} ${Math.abs(tend).toFixed(0)}%</span> vs. ${antPer}</span>`:`<span class="px-3 py-1.5 rounded-full bg-white/15">Día en curso</span>`}
         <span class="px-3 py-1.5 rounded-full bg-white/15">Utilidad bruta: <b>${bs(R.utilidad)}</b> · margen ${R.margenBruto.toFixed(0)}%</span>
         <span class="px-3 py-1.5 rounded-full bg-white/15">Ticket promedio: <b>${bs(R.ticketPromedio)}</b></span>
@@ -846,11 +892,12 @@ function renderDash(){
     <div class="rounded-2xl bg-suave p-4"><div class="text-xs text-mute">Arqueos del periodo</div><div class="text-2xl font-extrabold">${ult.length?`${ult.length-conDif.length} de ${ult.length} cuadraron`:"Sin cierres aún"}</div>
     <div class="text-sm ${sumDif<0?"text-marca":"text-mute"} mt-1">Diferencia acumulada: <b>${(sumDif>0?"+":"")+bsc(sumDif)}</b></div></div>`;
 
-  $("#salud").innerHTML=T.map(([t,v,d,[e,tx,dot],pct])=>`<div class="rounded-2xl bg-suave p-5">
-    <div class="flex items-center justify-between mb-3"><span class="text-sm font-medium">${t}</span><span class="text-xs font-semibold flex items-center gap-1.5 ${tx}"><span class="w-2 h-2 rounded-full ${dot}"></span>${e}</span></div>
-    <div class="text-3xl font-extrabold tracking-tight tabular-nums">${v}</div>
+  $("#salud").innerHTML=T.map(([t,v,d,[e,tx,dot],pct])=>`<details class="rounded-2xl bg-suave p-3.5 sm:p-5 group" ${innerWidth>=640?"open":""}>
+    <summary class="list-none cursor-pointer"><div class="flex items-center justify-between gap-1 mb-1.5"><span class="text-xs sm:text-sm font-medium leading-tight">${t}</span><span class="w-2.5 h-2.5 rounded-full shrink-0 ${dot}" title="${e}"></span></div>
+    <div class="text-xl sm:text-3xl font-extrabold tracking-tight tabular-nums leading-tight">${v}</div>
+    <div class="text-[11px] font-semibold ${tx} mt-1">${e}<span class="sm:hidden text-mute font-normal"> · ver más</span></div></summary>
     ${pct!=null?`<div class="barra mt-2 bg-white"><i class="${dot}" style="width:${pct}%"></i></div>`:""}
-    <p class="text-[13px] text-mute leading-snug mt-2">${d}</p></div>`).join("");
+    <p class="text-xs sm:text-[13px] text-mute leading-snug mt-2">${d}</p></details>`).join("");
 
   const porTiendaF={}; C.filter(c=>c.dif<0).forEach(c=>porTiendaF[c.tienda]=(porTiendaF[c.tienda]||0)-c.dif);
   const peorT=Object.entries(porTiendaF).sort((a,b)=>b[1]-a[1])[0];
@@ -999,6 +1046,7 @@ function actArqueo(){const cj=cajaHoy(); cj.arqueo=leerArqueo(); guardarArqueo()
   $("#arqTotal").textContent=bsc(t); $("#arqDif").textContent=(d>0?"+":"")+bsc(d); $("#arqDif").className="text-2xl font-bold tabular-nums "+(d===0?"text-ok":d<0?"text-marca":"text-aviso");}
 function cerrarCaja(){
   const cj=cajaHoy(), r=resumenSesion(), esperado=D.esperadoCaja(cj,r.porPago.efectivo), contado=D.totalArqueo(cj.arqueo||leerArqueo());
+  if(contado===0&&esperado>0){toast("Primero cuenta el efectivo: escribe cuántos billetes y monedas hay"); document.querySelector("[data-den]")?.focus(); return;}
   if(!confirm(`¿Cerrar la caja? Contaste ${bsc(contado)} y el sistema espera ${bsc(esperado)}.${contado===0?" ⚠️ No ingresaste ningún billete.":""} Después no se podrá vender en esta sesión.`)) return;
   Object.assign(cj,{abierta:false,hCierre:new Date().toTimeString().slice(0,5),esperado,contado,dif:D.redondear(contado-esperado)});
   delete S.sesionActiva[cj.tienda]; guardar(); renderCaja(); toast("Caja cerrada · Reporte Z listo");
@@ -1006,6 +1054,17 @@ function cerrarCaja(){
 // Demo: permite abrir otra sesión el mismo día (la anterior queda en el historial, como en Odoo)
 function nuevaSesion(){ if(confirm("¿Abrir una nueva sesión de caja hoy? La sesión cerrada queda guardada en el historial.")){ S.permitirNueva??={}; S.permitirNueva[tiendaAct()]=hoy(); guardar(); renderCaja();} }
 function renderCaja(){
+  renderCajaCuerpo();
+  // Recorrido del día: dónde estoy y qué sigue
+  const t=tiendaAct(); let cj=cajaHoy(); if(cj&&!cj.abierta&&S.permitirNueva?.[t]===hoy()) cj=null;
+  const vendio=cj&&resumenSesion().transacciones>0, contado=!!borrador(t).cerrado, cerrada=cj&&!cj.abierta;
+  const pasos=[["Abrir caja",!!cj],["Vender",vendio||cerrada],["Contar inventario",contado],["Arqueo y cierre",cerrada]];
+  const sig=pasos.findIndex(p=>!p[1]);
+  const consejo=sig===-1?"Día cerrado. Puedes imprimir el Reporte Z.":sig===0?"Empieza abriendo la caja con el fondo para cambio.":sig===1?"Los vendedores ya pueden vender. Cuando termine el día, sigue con el conteo.":sig===2?`Antes de cerrar, <button class="underline font-semibold" onclick="ver('cierre')">haz el conteo de inventario →</button>`:"Cuenta el efectivo abajo y cierra la caja.";
+  $("#cajaBody").insertAdjacentHTML("afterbegin",`<div class="mb-5"><ol class="grid grid-cols-4 gap-1.5" aria-label="Pasos del día">${pasos.map(([n,ok],i)=>`<li class="text-center"><div class="h-1.5 rounded-full ${ok?"bg-ok":i===sig?"bg-marca":"bg-linea"}"></div><div class="text-[11px] mt-1.5 leading-tight ${i===sig?"font-bold text-tinta":ok?"text-ok":"text-mute"}">${ok?"✓ ":""}${n}</div></li>`).join("")}</ol>
+    <p class="text-sm mt-3 rounded-xl bg-suave px-3 py-2">${consejo}</p></div>`);
+}
+function renderCajaCuerpo(){
   const t=tiendaAct(); let cj=cajaHoy(); if(cj&&!cj.abierta&&S.permitirNueva?.[t]===hoy()) cj=null;
   const r=resumenSesion();
   $("#cajaTienda").textContent=t+" · "+new Date().toLocaleDateString("es-BO",{weekday:"long",day:"numeric",month:"long"});
@@ -1052,10 +1111,14 @@ function renderCaja(){
     <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-5"><div class="rounded-2xl bg-suave p-3"><div class="text-xs text-mute">Facturado (con IVA)</div><div class="text-lg font-bold tabular-nums">${bsc(r.bruto)}</div></div>
       <div class="rounded-2xl bg-suave p-3"><div class="text-xs text-mute">Pares · ventas</div><div class="text-lg font-bold">${r.pares} · ${r.transacciones}</div></div>
       <div class="rounded-2xl bg-ok-50 p-3 col-span-2 sm:col-span-1"><div class="text-xs text-mute">Utilidad bruta</div><div class="text-lg font-bold text-ok tabular-nums">${bsc(r.utilidad)}</div></div></div>
-    <h3 class="eyebrow mb-1">Cobros por método de pago</h3>${fila("💵 Efectivo",bsc(r.porPago.efectivo))}${fila("📱 QR",bsc(r.porPago.qr))}${fila("💳 Tarjeta",bsc(r.porPago.tarjeta))}${fila("Ticket promedio",bsc(r.ticketPromedio))}
+    <div class="grid grid-cols-2 gap-2 mb-4"><div class="rounded-2xl p-3 ${cj.dif===0?"bg-ok-50":"bg-marca-50"}"><div class="text-xs text-mute">Caja</div><div class="font-bold ${cj.dif===0?"text-ok":"text-marca"}">${cj.dif===0?"✓ Cuadra":(cj.dif>0?"Sobra ":"Falta ")+bsc(Math.abs(cj.dif))}</div></div>
+      <div class="rounded-2xl p-3 ${!r.conteo?"bg-aviso-50":r.K.faltantes?"bg-marca-50":"bg-ok-50"}"><div class="text-xs text-mute">Inventario</div><div class="font-bold ${!r.conteo?"text-aviso":r.K.faltantes?"text-marca":"text-ok"}">${!r.conteo?"Conteo pendiente":r.K.faltantes?`Faltan ${r.K.faltantes} pares`:"✓ Cuadra"}</div></div></div>
+    <details class="group"><summary class="cursor-pointer font-semibold text-sm py-2 no-print">Ver detalle contable ▾</summary>
+    <h3 class="eyebrow mb-1 mt-2">Cobros por método de pago</h3>${fila("💵 Efectivo",bsc(r.porPago.efectivo))}${fila("📱 QR",bsc(r.porPago.qr))}${fila("💳 Tarjeta",bsc(r.porPago.tarjeta))}${fila("Ticket promedio",bsc(r.ticketPromedio))}
     <h3 class="eyebrow mt-5 mb-1">Estado de resultados de la sesión</h3>${fila("Venta bruta (precio con IVA)",bsc(r.bruto))}${fila("(−) IVA débito fiscal 13 %",bsc(-r.iva))}${fila("= Venta neta",bsc(r.neto))}${fila("(−) Costo de lo vendido (simulado)",bsc(-r.costo))}${fila("= Utilidad bruta",bsc(r.utilidad),"text-ok")}${fila("Margen bruto (sobre venta neta)",r.margenBruto.toFixed(1).replace(".",",")+" %")}${fila("(−) IT 3 %",bsc(-r.it))}${fila("= Margen de contribución",bsc(r.contribucion))}
     <h3 class="eyebrow mt-5 mb-1">Arqueo de caja</h3>${fila("Fondo inicial",bsc(cj.fondo))}${fila("Ventas en efectivo",bsc(r.porPago.efectivo))}${fila("Ingresos / retiros",bsc(ing)+" / "+bsc(-ret))}${fila("Efectivo esperado",bsc(cj.esperado))}${fila("Efectivo contado",bsc(cj.contado))}${fila("Diferencia",(cj.dif>0?"+":"")+bsc(cj.dif),cj.dif===0?"text-ok":"text-marca")}
     <h3 class="eyebrow mt-5 mb-1">Inventario</h3>${r.conteo?fila("Modelos contados · exactitud",r.K.lineas+" · "+(r.K.exactitud??0).toFixed(0)+" %")+fila("Pares faltantes · merma a costo",r.K.faltantes+" · "+bsc(r.K.mermaCosto),r.K.faltantes?"text-marca":"text-ok"):`<p class="text-sm text-aviso py-2">Conteo de inventario pendiente para hoy.</p>`}
+    </details>
     <div class="flex flex-wrap gap-2 mt-6 no-print"><button class="btn btn-n" onclick="window.print()">Imprimir / guardar PDF</button><button class="btn btn-s" onclick="nuevaSesion()">Nueva sesión (demo)</button></div>
   </div>`;
 }
