@@ -140,7 +140,7 @@ function render(){
 /* ---------- IA ---------- */
 
 /* Inicio de sesión (modo servidor) */
-const SERVIDOR_PUBLICO="https://copartner-compactly-dubbed.ngrok-free.dev"; // túnel ngrok hacia el servidor de la Mac (ver docs/SERVIDOR.md)
+const SERVIDOR_PUBLICO="https://manaco-vision-api.onrender.com"; // Render + PostgreSQL (alternativa: túnel ngrok a la Mac, ver docs/SERVIDOR.md)
 function pintarSesion(){
   const box=$("#inicioSesion"); if(!box) return;
   box.innerHTML=Sync.activo
