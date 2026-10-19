@@ -43,9 +43,9 @@ s.addNotes("(60 s) Limpiamos la base: 240 registros, sin nulos, sin registros 'M
 
 // 4 Solución: un sistema, tres roles + dos fuentes de datos
 s = pres.addSlide(); s.background = { color: BL }; titulo(s, "Manaco Vision: un sistema, tres roles");
-const roles = [["👟", "Vendedor", "Escanea el zapato, ve precio y stock, y vende", "Escáner · Ventas"],
-  ["🏬", "Encargado", "Repone y cierra el día: detecta faltantes", "Inventario · Cierre"],
-  ["📊", "Gerente", "Decide con datos de las 3 tiendas y del mercado", "Resumen · Mercado"]];
+const roles = [["👟", "Vendedor", "Escanea, ve precio y stock, y vende (efectivo, QR o tarjeta)", "Escáner · Ventas"],
+  ["🏬", "Encargado", "Abre y cierra la caja (arqueo y Reporte Z) y cuenta el inventario", "Caja · Conteo · Inventario"],
+  ["📊", "Gerente", "Ve ventas, ganancias y cajas de las 3 tiendas, y el mercado", "Resumen · Mercado"]];
 roles.forEach(([ic, h, d, p], i) => { const x = 0.5 + i * 3.05; card(s, x, 1.2, 2.85, 1.95);
   s.addShape(pres.shapes.OVAL, { x: x + 0.2, y: 1.38, w: 0.55, h: 0.55, fill: { color: BL }, line: { color: BL } });
   T(s, ic, { x: x + 0.2, y: 1.38, w: 0.55, h: 0.55, align: "center", valign: "middle", fontSize: 18 });

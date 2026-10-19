@@ -88,6 +88,7 @@ tailwind.config={theme:{extend:{
   input[type=number]::-webkit-inner-spin-button{appearance:none}
   .scroll-x{overflow-x:auto;scrollbar-width:none}.scroll-x::-webkit-scrollbar{display:none}
   .barra{height:8px;background:#F5F5F5;border-radius:99px;overflow:hidden}.barra>i{display:block;height:100%;border-radius:99px}
+  @media print{body *{visibility:hidden!important}#reporteZ,#reporteZ *{visibility:visible!important}#reporteZ{position:absolute;left:0;top:0;width:100%;border:0}.no-print{display:none!important}}
   @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 </style>
 </head>
@@ -97,6 +98,7 @@ tailwind.config={theme:{extend:{
 <svg width="0" height="0" class="absolute" aria-hidden="true">
   <symbol id="i-scan" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="12" r="3.5"/></symbol>
   <symbol id="i-box" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5M12 13v8"/></symbol>
+  <symbol id="i-caja" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="11" width="18" height="9" rx="2"/><path d="M7 11V5h10v6M10 8h4M7 15h2M11 15h2M15 15h2"/></symbol>
   <symbol id="i-cash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 10v4M18 10v4"/></symbol>
   <symbol id="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></symbol>
   <symbol id="i-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></symbol>
@@ -197,6 +199,7 @@ tailwind.config={theme:{extend:{
       <!-- VENTAS -->
       <section id="v-ventas" class="vista hidden" aria-labelledby="t-ven">
         <div class="mb-5"><div class="eyebrow" id="vTienda"></div><h1 id="t-ven" class="titular text-3xl lg:text-4xl">Ventas de hoy</h1></div>
+        <div id="vCaja" class="mb-4"></div>
         <div class="grid grid-cols-3 gap-3 mb-5" id="vKpis"></div>
         <div class="grid grid-cols-1 lg:grid-cols-5 gap-5">
           <div class="card p-5 lg:col-span-2 h-fit">
@@ -210,10 +213,18 @@ tailwind.config={theme:{extend:{
               <span class="text-sm text-mute">Cantidad de pares</span>
               <div class="stepper flex items-center gap-1"><button data-d="-1" aria-label="Restar un par">−</button><input id="vCant" type="number" min="1" max="99" value="1" aria-label="Cantidad"><button data-d="1" aria-label="Sumar un par">+</button></div>
             </div>
+            <div class="mb-5"><span class="text-sm text-mute">Método de pago</span><div class="flex gap-2 mt-2 flex-wrap pagos"></div></div>
             <button id="vBtn" class="btn btn-p w-full">Registrar venta</button>
           </div>
           <div class="lg:col-span-3"><h2 class="font-semibold text-lg mb-3">Historial de hoy</h2><div class="space-y-2" id="listaVentas"></div></div>
         </div>
+      </section>
+
+      <!-- CAJA -->
+      <section id="v-caja" class="vista hidden" aria-labelledby="t-caja">
+        <div class="mb-5"><div class="eyebrow" id="cajaTienda"></div><h1 id="t-caja" class="titular text-3xl lg:text-4xl">Caja del día</h1>
+          <p class="text-mute text-sm mt-1 max-w-2xl">Abre la caja al iniciar la jornada, cuenta el efectivo al final (arqueo) y obtén el Reporte Z del día.</p></div>
+        <div id="cajaBody"></div>
       </section>
 
       <!-- CIERRE -->
@@ -262,6 +273,11 @@ tailwind.config={theme:{extend:{
           <div class="card p-5"><h2 class="font-bold text-xl">¿Qué tienda vende más?</h2><p class="text-mute text-sm mb-4">Facturación del periodo</p><div class="space-y-4" id="tiendas"></div></div>
           <div class="card p-5"><h2 class="font-bold text-xl">¿Qué tipo de zapato deja más dinero?</h2><p class="text-mute text-sm mb-4">Parte de la facturación</p>
             <div class="flex flex-col sm:flex-row items-center gap-6"><div class="relative w-44 h-44 shrink-0"><canvas id="chCat" aria-label="Gráfico de ventas por tipo de zapato" role="img"></canvas><div id="catCentro" class="absolute inset-0 grid place-items-center text-center pointer-events-none"></div></div><div class="space-y-3 w-full" id="catLeyenda"></div></div></div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-5 gap-5 mb-8">
+          <div class="card p-5 lg:col-span-3"><h2 class="font-bold text-xl">¿Cuánto ganamos?</h2><p class="text-mute text-sm mb-4">Ganancia bruta = precio de venta − costo del zapato (costos simulados)</p><div id="ganancias"></div></div>
+          <div class="card p-5 lg:col-span-2"><h2 class="font-bold text-xl">Cajas de las tiendas</h2><p class="text-mute text-sm mb-4">Estado de hoy y últimos arqueos</p><div id="cajasDash"></div></div>
         </div>
 
         <div class="card p-5 mb-8">
@@ -350,23 +366,34 @@ tailwind.config={theme:{extend:{
 
 <script>
 const TIENDAS=["La Paz - El Prado","Cochabamba - Heroínas","Santa Cruz - Ventura Mall"];
-const VISTAS=[["escaner","Escáner","i-scan"],["inventario","Inventario","i-box"],["ventas","Ventas","i-cash"],["cierre","Cierre","i-moon"],["dashboard","Resumen","i-chart"],["mercado","Mercado","i-globe"]];
+const VISTAS=[["escaner","Escáner","i-scan"],["inventario","Inventario","i-box"],["ventas","Ventas","i-cash"],["cierre","Conteo","i-moon"],["caja","Caja","i-caja"],["dashboard","Resumen","i-chart"],["mercado","Mercado","i-globe"]];
 const ROLES={
   vendedor:{nombre:"Vendedor",ico:"👟",vistas:["escaner","ventas"],desc:"Atiende al cliente: escanea el zapato, ve precio y stock, y registra la venta.",tareas:["Reconocer el modelo con la cámara","Consultar stock en las 3 tiendas","Registrar la venta"]},
-  encargado:{nombre:"Encargado de tienda",ico:"🏬",vistas:["inventario","cierre","escaner"],desc:"Cuida el stock de su tienda: repone y concilia el inventario al cerrar.",tareas:["Revisar stock y alertas","Reponer modelos","Cierre del día y faltantes"]},
+  encargado:{nombre:"Encargado de tienda",ico:"🏬",vistas:["caja","cierre","inventario","escaner"],desc:"Abre y cierra la caja, cuida el stock y concilia el inventario.",tareas:["Apertura y arqueo de caja","Conteo de inventario y faltantes","Reporte Z del día"]},
   gerente:{nombre:"Gerente",ico:"📊",vistas:["dashboard","mercado","inventario"],desc:"Decide con datos de las 3 tiendas y del mercado.",tareas:["Resumen y semáforo del negocio","Qué hacer hoy","Mercado: base del Excel"]},
 };
 let rol=null; try{rol=localStorage.getItem("mv_rol")}catch(e){}
 if(!ROLES[rol]) rol=null;
 const vistasRol=()=>rol?ROLES[rol].vistas:VISTAS.map(v=>v[0]);
 const duenoVista=v=>Object.values(ROLES).find(r=>r.vistas.includes(v))?.nombre||"";
-const UMBRAL=0.55, KEY="manacoVision_v5", BAJO=5;
+const UMBRAL=0.55, KEY="manacoVision_v6", BAJO=5;
+const PAGOS={efectivo:["💵","Efectivo"],qr:["📱","QR"],tarjeta:["💳","Tarjeta"]};
+const MARGEN_COSTO={"Deportivo":0.62,"Casual cuero (suela caucho)":0.58,"Formal cuero/cuero":0.52}; // costo ≈ % del precio (simulado)
+const DENOM=[200,100,50,20,10,5,2,1,0.5,0.2,0.1];
+let pago="efectivo";
+const cajaKey=(t=tiendaAct())=>hoy()+"|"+t;
+const cajaHoy=(t=tiendaAct())=>S.cajas?.[cajaKey(t)];
+const cajaAbierta=(t=tiendaAct())=>!!cajaHoy(t)?.abierta;
+const costoDe=v=>v.costo??modelo(v.id)?.costo_bs??0;
+const ganancia=v=>v.cant*(v.precio-costoDe(v));
+const chipsPago=()=>Object.entries(PAGOS).map(([k,[i,n]])=>`<button type="button" data-pago="${k}" class="chip ${pago===k?"on":""}">${i} ${n}</button>`).join("");
 const NOMC={"Deportivo":"Deportivo","Casual cuero (suela caucho)":"Casual","Formal cuero/cuero":"Formal de cuero"};
 let invMax=24, cMax=30, CAT=[], IDX={}, CLASES=[], net=null, head=null, S=null, charts={}, vista="escaner", filtroCat="Todas", tienda=TIENDAS[0];
 let dPer=30, dTie="Todas";
 const $=s=>document.querySelector(s), $$=s=>document.querySelectorAll(s);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const bs=n=>"Bs "+Math.round(n).toLocaleString("es-BO");
+const bsc=n=>(n<-0.004?"−":"")+"Bs "+Math.abs(n).toLocaleString("es-BO",{minimumFractionDigits:2,maximumFractionDigits:2}); // montos de caja con centavos
 const fechaLocal=d=>{const x=new Date(d); return x.getFullYear()+"-"+String(x.getMonth()+1).padStart(2,"0")+"-"+String(x.getDate()).padStart(2,"0");};
 const hoy=()=>fechaLocal(Date.now());
 const diaMenos=k=>fechaLocal(Date.now()-k*864e5);
@@ -388,19 +415,26 @@ function semilla(){
     const f=diaMenos(d);
     TIENDAS.forEach((t,ti)=>CAT.forEach(c=>{
       if(rnd()>Math.min(1,30/CAT.length)) return;
-      ventas.push({fecha:f,hora:"12:00",id:c.id,tienda:t,cant:1+Math.floor(rnd()*2*(peso[c.categoria]||1)*(1+ti*0.2)),precio:c.precio_bs});
+      const rp=rnd();
+      ventas.push({fecha:f,hora:"12:00",id:c.id,tienda:t,cant:1+Math.floor(rnd()*2*(peso[c.categoria]||1)*(1+ti*0.2)),precio:c.precio_bs,costo:c.costo_bs,pago:rp<0.55?"efectivo":rp<0.9?"qr":"tarjeta"});
     }));
   }
   const cierres=[];
   for(let d=3; d>=1; d--){const f=diaMenos(d); TIENDAS.forEach(t=>CAT.forEach(c=>{const dif=rnd()<0.008?-1:0; cierres.push({fecha:f,tienda:t,id:c.id,esperado:10,fisico:10+dif,dif})}));}
-  return {stock:st,inicioDia:{},ventas,cierres};
+  const cajas={};
+  for(let d=60; d>=1; d--){const f=diaMenos(d); TIENDAS.forEach(t=>{
+    const ef=ventas.filter(v=>v.fecha===f&&v.tienda===t&&v.pago==="efectivo").reduce((a,v)=>a+v.cant*v.precio,0);
+    const esperado=Math.round(500+ef), r=rnd(), dif=r<0.86?0:[-20,-10,-5,5,10,-50][Math.floor(rnd()*6)];
+    cajas[f+"|"+t]={fecha:f,tienda:t,abierta:false,fondo:500,hApertura:"09:00",hCierre:"20:30",esperado,contado:esperado+dif,dif};
+  });}
+  return {stock:st,inicioDia:{},ventas,cierres,cajas};
 }
 
 async function init(){
   try{CAT=await (await fetch("catalogo.json",{cache:"no-cache"})).json();}catch(e){$("#resultado").innerHTML=`<p class="text-error">No se pudo cargar el catálogo. Revisa tu conexión.</p>`;return;}
-  CAT.forEach(c=>{if(!c.precio_bs) c.precio_bs=189.3; IDX[c.id]=c;});
+  CAT.forEach(c=>{if(!c.precio_bs) c.precio_bs=189.3; c.costo_bs=Math.round(c.precio_bs*(MARGEN_COSTO[c.categoria]||0.58)); IDX[c.id]=c;});
   try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){}
-  if(!S||!S.stock||CAT.some(c=>!S.stock[c.id])) {S=semilla(); guardar();}
+  if(!S||!S.stock||!S.cajas||CAT.some(c=>!S.stock[c.id])) {S=semilla(); guardar();}
   $$(".selTienda").forEach(sel=>{sel.innerHTML=TIENDAS.map(t=>`<option value="${t}">${t}</option>`).join(""); sel.onchange=()=>{tienda=sel.value; $$(".selTienda").forEach(o=>o.value=tienda); render(); if(ultimo&&ultimo!=="otro") mostrar({clase:ultimo,prob:ultimaProb}); toast("Tienda: "+tienda);};});
   armarNav();
   $$(".btnRol").forEach(b=>b.onclick=abrirInicio);
@@ -443,7 +477,7 @@ function armarNav(){
   $("#navBottom").innerHTML=V.map(([v,n,i])=>`<button data-v="${v}" class="tab-item"><svg aria-hidden="true"><use href="#${i}"/></svg>${n}</button>`).join("");
   $$("#navSide [data-v],#navBottom [data-v]").forEach(b=>b.onclick=()=>ver(b.dataset.v));
   $$(".tiendaHeader").forEach(e=>e.classList.toggle("hidden",rol==="gerente"));
-  const r=ROLES[rol]; $$(".rolTxt").forEach(e=>e.textContent=r?r.nombre:"Elegir rol"); $$(".rolIco").forEach(e=>e.textContent=r?r.ico:"👤");
+  const r=ROLES[rol]; $$(".rolTxt").forEach(e=>e.textContent=r?(e.closest("header")?r.nombre.split(" ")[0]:r.nombre):"Elegir rol"); $$(".rolIco").forEach(e=>e.textContent=r?r.ico:"👤");
 }
 function abrirInicio(){ $("#inicioTienda").value=tienda; $("#inicio").classList.remove("hidden"); if(stream) cerrarCam(); }
 function elegirRol(k){
@@ -466,6 +500,7 @@ function render(){
   if(vista==="inventario") renderInv();
   if(vista==="ventas") renderVentas();
   if(vista==="cierre") renderCierre();
+  if(vista==="caja") renderCaja();
   if(vista==="dashboard") renderDash();
   if(vista==="mercado") renderMercado();
 }
@@ -542,8 +577,9 @@ function mostrar(r){
      <span class="text-xs font-semibold px-2.5 py-1 rounded-full ${n<BAJO?'bg-marca text-white':'bg-white text-ok'}">${n<BAJO?'Reponer':'Disponible'}</span>
    </div>
    <div class="grid grid-cols-2 gap-2 mt-2">${TIENDAS.filter(x=>x!==t).map(x=>`<div class="rounded-xl border border-linea px-3 py-2"><div class="text-[11px] text-mute truncate">${esc(x)}</div><div class="font-semibold">${S.stock[c.id][x]} pares</div></div>`).join("")}</div>
-   <div class="grid grid-cols-2 gap-2 mt-4">
-     <button class="btn btn-p" onclick="vender('${c.id}',1)" ${n<1?"disabled":""}>Vender 1 par</button>
+   ${cajaAbierta()?`<div class="flex gap-2 mt-4 flex-wrap pagos">${chipsPago()}</div>`:`<div class="mt-4 rounded-xl bg-aviso-50 text-aviso text-sm px-3 py-2">🔒 ${cajaHoy()?"La caja ya se cerró hoy":"La caja aún no está abierta"}: el Encargado debe ${cajaHoy()?"abrir una nueva sesión":"abrirla"} para vender.</div>`}
+   <div class="grid grid-cols-2 gap-2 mt-3">
+     <button class="btn btn-p" onclick="vender('${c.id}',1)" ${n<1||!cajaAbierta()?"disabled":""}>Vender 1 par</button>
      <button class="btn btn-s" onclick="reponer('${c.id}',5)">+5 reponer</button>
    </div>
    ${top?`<div class="mt-5 pt-4 border-t border-linea"><div class="text-xs font-semibold mb-2">¿No es este? Toca el correcto</div>${top.map(([k,p])=>`<button onclick="elegir('${k}',${p})" class="w-full flex items-center gap-3 text-left text-sm py-1.5 px-2 -mx-2 rounded-xl hover:bg-suave ${k===c.id?'bg-suave':''}"><img src="${modelo(k).imagen}" class="w-9 h-9 object-contain rounded-lg bg-suave" alt=""><span class="flex-1 truncate">${corto(modelo(k))}</span><span class="barra w-16"><i class="${k===c.id?'bg-marca':'bg-[#CACACB]'}" style="width:${(p*100).toFixed(1)}%"></i></span><span class="w-9 text-right tabular-nums text-xs">${(p*100).toFixed(0)}%</span></button>`).join("")}</div>`:""}
@@ -558,11 +594,13 @@ function asegurarInicio(t){
 }
 function vender(id,cant){
   const t=tiendaAct(), c=modelo(id); cant=Math.max(1,parseInt(cant)||1);
-  if(!c) return false; asegurarInicio(t);
+  if(!c) return false;
+  if(!cajaAbierta(t)){toast(cajaHoy(t)?`La caja de ${t.split(" - ")[0]} ya se cerró hoy.`:`Primero el Encargado debe abrir la caja de ${t.split(" - ")[0]}.`);return false;}
+  asegurarInicio(t);
   if(S.stock[id][t]<cant){toast(`Solo hay ${S.stock[id][t]} pares en ${t}`);return false;}
   S.stock[id][t]-=cant;
-  S.ventas.push({fecha:hoy(),hora:new Date().toTimeString().slice(0,5),id,tienda:t,cant,precio:c.precio_bs});
-  guardar(); render(); toast(`✓ Vendido: ${cant} × ${c.nombre.split(" - ")[0]} · ${bs(cant*c.precio_bs)}`);
+  S.ventas.push({fecha:hoy(),hora:new Date().toTimeString().slice(0,5),id,tienda:t,cant,precio:c.precio_bs,costo:c.costo_bs,pago});
+  guardar(); render(); toast(`✓ Vendido: ${cant} × ${c.nombre.split(" - ")[0]} · ${bs(cant*c.precio_bs)} · ${PAGOS[pago][1]}`);
   if(ultimo===id) mostrar({clase:id,prob:ultimaProb||1}); return true;
 }
 function reponer(id,cant,t=tiendaAct()){
@@ -591,11 +629,15 @@ function renderInv(){
 }
 function renderVentas(){
   const t=tiendaAct(); $("#vTienda").textContent=t;
+  $$(".pagos").forEach(e=>e.innerHTML=chipsPago());
+  $("#vBtn").disabled=!cajaAbierta()||!$("#vModelo").value;
+  $("#vCaja").innerHTML=cajaAbierta()?`<div class="rounded-2xl bg-ok-50 text-ok text-sm px-4 py-2.5 font-medium">🟢 Caja abierta desde las ${cajaHoy().hApertura} · fondo ${bs(cajaHoy().fondo)}</div>`
+    :`<div class="rounded-2xl bg-aviso-50 text-aviso text-sm px-4 py-2.5 font-medium">🔒 ${cajaHoy()?"La caja de hoy ya se cerró.":"La caja no está abierta."} Para vender, el Encargado debe ${cajaHoy()?"iniciar una nueva sesión":"abrirla en la pestaña Caja"}.</div>`;
   const vs=S.ventas.filter(v=>v.fecha===hoy()&&v.tienda===t).reverse();
   const tot=vs.reduce((a,v)=>a+v.cant*v.precio,0), pares=vs.reduce((a,v)=>a+v.cant,0);
   $("#vKpis").innerHTML=[["Facturado",bs(tot)],["Pares",pares],["Ventas",vs.length]].map(([k,v])=>`<div class="rounded-2xl bg-suave p-4"><div class="text-xs text-mute">${k}</div><div class="text-xl sm:text-2xl font-bold tabular-nums">${v}</div></div>`).join("");
   $("#listaVentas").innerHTML=vs.length?vs.map(v=>{const c=modelo(v.id);return c?`<div class="card p-3 flex items-center gap-3 fade">
-    <img src="${c.imagen}" class="w-12 h-12 tile object-contain" alt=""><div class="flex-1 min-w-0"><div class="font-semibold text-sm truncate">${corto(c)}</div><div class="text-xs text-mute">${v.hora} · ${v.cant} ${v.cant===1?"par":"pares"}</div></div>
+    <img src="${c.imagen}" class="w-12 h-12 tile object-contain" alt=""><div class="flex-1 min-w-0"><div class="font-semibold text-sm truncate">${corto(c)}</div><div class="text-xs text-mute">${v.hora} · ${v.cant} ${v.cant===1?"par":"pares"} · ${(PAGOS[v.pago]||PAGOS.efectivo).join(" ")}</div></div>
     <div class="font-semibold tabular-nums">${bs(v.cant*v.precio)}</div></div>`:""}).join("")
     :`<div class="rounded-2xl bg-suave p-8 text-center text-mute text-sm">Aún no hay ventas hoy en esta tienda.<br>Usa el escáner o el formulario.</div>`;
 }
@@ -657,6 +699,7 @@ function renderDash(){
       <p class="titular text-3xl sm:text-5xl">${pares.toLocaleString("es-BO")} pares vendidos<br><span class="text-white/90">${bs(tot)} facturados</span></p>
       <div class="flex flex-wrap gap-2 mt-5 text-sm">
         ${totAnt?`<span class="px-3 py-1.5 rounded-full bg-white text-tinta font-semibold"><span class="${tend>=0?'text-ok':'text-marca'}">${flecha} ${Math.abs(tend).toFixed(0)}%</span> vs. ${antPer}</span>`:""}
+        <span class="px-3 py-1.5 rounded-full bg-white/15">Ganancia bruta: <b>${bs(V.reduce((a,v)=>a+ganancia(v),0))}</b> · margen ${tot?(V.reduce((a,v)=>a+ganancia(v),0)/tot*100).toFixed(0):0}%</span>
         <span class="px-3 py-1.5 rounded-full bg-white/15">Ticket por par: <b>${pares?bs(tot/pares):"—"}</b></span>
         <span class="px-3 py-1.5 rounded-full bg-white/15">${orden.length} modelos con ventas</span>
       </div>
@@ -669,6 +712,25 @@ function renderDash(){
     ["Pares perdidos",faltP+(faltP===1?" par":" pares"),faltP?`Faltaron al contar: ${bs(faltBs)}.`:"No faltó nada en los conteos.",est(faltP===0,faltP<=10),null],
     ["Por reponer",bajos.length+(bajos.length===1?" modelo":" modelos"),`Con menos de ${BAJO} pares en alguna tienda.`,est(bajos.length===0,bajos.length<=15),null],
   ];
+  // Ganancias por tipo y valor del inventario
+  const gTot=V.reduce((a,v)=>a+ganancia(v),0), mgTot=tot?gTot/tot*100:0;
+  const valInv=CAT.reduce((a,c)=>a+tiendasScope.reduce((b,t)=>b+S.stock[c.id][t],0)*c.costo_bs,0);
+  const filasCat=Object.keys(NOMC).map(k=>{const s=V.filter(v=>modelo(v.id)?.categoria===k), ve=s.reduce((a,v)=>a+v.cant*v.precio,0), ga=s.reduce((a,v)=>a+ganancia(v),0); return [NOMC[k],ve,ga,ve?ga/ve*100:0];});
+  const maxG=Math.max(...filasCat.map(f=>f[2]),1);
+  $("#ganancias").innerHTML=`<div class="grid grid-cols-3 gap-2 mb-5">
+      <div class="rounded-2xl bg-ok-50 p-3"><div class="text-xs text-mute">Ganancia bruta</div><div class="text-lg sm:text-2xl font-extrabold text-ok tabular-nums">${bs(gTot)}</div></div>
+      <div class="rounded-2xl bg-suave p-3"><div class="text-xs text-mute">Margen</div><div class="text-lg sm:text-2xl font-extrabold">${mgTot.toFixed(0)}%</div></div>
+      <div class="rounded-2xl bg-suave p-3"><div class="text-xs text-mute">Inventario a costo</div><div class="text-lg sm:text-2xl font-extrabold tabular-nums">${bs(valInv)}</div></div></div>
+    <div class="space-y-3">${filasCat.map(([n,ve,ga,mg])=>`<div><div class="flex justify-between text-sm"><span class="font-semibold">${n}</span><span class="tabular-nums"><b>${bs(ga)}</b> <span class="text-mute">· margen ${mg.toFixed(0)}%</span></span></div><div class="barra mt-1.5"><i class="bg-ok" style="width:${ga/maxG*100}%"></i></div></div>`).join("")}</div>
+    <p class="text-xs text-mute mt-4">El formal de cuero tiene el mayor margen por par: refuerza la estrategia "competir en cuero".</p>`;
+  // Cajas: estado hoy + últimos arqueos
+  const estadoHoy=TIENDAS.map(t=>{const c=S.cajas[hoy()+"|"+t]; return [t,!c?["Sin abrir","bg-suave text-mute"]:c.abierta?["Abierta","bg-ok-50 text-ok"]:[(c.dif? "Cerrada · dif. "+bsc(c.dif):"Cerrada · cuadra"),c.dif?"bg-marca-50 text-marca":"bg-ok-50 text-ok"]];});
+  const ult=Object.values(S.cajas).filter(c=>!c.abierta&&c.fecha>=desde&&deT(c));
+  const conDif=ult.filter(c=>c.dif), sumDif=conDif.reduce((a,c)=>a+c.dif,0);
+  $("#cajasDash").innerHTML=`<div class="space-y-2 mb-4">${estadoHoy.map(([t,[e,cls]])=>`<div class="flex justify-between items-center text-sm"><span class="font-medium">${esc(t.split(" - ")[0])}</span><span class="text-xs font-semibold px-2.5 py-1 rounded-full ${cls}">${e}</span></div>`).join("")}</div>
+    <div class="rounded-2xl bg-suave p-4"><div class="text-xs text-mute">Arqueos del periodo</div><div class="text-2xl font-extrabold">${ult.length-conDif.length} de ${ult.length} cuadraron</div>
+    <div class="text-sm ${sumDif<0?"text-marca":"text-mute"} mt-1">Diferencia acumulada: <b>${(sumDif>0?"+":"")+bsc(sumDif)}</b></div></div>`;
+
   $("#salud").innerHTML=T.map(([t,v,d,[e,tx,dot],pct])=>`<div class="rounded-2xl bg-suave p-5">
     <div class="flex items-center justify-between mb-3"><span class="text-sm font-medium">${t}</span><span class="text-xs font-semibold flex items-center gap-1.5 ${tx}"><span class="w-2 h-2 rounded-full ${dot}"></span>${e}</span></div>
     <div class="text-3xl font-extrabold tracking-tight tabular-nums">${v}</div>
@@ -785,6 +847,79 @@ function renderTablaM(){
   $("#mPag").textContent=`Página ${mPagina+1} de ${pags}`;
   $("#mPrev").disabled=mPagina===0; $("#mNext").disabled=mPagina>=pags-1;
 }
+/* ---------- CAJA: apertura, arqueo y Reporte Z ---------- */
+document.addEventListener("click",e=>{const b=e.target.closest("[data-pago]"); if(!b) return; pago=b.dataset.pago; $$("[data-pago]").forEach(x=>x.classList.toggle("on",x.dataset.pago===pago));});
+function resumenSesion(t=tiendaAct(),f=hoy()){
+  const cj=S.cajas?.[f+"|"+t], desdeIdx=cj?.idx0??0; // solo las ventas de esta sesión de caja
+  const vs=S.ventas.slice(desdeIdx).filter(v=>v.fecha===f&&v.tienda===t);
+  const porPago={efectivo:0,qr:0,tarjeta:0}; vs.forEach(v=>porPago[v.pago||"efectivo"]+=v.cant*v.precio);
+  const tot=vs.reduce((a,v)=>a+v.cant*v.precio,0), costo=vs.reduce((a,v)=>a+v.cant*costoDe(v),0);
+  const conteo=S.cierres.filter(c=>c.fecha===f&&c.tienda===t), falt=conteo.filter(c=>c.dif<0).reduce((a,c)=>a-c.dif,0);
+  return {vs,porPago,tot,costo,gan:tot-costo,pares:vs.reduce((a,v)=>a+v.cant,0),conteo:conteo.length,falt};
+}
+function abrirCaja(){
+  const fondo=Math.max(0,parseFloat($("#fondoIni").value)||0);
+  S.cajas[cajaKey()]={fecha:hoy(),tienda:tiendaAct(),abierta:true,fondo,hApertura:new Date().toTimeString().slice(0,5),idx0:S.ventas.length};
+  asegurarInicio(tiendaAct()); guardar(); renderCaja(); toast(`🟢 Caja abierta con ${bsc(fondo)}`);
+}
+function totalArqueo(){let t=0; $$("[data-den]").forEach(i=>t+=(+i.dataset.den)*Math.max(0,parseInt(i.value)||0)); return t;}
+function actArqueo(){const cj=cajaHoy(), r=resumenSesion(), esp=cj.fondo+r.porPago.efectivo, t=totalArqueo(), d=t-esp;
+  $("#arqTotal").textContent=bsc(t); $("#arqDif").textContent=(d>0.004?"+":"")+bsc(d); $("#arqDif").className="font-bold tabular-nums "+(Math.abs(d)<0.5?"text-ok":d<0?"text-marca":"text-aviso");}
+function cerrarCaja(){
+  const cj=cajaHoy(), r=resumenSesion(), esperado=cj.fondo+r.porPago.efectivo, contado=totalArqueo();
+  if(!confirm(`¿Cerrar la caja? Contaste ${bsc(contado)} y el sistema espera ${bsc(esperado)}. Después no se podrá vender hoy.`)) return;
+  Object.assign(cj,{abierta:false,hCierre:new Date().toTimeString().slice(0,5),esperado,contado,dif:Math.round((contado-esperado)*100)/100});
+  guardar(); renderCaja(); toast("Caja cerrada · Reporte Z listo");
+}
+function nuevaSesion(){ if(confirm("Solo para la demostración: ¿borrar la sesión de caja de hoy y abrir otra?")){delete S.cajas[cajaKey()]; guardar(); renderCaja();} }
+function renderCaja(){
+  const t=tiendaAct(), cj=cajaHoy(), r=resumenSesion();
+  $("#cajaTienda").textContent=t+" · "+new Date().toLocaleDateString("es-BO",{weekday:"long",day:"numeric",month:"long"});
+  const fila=(k,v,cls="")=>`<div class="flex justify-between py-2 border-b border-linea text-sm"><span class="text-mute">${k}</span><b class="tabular-nums ${cls}">${v}</b></div>`;
+  if(!cj){
+    $("#cajaBody").innerHTML=`<div class="card p-6 max-w-lg fade">
+      <div class="w-14 h-14 rounded-full bg-marca-50 text-marca grid place-items-center mb-4"><svg class="w-7 h-7" aria-hidden="true"><use href="#i-caja"/></svg></div>
+      <h2 class="font-bold text-xl">Apertura de caja</h2><p class="text-sm text-mute mb-5">Cuenta el dinero con el que empiezas el día (fondo para dar cambio). Mientras la caja no esté abierta, no se puede vender.</p>
+      <label class="block mb-5"><span class="text-sm font-medium">Fondo inicial (Bs)</span><input id="fondoIni" type="number" min="0" step="10" value="500" inputmode="decimal" class="campo mt-1.5 text-lg font-semibold"></label>
+      <button class="btn btn-p w-full" onclick="abrirCaja()">Abrir caja</button></div>`;
+    return;
+  }
+  if(cj.abierta){
+    const esp=cj.fondo+r.porPago.efectivo;
+    $("#cajaBody").innerHTML=`<div class="grid grid-cols-1 lg:grid-cols-5 gap-5 fade">
+      <div class="lg:col-span-2 space-y-3">
+        <div class="rounded-2xl bg-ok-50 text-ok px-4 py-3 text-sm font-semibold">🟢 Caja abierta desde las ${cj.hApertura}</div>
+        <div class="card p-5"><h2 class="font-bold text-lg mb-2">Movimientos del día</h2>
+          ${fila("Fondo inicial",bsc(cj.fondo))}${fila("💵 Ventas en efectivo",bsc(r.porPago.efectivo))}${fila("📱 Ventas por QR",bsc(r.porPago.qr))}${fila("💳 Ventas con tarjeta",bsc(r.porPago.tarjeta))}
+          <div class="flex justify-between pt-3 text-base"><span class="font-semibold">Debe haber en caja</span><b class="tabular-nums">${bsc(esp)}</b></div>
+          <p class="text-xs text-mute mt-1">Solo el efectivo queda en la caja física; QR y tarjeta se concilian con el banco.</p></div>
+      </div>
+      <div class="lg:col-span-3 card p-5"><h2 class="font-bold text-lg">Arqueo: cuenta el efectivo</h2><p class="text-sm text-mute mb-4">Escribe cuántos billetes y monedas hay de cada valor.</p>
+        <div class="grid grid-cols-3 sm:grid-cols-6 gap-2">${DENOM.map(d=>`<label class="rounded-xl bg-suave p-2 text-center"><span class="text-xs text-mute block">Bs ${String(d).replace(".",",")}</span><input data-den="${d}" type="number" min="0" inputmode="numeric" placeholder="0" class="w-full bg-white rounded-lg text-center font-semibold py-1.5 mt-1" oninput="actArqueo()" aria-label="Cantidad de Bs ${d}"></label>`).join("")}</div>
+        <div class="grid grid-cols-2 gap-3 mt-5">
+          <div class="rounded-2xl bg-suave p-4"><div class="text-xs text-mute">Contado</div><div id="arqTotal" class="text-2xl font-bold tabular-nums">Bs 0</div></div>
+          <div class="rounded-2xl bg-suave p-4"><div class="text-xs text-mute">Diferencia</div><div id="arqDif" class="text-2xl font-bold tabular-nums"></div></div>
+        </div>
+        <button class="btn btn-n w-full mt-5" onclick="cerrarCaja()">Cerrar caja y generar Reporte Z</button>
+        <p class="text-xs text-mute mt-2">Recomendado: haz antes el <button class="underline" onclick="ver('cierre')">conteo de inventario</button>.</p>
+      </div></div>`;
+    actArqueo(); return;
+  }
+  const mg=r.tot?r.gan/r.tot*100:0;
+  $("#cajaBody").innerHTML=`<div id="reporteZ" class="card p-6 max-w-2xl fade">
+    <div class="flex items-start justify-between gap-3 mb-4"><div><div class="text-marca text-2xl font-extrabold italic leading-none">manaco</div><h2 class="font-bold text-2xl mt-2">Reporte Z</h2>
+      <div class="text-sm text-mute">${esc(t)} · ${cj.fecha} · ${cj.hApertura}–${cj.hCierre}</div></div><span class="text-xs font-semibold bg-tinta text-white px-3 py-1 rounded-full">Sesión cerrada</span></div>
+    <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-5"><div class="rounded-2xl bg-suave p-3"><div class="text-xs text-mute">Ventas</div><div class="text-lg font-bold tabular-nums">${bsc(r.tot)}</div></div>
+      <div class="rounded-2xl bg-suave p-3"><div class="text-xs text-mute">Pares</div><div class="text-lg font-bold">${r.pares}</div></div>
+      <div class="rounded-2xl bg-ok-50 p-3 col-span-2 sm:col-span-1"><div class="text-xs text-mute">Ganancia bruta</div><div class="text-lg font-bold text-ok tabular-nums">${bsc(r.gan)}</div></div></div>
+    <h3 class="eyebrow mb-1">Ventas por método de pago</h3>${fila("💵 Efectivo",bsc(r.porPago.efectivo))}${fila("📱 QR",bsc(r.porPago.qr))}${fila("💳 Tarjeta",bsc(r.porPago.tarjeta))}${fila("Transacciones",r.vs.length)}
+    <h3 class="eyebrow mt-5 mb-1">Rentabilidad</h3>${fila("Costo de lo vendido (simulado)",bsc(r.costo))}${fila("Ganancia bruta",bsc(r.gan),"text-ok")}${fila("Margen",mg.toFixed(1).replace(".",",")+" %")}
+    <h3 class="eyebrow mt-5 mb-1">Arqueo de caja</h3>${fila("Fondo inicial",bsc(cj.fondo))}${fila("Efectivo esperado",bsc(cj.esperado))}${fila("Efectivo contado",bsc(cj.contado))}${fila("Diferencia",(cj.dif>0.004?"+":"")+bsc(cj.dif),Math.abs(cj.dif)<0.5?"text-ok":"text-marca")}
+    <h3 class="eyebrow mt-5 mb-1">Inventario</h3>${r.conteo?fila("Pares faltantes en el conteo",r.falt,r.falt?"text-marca":"text-ok"):`<p class="text-sm text-aviso py-2">Conteo de inventario pendiente para hoy.</p>`}
+    <div class="flex flex-wrap gap-2 mt-6 no-print"><button class="btn btn-n" onclick="window.print()">Imprimir / guardar PDF</button><button class="btn btn-s" onclick="nuevaSesion()">Nueva sesión (demo)</button></div>
+  </div>`;
+}
+
 /* ---------- PWA: instalación, offline y actualizaciones ---------- */
 let eventoInstalar=null;
 const esStandalone=()=>matchMedia("(display-mode: standalone)").matches||navigator.standalone===true;

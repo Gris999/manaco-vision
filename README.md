@@ -26,10 +26,18 @@ Al entrar, la app pregunta **"¿Quién eres hoy?"** (sin contraseña, porque es 
 | Rol | Pantallas | Para qué |
 |---|---|---|
 | 👟 Vendedor | Escáner, Ventas | Reconocer el zapato, ver precio y stock, y vender |
-| 🏬 Encargado de tienda | Inventario, Cierre, Escáner | Reponer y conciliar el inventario al cerrar |
+| 🏬 Encargado de tienda | Caja, Conteo, Inventario, Escáner | Apertura y arqueo de caja, Reporte Z, conteo de inventario |
 | 📊 Gerente | Resumen, Mercado, Inventario | Decidir con datos de las 3 tiendas y del mercado |
 
 Deep link: `?rol=vendedor|encargado|gerente`.
+
+## Caja y ganancias (ciclo tipo punto de venta)
+- **Apertura** con fondo inicial → sin caja abierta no se puede vender.
+- Cada venta registra su **método de pago** (efectivo, QR o tarjeta) y su **costo**.
+- **Arqueo**: conteo por billetes y monedas (Bs 200 a 0,10) contra lo esperado (fondo + efectivo).
+- **Reporte Z** imprimible: ventas por método de pago, costo, ganancia bruta, margen, diferencia de caja y faltantes.
+- El Resumen del gerente muestra la ganancia y el margen por categoría, el inventario a costo y el estado de las cajas.
+- Costos **simulados**: 52 % (formal de cuero), 58 % (casual) y 62 % (deportivo) del precio.
 
 ## Fuentes de datos
 1. **Excel del caso** (comercio exterior, España): 230 registros → vista *Mercado* y estrategia.
