@@ -7,7 +7,8 @@
     "start": "node server/servidor.js",
     "test:e2e": "playwright test",
     "tipos": "tsc -p tsconfig.json",
-    "verificar-version": "node herramientas/verificar_version.js"
+    "verificar-version": "node herramientas/verificar_version.js",
+    "publico": "sh herramientas/servidor_publico.sh"
   },
   "engines": {
     "node": ">=22.5"

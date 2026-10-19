@@ -10,6 +10,7 @@ Equipo: **Pedro Alaca** y **Rodrigo Viveros** · Ingeniería de Sistemas, 6.º s
 | 4 | [PLAN_DE_PRUEBAS.md](PLAN_DE_PRUEBAS.md) | ¿Cómo sabemos que funciona? Estrategia, casos y resultados |
 | 5 | [TRAZABILIDAD_CASO.md](TRAZABILIDAD_CASO.md) | ¿Qué pide el caso y dónde se cumple? Estación por estación, con lo que falta |
 | 6 | [AUDITORIA_ESTRUCTURA.md](AUDITORIA_ESTRUCTURA.md) | ¿El código es escalable? Deuda técnica de v21, cómo se corrigió y qué falta |
+| 7 | [SERVIDOR.md](SERVIDOR.md) | ¿Dónde está la base de datos y cómo se publica el servidor? |
 | — | [informes/](informes/) | Auditoría senior, QA y análisis contable (evidencia de cada iteración) |
 
 ## Cómo ejecutar
