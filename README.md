@@ -2,7 +2,12 @@
 
 Prototipo académico (caso de estudio **Manaco**, 6.º semestre de Ingeniería de Sistemas, Ciencia de Datos e Inteligencia de Negocios) que propone un **inventario inteligente con visión artificial** para las tiendas de calzado de Manaco (Bata Bolivia).
 
-**Demo en vivo:** https://gris999.github.io/manaco-vision/
+**Demo en vivo:** https://manaco.datahuba.com (respaldo: https://gris999.github.io/manaco-vision/)
+
+## Instalar la app (acceso directo)
+- **Android (Chrome/Edge):** abre el enlace y toca **Instalar app** (o menú ⋮ → *Instalar app*).
+- **iPhone (Safari):** botón **Compartir** → *Agregar a pantalla de inicio*.
+- Una vez abierta, funciona **sin internet**: la IA (~20 MB), el catálogo y las 725 fotos quedan guardados (service worker `sw.js`). Al publicar cambios, sube `VERSION` en `sw.js` y la app mostrará "Hay una nueva versión".
 
 > Los datos de operación (stock, ventas y cierres) son **simulados** y se guardan solo en el navegador. Las fotos y precios del catálogo vienen de la tienda en línea pública de la empresa y se usan con fines académicos.
 

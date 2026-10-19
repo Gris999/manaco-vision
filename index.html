@@ -6,13 +6,28 @@
 <meta name="theme-color" content="#E40140">
 <meta name="description" content="Manaco Vision: prototipo académico de inventario de calzado con visión artificial y analítica.">
 <title>Manaco Vision</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,700;1,800&display=swap" rel="stylesheet">
-<script src="https://cdn.tailwindcss.com/3.4.16"></script>
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2.1.1/dist/mobilenet.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<!-- PWA: instalable y sin conexión -->
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="64x64" href="icons/favicon-64.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Manaco Vision">
+<meta name="application-name" content="Manaco Vision">
+<!-- Vista previa al compartir (WhatsApp, Facebook) -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Manaco Vision">
+<meta property="og:title" content="Manaco Vision — Inventario inteligente">
+<meta property="og:description" content="Escanea un zapato con la cámara, mira su stock, véndelo y decide con datos. Prototipo académico con 725 modelos.">
+<meta property="og:image" content="https://manaco.datahuba.com/icons/og-1200x630.png">
+<meta name="twitter:card" content="summary_large_image">
+<!-- Librerías locales (funcionan sin internet) -->
+<link rel="stylesheet" href="vendor/poppins.css">
+<script src="vendor/tailwind-3.4.16.js"></script>
+<script src="vendor/tf-4.22.0.min.js"></script>
+<script src="vendor/mobilenet-2.1.1.min.js"></script>
+<script src="vendor/chart-4.4.1.umd.min.js"></script>
 <script>
 /* Sistema visual: rojo Manaco (#E40140) como único color de marca sobre base neutra (estilo Nike/Adidas) */
 tailwind.config={theme:{extend:{
@@ -92,6 +107,8 @@ tailwind.config={theme:{extend:{
   <symbol id="i-store" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 9h16l-1-5H5zM5 9v11h14V9M10 20v-6h4v6"/></symbol>
   <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></symbol>
   <symbol id="i-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></symbol>
+  <symbol id="i-share" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3v13M7 8l5-5 5 5M5 12v8h14v-8"/></symbol>
   <symbol id="i-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></symbol>
 </svg>
 
@@ -108,6 +125,7 @@ tailwind.config={theme:{extend:{
         <select class="selTienda campo mt-1.5" aria-label="Tienda activa"></select>
       </label>
       <div class="estadoIA text-xs text-mute flex items-center gap-2" role="status"><span class="dot w-2 h-2 rounded-full bg-aviso"></span><span class="txt">Cargando IA…</span></div>
+      <button class="btnInstalar btn btn-p w-full hidden"><svg class="w-5 h-5" aria-hidden="true"><use href="#i-download"/></svg>Instalar app</button>
       <p class="text-[11px] text-mute leading-snug">Prototipo académico · caso de estudio Manaco. Datos de operación simulados.</p>
     </div>
   </aside>
@@ -120,6 +138,7 @@ tailwind.config={theme:{extend:{
           <div class="text-2xl font-extrabold italic tracking-tight leading-none">manaco</div>
           <div class="estadoIA text-[11px] text-white/85 flex items-center gap-1.5 mt-0.5" role="status"><span class="dot w-1.5 h-1.5 rounded-full bg-white/60"></span><span class="txt">Cargando IA…</span></div>
         </div>
+        <button class="btnInstalar hidden bg-white text-marca rounded-full px-3 py-1.5 text-xs font-semibold" aria-label="Instalar la app">Instalar</button>
         <label class="flex items-center gap-1.5 bg-white/15 rounded-full pl-3 pr-2 py-1.5 text-xs">
           <svg class="w-4 h-4 shrink-0" aria-hidden="true"><use href="#i-store"/></svg>
           <select class="selTienda bg-transparent text-white text-xs max-w-[120px] outline-none" aria-label="Tienda activa"></select>
@@ -291,6 +310,20 @@ tailwind.config={theme:{extend:{
 <nav class="lg:hidden fixed bottom-0 inset-x-0 z-30 bg-white/95 backdrop-blur border-t border-linea bottom-bar" aria-label="Navegación">
   <div class="flex max-w-lg mx-auto" id="navBottom"></div>
 </nav>
+<!-- Instrucciones de instalación (iPhone / navegadores sin botón automático) -->
+<div id="modalIOS" class="hidden fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="tIOS">
+  <div class="bg-white rounded-3xl p-6 w-full max-w-sm fade">
+    <img src="icons/icon-192.png" class="w-16 h-16 rounded-2xl mb-3" alt="">
+    <h2 id="tIOS" class="font-bold text-xl">Instala Manaco Vision</h2>
+    <p class="text-sm text-mute mb-4">Tendrás un acceso directo en tu pantalla de inicio y funcionará sin internet.</p>
+    <ol class="space-y-3 text-sm" id="pasosInstalar"></ol>
+    <button class="btn btn-n w-full mt-5" onclick="$('#modalIOS').classList.add('hidden')">Entendido</button>
+  </div>
+</div>
+<div id="bannerUpdate" class="hidden fixed left-1/2 -translate-x-1/2 top-3 z-50 bg-tinta text-white rounded-full pl-5 pr-2 py-2 shadow-xl flex items-center gap-3 text-sm" role="status">
+  Hay una nueva versión <button id="btnUpdate" class="bg-marca rounded-full px-4 py-1.5 font-semibold">Actualizar</button>
+</div>
+<div id="bannerOffline" class="hidden fixed left-1/2 -translate-x-1/2 top-3 z-40 bg-white border border-linea text-tinta rounded-full px-4 py-2 shadow-lg text-xs font-medium" role="status">Sin conexión · trabajando con los datos guardados</div>
 <div id="toast" role="status" aria-live="polite" class="fixed left-1/2 bottom-[150px] lg:bottom-8 z-40 bg-tinta text-white text-sm font-medium px-5 py-3 rounded-full shadow-xl max-w-[90vw] text-center"></div>
 
 <script>
@@ -696,6 +729,37 @@ function renderTablaM(){
   $("#mCuenta").textContent=`${R.length} registros`;
   $("#mPag").textContent=`Página ${mPagina+1} de ${pags}`;
   $("#mPrev").disabled=mPagina===0; $("#mNext").disabled=mPagina>=pags-1;
+}
+/* ---------- PWA: instalación, offline y actualizaciones ---------- */
+let eventoInstalar=null;
+const esStandalone=()=>matchMedia("(display-mode: standalone)").matches||navigator.standalone===true;
+const esIOS=/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+function mostrarInstalar(v){$$(".btnInstalar").forEach(b=>b.classList.toggle("hidden",!v));}
+window.addEventListener("beforeinstallprompt",e=>{e.preventDefault(); eventoInstalar=e; mostrarInstalar(!esStandalone());});
+window.addEventListener("appinstalled",()=>{eventoInstalar=null; mostrarInstalar(false); toast("✓ App instalada en tu pantalla de inicio");});
+if(!esStandalone()&&esIOS) mostrarInstalar(true);
+$$(".btnInstalar").forEach(b=>b.onclick=async()=>{
+  if(eventoInstalar){eventoInstalar.prompt(); const r=await eventoInstalar.userChoice; if(r.outcome==="accepted") mostrarInstalar(false); eventoInstalar=null; return;}
+  $("#pasosInstalar").innerHTML=esIOS
+    ?`<li class="flex gap-3"><span class="w-6 h-6 rounded-full bg-tinta text-white grid place-items-center text-xs shrink-0">1</span><span>Toca <b>Compartir</b> <svg class="inline w-4 h-4 -mt-1" aria-hidden="true"><use href="#i-share"/></svg> en la barra de Safari.</span></li>
+      <li class="flex gap-3"><span class="w-6 h-6 rounded-full bg-tinta text-white grid place-items-center text-xs shrink-0">2</span><span>Elige <b>Agregar a pantalla de inicio</b>.</span></li>
+      <li class="flex gap-3"><span class="w-6 h-6 rounded-full bg-tinta text-white grid place-items-center text-xs shrink-0">3</span><span>Toca <b>Agregar</b>. Listo: abre Manaco Vision desde su ícono.</span></li>`
+    :`<li class="flex gap-3"><span class="w-6 h-6 rounded-full bg-tinta text-white grid place-items-center text-xs shrink-0">1</span><span>Abre el menú <b>⋮</b> del navegador (Chrome o Edge).</span></li>
+      <li class="flex gap-3"><span class="w-6 h-6 rounded-full bg-tinta text-white grid place-items-center text-xs shrink-0">2</span><span>Elige <b>Instalar app</b> o <b>Agregar a pantalla de inicio</b>.</span></li>`;
+  $("#modalIOS").classList.remove("hidden");
+});
+$("#modalIOS").addEventListener("click",e=>{if(e.target.id==="modalIOS") e.target.classList.add("hidden");});
+function estadoRed(){$("#bannerOffline").classList.toggle("hidden",navigator.onLine);}
+window.addEventListener("online",()=>{estadoRed(); toast("Conexión recuperada");}); window.addEventListener("offline",estadoRed); estadoRed();
+if("serviceWorker" in navigator&&location.protocol!=="file:"){
+  let recargando=false; const teniaControlador=!!navigator.serviceWorker.controller;
+  navigator.serviceWorker.addEventListener("controllerchange",()=>{if(teniaControlador&&!recargando){recargando=true; location.reload();}});
+  navigator.serviceWorker.register("sw.js").then(reg=>{
+    const avisar=w=>{$("#bannerUpdate").classList.remove("hidden"); $("#btnUpdate").onclick=()=>w.postMessage("SKIP_WAITING");};
+    if(reg.waiting&&navigator.serviceWorker.controller) avisar(reg.waiting);
+    reg.addEventListener("updatefound",()=>{const w=reg.installing; w.addEventListener("statechange",()=>{if(w.state==="installed"&&navigator.serviceWorker.controller) avisar(w);});});
+    setInterval(()=>reg.update(),30*60*1000);
+  }).catch(e=>console.warn("SW no registrado",e));
 }
 window.addEventListener("hashchange",()=>{const v=location.hash.slice(1); if(v&&v!==vista) ver(v);});
 init();
