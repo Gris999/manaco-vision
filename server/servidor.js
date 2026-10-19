@@ -12,7 +12,7 @@ const path = require("node:path");
 const crypto = require("node:crypto");
 const D = require("../js/dominio.js");
 const A = require("../js/acciones.js");
-const { abrirAlmacen } = require("./almacen.js");
+const { abrirAlmacen, ConflictoRev } = require("./almacen.js");
 
 const RAIZ = path.resolve(__dirname, "..");
 const CONF = {
@@ -74,9 +74,23 @@ let estadoJSON = null; // caché de la respuesta, se invalida con cada cambio
 let turno = Promise.resolve();
 const enSerie = fn => (turno = turno.then(fn, fn));
 
+/** Si otra instancia del servidor escribió, recarga el estado desde la BD (varias instancias = una sola verdad). */
+async function refrescarSiCambio() {
+  const r = await BD.leerRev();
+  if (r !== null && r !== REV) { await cargarEstado(); estadoJSON = null; }
+}
+
 /** Aplica un lote de acciones de un usuario. El servidor impone rol, usuario y tienda desde la BD. */
 function procesarLote(u, lote) {
   return enSerie(async () => {
+    for (let intento = 1; ; intento++) {
+      try { await refrescarSiCambio(); return await aplicarLote(u, lote); }
+      catch (e) { if (!(e instanceof ConflictoRev) || intento >= 5) throw e; } // otra instancia ganó: recargar y reintentar
+    }
+  });
+}
+async function aplicarLote(u, lote) {
+  {
     const aplicadas = [], rechazadas = [], nuevas = [], rech = [];
     const hoy = hoyLocal();
     let E = S, R = REV;
@@ -100,10 +114,10 @@ function procesarLote(u, lote) {
       }
     }
     // Se confirma en la BD (una transacción) ANTES de publicar el estado en memoria
-    await BD.confirmar(nuevas, rech, R, nuevas.length ? E : null, new Date().toISOString());
+    await BD.confirmar(nuevas, rech, R, nuevas.length ? E : null, new Date().toISOString(), REV);
     if (nuevas.length) { S = E; REV = R; estadoJSON = null; }
     return { aplicadas, rechazadas, rev: REV };
-  });
+  }
 }
 
 /** Valida los datos de un usuario; devuelve el objeto limpio o un mensaje de error. */
@@ -152,7 +166,7 @@ function leerCuerpo(req, max = 2e6) {
 const autenticar = req => verificarToken((req.headers.authorization || "").replace(/^Bearer\s+/i, ""));
 
 const RUTAS = {
-  "GET /api/salud": () => [200, { ok: true, rev: REV, version: "1.1.0", hoy: hoyLocal(), motor: BD.motor.split(" · ")[0] }],
+  "GET /api/salud": () => [200, { ok: true, rev: REV, version: "1.2.0", hoy: hoyLocal(), motor: BD.motor.split(" · ")[0] }],
   "POST /api/login": async (req) => {
     const ip = req.socket.remoteAddress || "?";
     if (!permitirLogin(ip)) return [429, { error: "Demasiados intentos. Espera 5 minutos." }];
@@ -163,8 +177,10 @@ const RUTAS = {
     return [200, { token: emitirToken(u), usuario: { usuario: u.usuario, nombre: u.nombre, rol: u.rol, tienda: u.tienda } }];
   },
   "GET /api/yo": (req, u) => [200, { usuario: u }],
-  "GET /api/estado": (req, u, url) => {
-    if (Number(url.searchParams.get("rev")) === REV) return [200, { sinCambios: true, rev: REV }];
+  "GET /api/estado": async (req, u, url) => {
+    await enSerie(refrescarSiCambio);
+    const rev = url.searchParams.get("rev");
+    if (rev !== null && rev !== "" && Number(rev) === REV) return [200, { sinCambios: true, rev: REV }];
     estadoJSON ??= JSON.stringify({ rev: REV, estado: S });
     return [200, estadoJSON];
   },

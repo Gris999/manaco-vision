@@ -10,6 +10,9 @@ const path = require("node:path");
 /** @typedef {{usuario:string,nombre:string,rol:string,tienda:string|null,sal:string,hash:string,activo:number}} Usuario */
 /** @typedef {{id:string,tipo:string,usuario:string,rol:string,tienda:string,fecha:string,hora:string,datos:any}} AccionGuardada */
 
+/** La instantánea en la BD cambió desde que se leyó (otra instancia escribió): hay que recargar y reintentar. */
+class ConflictoRev extends Error { constructor() { super("El estado cambió en otra instancia"); this.name = "ConflictoRev"; } }
+
 const ESQUEMA = (serial, json) => `
   CREATE TABLE IF NOT EXISTS config      (clave TEXT PRIMARY KEY, valor TEXT NOT NULL);
   CREATE TABLE IF NOT EXISTS usuarios    (usuario TEXT PRIMARY KEY, nombre TEXT NOT NULL, rol TEXT NOT NULL CHECK (rol IN ('vendedor','encargado','gerente')),
@@ -38,15 +41,20 @@ function sqlite(archivo) {
     async listarUsuarios() { return q("SELECT usuario, nombre, rol, tienda, activo FROM usuarios ORDER BY rol, tienda, usuario").all(); },
     async actualizarUsuario(u) { q("UPDATE usuarios SET nombre = ?, rol = ?, tienda = ?, activo = ?, sal = ?, hash = ? WHERE usuario = ?").run(u.nombre, u.rol, u.tienda, u.activo, u.sal, u.hash, u.usuario); },
     async leerInstantanea() { const f = /** @type {any} */ (q("SELECT rev, estado FROM instantanea WHERE n = 1").get()); return f && { rev: f.rev, estado: JSON.parse(f.estado) }; },
-    /** Guarda acciones nuevas + instantanea en UNA transacción (todo o nada). */
-    async confirmar(acciones, rechazos, rev, estado, ahora) {
-      db.exec("BEGIN");
+    async leerRev() { return /** @type {any} */ (q("SELECT rev FROM instantanea WHERE n = 1").get())?.rev ?? null; },
+    /** Guarda acciones nuevas + instantánea en UNA transacción (todo o nada), solo si la BD sigue en revAnterior. */
+    async confirmar(acciones, rechazos, rev, estado, ahora, revAnterior = null) {
+      db.exec("BEGIN IMMEDIATE");
       try {
         const ia = q("INSERT INTO acciones (id, tipo, usuario, rol, tienda, fecha, hora, datos, recibida) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
         for (const a of acciones) ia.run(a.id, a.tipo, a.usuario, a.rol, a.tienda, a.fecha, a.hora, JSON.stringify(a.datos), ahora);
         const ir = q("INSERT INTO rechazos (id, usuario, tipo, error, recibida) VALUES (?, ?, ?, ?, ?)");
         for (const r of rechazos) ir.run(r.id, r.usuario, r.tipo, r.error, ahora);
-        if (estado) q("INSERT INTO instantanea (n, rev, estado) VALUES (1, ?, ?) ON CONFLICT(n) DO UPDATE SET rev = excluded.rev, estado = excluded.estado").run(rev, JSON.stringify(estado));
+        if (estado) {
+          const actual = /** @type {any} */ (q("SELECT rev FROM instantanea WHERE n = 1").get())?.rev ?? null;
+          if (revAnterior !== null && actual !== revAnterior) throw new ConflictoRev();
+          q("INSERT INTO instantanea (n, rev, estado) VALUES (1, ?, ?) ON CONFLICT(n) DO UPDATE SET rev = excluded.rev, estado = excluded.estado").run(rev, JSON.stringify(estado));
+        }
         db.exec("COMMIT");
       } catch (e) { db.exec("ROLLBACK"); throw e; }
     },
@@ -76,14 +84,20 @@ async function postgres(url) {
     async listarUsuarios() { return (await pool.query("SELECT usuario, nombre, rol, tienda, activo FROM usuarios ORDER BY rol, tienda, usuario")).rows; },
     async actualizarUsuario(u) { await pool.query("UPDATE usuarios SET nombre = $1, rol = $2, tienda = $3, activo = $4, sal = $5, hash = $6 WHERE usuario = $7", [u.nombre, u.rol, u.tienda, u.activo, u.sal, u.hash, u.usuario]); },
     async leerInstantanea() { const f = await uno("SELECT rev, estado FROM instantanea WHERE n = 1"); return f && { rev: Number(f.rev), estado: f.estado }; },
-    async confirmar(acciones, rechazos, rev, estado, ahora) {
+    async leerRev() { const f = await uno("SELECT rev FROM instantanea WHERE n = 1"); return f ? Number(f.rev) : null; },
+    async confirmar(acciones, rechazos, rev, estado, ahora, revAnterior = null) {
       const c = await pool.connect();
       try {
         await c.query("BEGIN");
         for (const a of acciones) await c.query("INSERT INTO acciones (id, tipo, usuario, rol, tienda, fecha, hora, datos, recibida) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)",
           [a.id, a.tipo, a.usuario, a.rol, a.tienda, a.fecha, a.hora, JSON.stringify(a.datos), ahora]);
         for (const r of rechazos) await c.query("INSERT INTO rechazos (id, usuario, tipo, error, recibida) VALUES ($1,$2,$3,$4,$5)", [r.id, r.usuario, r.tipo, r.error, ahora]);
-        if (estado) await c.query("INSERT INTO instantanea (n, rev, estado) VALUES (1, $1, $2) ON CONFLICT (n) DO UPDATE SET rev = EXCLUDED.rev, estado = EXCLUDED.estado", [rev, JSON.stringify(estado)]);
+        if (estado) {
+          // bloqueo de la fila + verificación de versión (concurrencia optimista entre instancias)
+          const f = (await c.query("SELECT rev FROM instantanea WHERE n = 1 FOR UPDATE")).rows[0];
+          if (revAnterior !== null && f && Number(f.rev) !== revAnterior) throw new ConflictoRev();
+          await c.query("INSERT INTO instantanea (n, rev, estado) VALUES (1, $1, $2) ON CONFLICT (n) DO UPDATE SET rev = EXCLUDED.rev, estado = EXCLUDED.estado", [rev, JSON.stringify(estado)]);
+        }
         await c.query("COMMIT");
       } catch (e) { await c.query("ROLLBACK"); throw e; } finally { c.release(); }
     },
@@ -98,4 +112,4 @@ async function postgres(url) {
 
 /** Elige el motor según el entorno. */
 async function abrirAlmacen({ url, archivo }) { return url ? postgres(url) : sqlite(archivo); }
-module.exports = { abrirAlmacen };
+module.exports = { abrirAlmacen, ConflictoRev };
