@@ -51,7 +51,7 @@ const Sync={
   },
   aplicarSesion(){ rol=this.sesion.rol; if(this.sesion.tienda) tienda=this.sesion.tienda; },
   async api(ruta,op={}){
-    const r=await fetch(this.sesion.url.replace(/\/$/,"")+ruta,{...op,headers:{"Content-Type":"application/json",...(this.sesion.token?{Authorization:"Bearer "+this.sesion.token}:{})}});
+    const r=await fetch(this.sesion.url.replace(/\/$/,"")+ruta,{...op,headers:{"Content-Type":"application/json","ngrok-skip-browser-warning":"1",...(this.sesion.token?{Authorization:"Bearer "+this.sesion.token}:{})}});
     const j=await r.json().catch(()=>({}));
     if(r.status===401&&ruta!=="/api/login"){this.salir(true); pintarSesion?.(); $("#inicio")?.classList.remove("hidden"); throw new Error("La sesión expiró, vuelve a entrar");}
     if(!r.ok) throw new Error(j.error||"Error del servidor ("+r.status+")");

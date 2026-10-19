@@ -137,6 +137,7 @@ function render(){
 /* ---------- IA ---------- */
 
 /* Inicio de sesión (modo servidor) */
+const SERVIDOR_PUBLICO="https://copartner-compactly-dubbed.ngrok-free.dev"; // túnel ngrok hacia el servidor de la Mac (ver docs/SERVIDOR.md)
 function pintarSesion(){
   const box=$("#inicioSesion"); if(!box) return;
   box.innerHTML=Sync.activo
@@ -146,7 +147,7 @@ function pintarSesion(){
       <div class="grid grid-cols-2 gap-2"><input name="usuario" class="campo" placeholder="Usuario" autocomplete="username" required><input name="clave" type="password" class="campo" placeholder="Contraseña" autocomplete="current-password" required></div>
       <button class="btn btn-n">Iniciar sesión</button></form>`;
   const f=$("#fLogin"); if(!f) return;
-  f.url.value=localStorage.getItem("mv_url")||(location.hostname.endsWith("github.io")?"":location.origin); // servido por la API: mismo origen
+  f.url.value=localStorage.getItem("mv_url")||(location.hostname.endsWith("github.io")?SERVIDOR_PUBLICO:location.origin); // servido por la API: mismo origen
   f.onsubmit=async e=>{e.preventDefault(); const b=f.querySelector("button"); b.disabled=true; b.textContent="Entrando…";
     try{ localStorage.setItem("mv_url",f.url.value); await Sync.entrar(f.url.value,f.usuario.value.trim(),f.clave.value);
       f.clave.value=""; $("#inicio").classList.add("hidden"); pintarSesion(); armarNav(); ver(ROLES[rol].vistas[0]); toast(`Entraste como ${Sync.sesion.nombre}`);
