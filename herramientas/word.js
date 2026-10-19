@@ -3,15 +3,16 @@ const D = require("docx");
 const { Document, Packer, Paragraph, TextRun, HeadingLevel, Table, TableRow, TableCell, WidthType, ShadingType,
   AlignmentType, ImageRun, PageBreak, LevelFormat, BorderStyle, ExternalHyperlink, Footer, PageNumber } = D;
 const P = process.argv[2];
-const ROJO = "B5562B", GRIS = "F2F2F2", W = 9026; // A4 con márgenes de 2,54 cm
+const TR = o => new TextRun(typeof o === "string" ? { text: o, font: "Poppins" } : { font: "Poppins", ...o });
+const ROJO = "E40140", GRIS = "F2F2F2", W = 9026; // A4 con márgenes de 2,54 cm
 
-const p = (t, o = {}) => new Paragraph({ spacing: { after: 120 }, ...o, children: [].concat(t).map(x => typeof x === "string" ? new TextRun(x) : x) });
-const b = t => new TextRun({ text: t, bold: true });
-const h1 = t => new Paragraph({ heading: HeadingLevel.HEADING_1, pageBreakBefore: true, children: [new TextRun(t)] });
-const h2 = t => new Paragraph({ heading: HeadingLevel.HEADING_2, children: [new TextRun(t)] });
-const li = (t, ref = "vin") => new Paragraph({ numbering: { reference: ref, level: 0 }, spacing: { after: 60 }, children: [].concat(t).map(x => typeof x === "string" ? new TextRun(x) : x) });
+const p = (t, o = {}) => new Paragraph({ spacing: { after: 120 }, ...o, children: [].concat(t).map(x => typeof x === "string" ? TR(x) : x) });
+const b = t => TR({ text: t, bold: true });
+const h1 = t => [new Paragraph({ children: [new PageBreak()] }), new Paragraph({ heading: HeadingLevel.HEADING_1, children: [TR(t)] })];
+const h2 = t => new Paragraph({ heading: HeadingLevel.HEADING_2, children: [TR(t)] });
+const li = (t, ref = "vin") => new Paragraph({ numbering: { reference: ref, level: 0 }, spacing: { after: 60 }, children: [].concat(t).map(x => typeof x === "string" ? TR(x) : x) });
 const img = (f, w, h) => new Paragraph({ alignment: AlignmentType.CENTER, children: [new ImageRun({ type: "png", data: fs.readFileSync(path.join(P, "graficos", f)), transformation: { width: w, height: h } })] });
-const cap = t => p(new TextRun({ text: t, italics: true, size: 18, color: "555555" }), { alignment: AlignmentType.CENTER, spacing: { after: 240 } });
+const cap = t => p(TR({ text: t, italics: true, size: 18, color: "555555" }), { alignment: AlignmentType.CENTER, spacing: { after: 240 } });
 
 function tabla(cols, filas, opts = {}) {
   const tot = cols.reduce((a, c) => a + c[1], 0), k = W / tot, cw = cols.map(c => Math.round(c[1] * k));
@@ -19,7 +20,7 @@ function tabla(cols, filas, opts = {}) {
   const cell = (t, i, head) => new TableCell({
     width: { size: cw[i], type: WidthType.DXA }, margins: { top: 60, bottom: 60, left: 90, right: 90 },
     shading: head ? { type: ShadingType.CLEAR, fill: ROJO, color: "auto" } : undefined,
-    children: [].concat(t).map(x => new Paragraph({ children: [new TextRun({ text: String(x), bold: head, color: head ? "FFFFFF" : undefined, size: opts.size || 20 })] }))
+    children: [].concat(t).map(x => new Paragraph({ children: [TR({ text: String(x), bold: head, color: head ? "FFFFFF" : undefined, size: opts.size || 20 })] }))
   });
   return new Table({
     width: { size: W, type: WidthType.DXA }, columnWidths: cw,
@@ -31,15 +32,15 @@ const esp = () => p("");
 
 // ---------- CONTENIDO ----------
 const portada = [
-  new Paragraph({ spacing: { before: 2400 }, alignment: AlignmentType.CENTER, children: [new TextRun({ text: "CASO DE ESTUDIO EMPRESARIAL · MANACO", size: 24, color: "555555" })] }),
-  new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 300 }, children: [new TextRun({ text: "MANACO VISION", bold: true, size: 64, color: ROJO })] }),
-  new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 600 }, children: [new TextRun({ text: "Inventario inteligente con visión artificial y analítica de datos para la toma de decisiones", size: 28 })] }),
+  new Paragraph({ spacing: { before: 2400 }, alignment: AlignmentType.CENTER, children: [TR({ text: "CASO DE ESTUDIO EMPRESARIAL · MANACO", size: 24, color: "555555" })] }),
+  new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 300 }, children: [TR({ text: "MANACO VISION", bold: true, size: 64, color: ROJO })] }),
+  new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 600 }, children: [TR({ text: "Inventario inteligente con visión artificial y analítica de datos para la toma de decisiones", size: 28 })] }),
   p("Carrera: Ingeniería de Sistemas, Ciencia de Datos e Inteligencia de Negocios", { alignment: AlignmentType.CENTER }),
   p("Nivel: 6.º semestre · Modalidad: Aprendizaje Basado en Retos (ABR)", { alignment: AlignmentType.CENTER }),
   p("Equipo consultor: ______________________  /  ______________________", { alignment: AlignmentType.CENTER, spacing: { before: 600 } }),
   p("Docente: ______________________", { alignment: AlignmentType.CENTER }),
   p("Fecha: 20 de octubre de 2026", { alignment: AlignmentType.CENTER }),
-  p([b("Prototipo en línea: "), new ExternalHyperlink({ link: "https://gris999.github.io/manaco-vision/", children: [new TextRun({ text: "https://gris999.github.io/manaco-vision/", style: "Hyperlink" })] })], { alignment: AlignmentType.CENTER, spacing: { before: 400 } }),
+  p([b("Prototipo en línea: "), new ExternalHyperlink({ link: "https://gris999.github.io/manaco-vision/", children: [TR({ text: "https://gris999.github.io/manaco-vision/", style: "Hyperlink" })] })], { alignment: AlignmentType.CENTER, spacing: { before: 400 } }),
 ];
 
 const resumen = [
@@ -165,7 +166,7 @@ const est4 = [
     ["Riesgo", "Datos manuales poco confiables", "Adopción en tiendas (mitigable con un piloto)"],
     ["KPI de seguimiento", "Uso de reportes", "Exactitud de inventario, rotación y faltantes en Bs"],
   ]),
-  p(new TextRun({ text: "*Estimación cualitativa: se requieren costos internos de Manaco para cuantificar.", italics: true, size: 18 })),
+  p(TR({ text: "*Estimación cualitativa: se requieren costos internos de Manaco para cuantificar.", italics: true, size: 18 })),
   p([b("Recomendación: Alternativa B. "), "Resuelve la causa raíz (falta de datos confiables) y no solo la muestra. Además, genera el historial necesario para un futuro pronóstico de demanda."]),
   h2("4.2 Segmento y acción comercial"),
   p([b("Segmento: "), "hombres y mujeres adultos que trabajan y buscan calzado formal o casual de cuero duradero."]),
@@ -180,7 +181,7 @@ const est4 = [
 
 const prot = [
   h1("5. Prototipo funcional"),
-  p([b("Enlace: "), new ExternalHyperlink({ link: "https://gris999.github.io/manaco-vision/", children: [new TextRun({ text: "https://gris999.github.io/manaco-vision/", style: "Hyperlink" })] }), " (se abre en el celular; la cámara requiere HTTPS)."]),
+  p([b("Enlace: "), new ExternalHyperlink({ link: "https://gris999.github.io/manaco-vision/", children: [TR({ text: "https://gris999.github.io/manaco-vision/", style: "Hyperlink" })] }), " (se abre en el celular; la cámara requiere HTTPS)."]),
   tabla([["Componente", 1.6], ["Detalle", 4]], [
     ["Catálogo", "725 modelos reales de la tienda en línea de la empresa (360 de dama, 191 de hombre y 174 infantiles; marcas Bata, North Star, Bubble Gummers, Power, Manaco, entre otras), más la clase \"no es Manaco\""],
     ["Dataset", "2.740 fotos originales, ampliadas a unas 22.000 imágenes (30 por modelo) con variaciones de fondo, luz, giro y escala"],
@@ -208,10 +209,11 @@ function rubrica(titulo, quien) {
 const doc = new Document({
   creator: "Equipo consultor", title: "Manaco Vision — Caso Manaco",
   styles: {
-    default: { document: { run: { font: "Calibri", size: 22 } } },
+    default: { document: { run: { font: "Poppins", size: 20 } } },
     paragraphStyles: [
-      { id: "Heading1", name: "Heading 1", basedOn: "Normal", next: "Normal", quickFormat: true, run: { size: 32, bold: true, color: ROJO }, paragraph: { spacing: { after: 200 }, outlineLevel: 0 } },
-      { id: "Heading2", name: "Heading 2", basedOn: "Normal", next: "Normal", quickFormat: true, run: { size: 26, bold: true, color: "1F2937" }, paragraph: { spacing: { before: 240, after: 120 }, outlineLevel: 1 } },
+      { id: "Normal", name: "Normal", quickFormat: true, run: { font: "Poppins", size: 20, color: "111111" }, paragraph: { spacing: { after: 120, line: 276 } } },
+      { id: "Heading1", name: "Heading 1", basedOn: "Normal", next: "Normal", quickFormat: true, run: { font: "Poppins", size: 32, bold: true, color: ROJO }, paragraph: { spacing: { after: 200 }, outlineLevel: 0 } },
+      { id: "Heading2", name: "Heading 2", basedOn: "Normal", next: "Normal", quickFormat: true, run: { font: "Poppins", size: 24, bold: true, color: "111111" }, paragraph: { spacing: { before: 240, after: 120 }, outlineLevel: 1 } },
     ]
   },
   numbering: { config: [
@@ -220,11 +222,11 @@ const doc = new Document({
   ] },
   sections: [{
     properties: { page: { margin: { top: 1440, bottom: 1440, left: 1440, right: 1440 } } },
-    footers: { default: new Footer({ children: [new Paragraph({ alignment: AlignmentType.RIGHT, children: [new TextRun({ text: "Manaco Vision · ", size: 16, color: "888888" }), new TextRun({ children: [PageNumber.CURRENT], size: 16, color: "888888" })] })] }) },
+    footers: { default: new Footer({ children: [new Paragraph({ alignment: AlignmentType.RIGHT, children: [TR({ text: "Manaco Vision · ", size: 16, color: "888888" }), TR({ children: [PageNumber.CURRENT], size: 16, color: "888888" })] })] }) },
     children: [...portada, ...resumen, ...est1, ...est2, ...est3, ...est4, ...prot,
       ...rubrica("Rúbrica de autoevaluación por grupo de los estudiantes", "Indicar sus fortalezas y debilidades en este proceso"),
       ...rubrica("Rúbrica de evaluación por grupo del docente", "Indicar las fortalezas y debilidades del estudiante en este proceso"),
-      p("Nombre del docente: ……………………………………………………………", { spacing: { before: 400 } })]
+      p("Nombre del docente: ……………………………………………………………", { spacing: { before: 400 } })].flat(3)
   }]
 });
 Packer.toBuffer(doc).then(buf => { fs.writeFileSync(path.join(P, "entregables", "Proyecto_Manaco_Vision.docx"), buf); console.log("ok"); });
