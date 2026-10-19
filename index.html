@@ -67,6 +67,7 @@ tailwind.config={theme:{extend:{
   .stepper input{width:48px;text-align:center;font-weight:700;font-size:1.05rem;background:transparent}
   .campo{width:100%;border:1px solid #CACACB;border-radius:999px;padding:.7rem 1rem;background:#fff;font-size:.9rem}
   .campo:focus{border-color:#111;outline:none}
+  select:disabled{pointer-events:none;opacity:1}
   video{width:100%;height:100%;object-fit:cover}
   .scan-frame{position:absolute;inset:14%;border-radius:22px;box-shadow:0 0 0 9999px rgba(0,0,0,.32);pointer-events:none}
   .scan-frame::before,.scan-frame::after{content:"";position:absolute;inset:-2px;border-radius:22px;border:3px solid transparent;
@@ -128,7 +129,7 @@ tailwind.config={theme:{extend:{
     </button>
     <nav class="space-y-1" id="navSide"></nav>
     <div class="mt-auto space-y-3">
-      <label class="block"><span class="eyebrow">Tienda activa</span>
+      <label class="tiendaSide block"><span class="eyebrow">Tienda activa</span>
         <select class="selTienda campo mt-1.5" aria-label="Tienda activa"></select>
       </label>
       <div class="estadoIA text-xs text-mute flex items-center gap-2" role="status"><span class="dot w-2 h-2 rounded-full bg-aviso"></span><span class="txt">Cargando IA…</span></div>
@@ -191,6 +192,7 @@ tailwind.config={theme:{extend:{
           <label class="relative w-full sm:w-80"><span class="sr-only">Buscar modelo</span><svg class="w-5 h-5 absolute left-4 top-3 text-mute" aria-hidden="true"><use href="#i-search"/></svg>
             <input id="buscar" type="search" placeholder="Buscar modelo, marca…" class="campo pl-11"></label>
         </div>
+        <div id="invPedidos"></div>
         <div class="scroll-x flex gap-2 mb-5" id="filtros" role="group" aria-label="Filtros de inventario"></div>
         <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 lg:gap-4" id="gridInv"></div>
         <button id="invMas" class="btn btn-s w-full mt-5 hidden"></button>
@@ -227,16 +229,34 @@ tailwind.config={theme:{extend:{
         <div id="cajaBody"></div>
       </section>
 
-      <!-- CIERRE -->
+      <!-- CONTEO DE INVENTARIO -->
       <section id="v-cierre" class="vista hidden" aria-labelledby="t-cie">
-        <div class="mb-5"><div class="eyebrow">Fin de jornada</div><h1 id="t-cie" class="titular text-3xl lg:text-4xl">Cierre del día</h1>
-          <p class="text-mute text-sm mt-1 max-w-2xl">Cuenta los pares de <b class="text-tinta" id="cTienda"></b> y ajusta el número. El sistema compara con lo esperado (inicio del día − ventas) y detecta faltantes.</p></div>
+        <div class="mb-4"><div class="eyebrow" id="cTienda"></div><h1 id="t-cie" class="titular text-3xl lg:text-4xl">Conteo de inventario</h1>
+          <p class="text-mute text-sm mt-1 max-w-2xl">Cuenta los pares de cada modelo. Tu avance se guarda solo, así que puedes contar por partes. Al terminar, cierra el conteo para conciliar.</p></div>
         <div id="cRes" class="mb-4" aria-live="polite"></div>
-        <label class="relative block mb-4"><span class="sr-only">Buscar modelo a contar</span><svg class="w-5 h-5 absolute left-4 top-3 text-mute" aria-hidden="true"><use href="#i-search"/></svg>
-          <input id="cBuscar" type="search" placeholder="Buscar modelo a contar… (● vendido hoy)" class="campo pl-11"></label>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="listaCierre"></div>
-        <button id="cMas" class="btn btn-s w-full mt-3 hidden"></button>
-        <div class="sticky bottom-[88px] lg:bottom-6 mt-5"><button id="cBtn" class="btn btn-n w-full shadow-xl"><svg class="w-5 h-5" aria-hidden="true"><use href="#i-moon"/></svg>Cerrar el día y conciliar</button></div>
+        <div id="cPanel">
+          <div class="card p-4 mb-4">
+            <div class="flex flex-wrap items-baseline justify-between gap-2"><span class="font-semibold" id="cProg"></span><span class="text-sm" id="cDifRes"></span></div>
+            <div class="barra mt-2 !h-2.5"><i id="cBar" class="bg-tinta transition-all" style="width:0"></i></div>
+          </div>
+          <div class="flex flex-col sm:flex-row gap-3 mb-3">
+            <label class="relative flex-1"><span class="sr-only">Buscar modelo a contar</span><svg class="w-5 h-5 absolute left-4 top-3 text-mute" aria-hidden="true"><use href="#i-search"/></svg>
+              <input id="cBuscar" type="search" placeholder="Buscar modelo o marca…" class="campo pl-11"></label>
+            <select id="cSeccion" class="campo sm:!w-48" aria-label="Sección"></select>
+          </div>
+          <div class="scroll-x flex gap-2 mb-4" id="cFiltros" role="group" aria-label="Filtro del conteo"></div>
+          <div class="flex items-center justify-between mb-3 text-sm">
+            <span class="text-mute" id="cRango"></span>
+            <button id="cPagOk" class="font-semibold underline underline-offset-4">Marcar esta página como correcta</button>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="listaCierre"></div>
+          <nav class="flex items-center justify-between gap-2 mt-4" aria-label="Páginas del conteo">
+            <button id="cPrev" class="btn btn-s !min-h-0 py-2 text-sm">← Anterior</button>
+            <span class="text-sm text-mute" id="cPag"></span>
+            <button id="cNext" class="btn btn-s !min-h-0 py-2 text-sm">Siguiente →</button>
+          </nav>
+          <div class="sticky bottom-[88px] lg:bottom-6 mt-5"><button id="cBtn" class="btn btn-n w-full shadow-xl"><svg class="w-5 h-5" aria-hidden="true"><use href="#i-moon"/></svg>Cerrar conteo y conciliar</button></div>
+        </div>
       </section>
 
       <!-- DASHBOARD -->
@@ -362,7 +382,7 @@ tailwind.config={theme:{extend:{
   Hay una nueva versión <button id="btnUpdate" class="bg-marca rounded-full px-4 py-1.5 font-semibold">Actualizar</button>
 </div>
 <div id="bannerOffline" class="hidden fixed left-1/2 -translate-x-1/2 top-3 z-40 bg-white border border-linea text-tinta rounded-full px-4 py-2 shadow-lg text-xs font-medium" role="status">Sin conexión · trabajando con los datos guardados</div>
-<div id="toast" role="status" aria-live="polite" class="fixed left-1/2 bottom-[150px] lg:bottom-8 z-40 bg-tinta text-white text-sm font-medium px-5 py-3 rounded-full shadow-xl max-w-[90vw] text-center"></div>
+<div id="toast" role="status" aria-live="polite" class="fixed left-1/2 top-[76px] lg:top-auto lg:bottom-8 z-40 bg-tinta text-white text-sm font-medium px-5 py-3 rounded-full shadow-xl max-w-[90vw] text-center"></div>
 
 <script>
 const TIENDAS=["La Paz - El Prado","Cochabamba - Heroínas","Santa Cruz - Ventura Mall"];
@@ -388,7 +408,7 @@ const costoDe=v=>v.costo??modelo(v.id)?.costo_bs??0;
 const ganancia=v=>v.cant*(v.precio-costoDe(v));
 const chipsPago=()=>Object.entries(PAGOS).map(([k,[i,n]])=>`<button type="button" data-pago="${k}" class="chip ${pago===k?"on":""}">${i} ${n}</button>`).join("");
 const NOMC={"Deportivo":"Deportivo","Casual cuero (suela caucho)":"Casual","Formal cuero/cuero":"Formal de cuero"};
-let invMax=24, cMax=30, CAT=[], IDX={}, CLASES=[], net=null, head=null, S=null, charts={}, vista="escaner", filtroCat="Todas", tienda=TIENDAS[0];
+let invMax=24, CAT=[], IDX={}, CLASES=[], net=null, head=null, S=null, charts={}, vista="escaner", filtroCat="Todas", tienda=TIENDAS[0];
 let dPer=30, dTie="Todas";
 const $=s=>document.querySelector(s), $$=s=>document.querySelectorAll(s);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -448,7 +468,7 @@ async function init(){
   // Ventas
   const llenarSel=q=>{const L=[...CAT].filter(c=>!q||(c.nombre+" "+c.marca).toLowerCase().includes(q)).sort((a,b)=>a.nombre.localeCompare(b.nombre)).slice(0,300);
     $("#vModelo").innerHTML=L.map(c=>`<option value="${c.id}">${esc(c.nombre)} · ${bs(c.precio_bs)}</option>`).join("")||`<option value="">Sin resultados</option>`; $("#vModelo").onchange();};
-  $("#vModelo").onchange=()=>{const c=modelo($("#vModelo").value); $("#vImg").src=c?c.imagen:""; $("#vBtn").disabled=!c;};
+  $("#vModelo").onchange=()=>{const c=modelo($("#vModelo").value); $("#vImg").src=c?c.imagen:""; $("#vBtn").disabled=!c||!cajaAbierta();};
   $("#vBuscar").oninput=deb(e=>llenarSel(e.target.value.trim().toLowerCase()));
   llenarSel("");
   $$(".stepper button[data-d]").forEach(b=>b.onclick=()=>{const i=$("#vCant"); i.value=Math.min(99,Math.max(1,(parseInt(i.value)||1)+(+b.dataset.d)));});
@@ -459,8 +479,12 @@ async function init(){
   $$("[data-f]").forEach(b=>b.onclick=()=>{filtroCat=b.dataset.f; invMax=24; renderInv();});
   $("#buscar").oninput=deb(()=>{invMax=24; renderInv();});
   $("#invMas").onclick=()=>{invMax+=24; renderInv();};
-  $("#cBuscar").oninput=deb(()=>{cMax=30; renderCierre();});
-  $("#cMas").onclick=()=>{cMax+=30; renderCierre();};
+  $("#cBuscar").oninput=deb(()=>{cPag=0; renderCierre();});
+  $("#cSeccion").innerHTML=`<option value="Todas">Todas las secciones</option>`+[...new Set(CAT.map(c=>c.seccion).filter(Boolean))].map(x=>`<option>${esc(x)}</option>`).join("");
+  $("#cSeccion").onchange=()=>{cPag=0; renderCierre();};
+  $("#cPrev").onclick=()=>{cPag=Math.max(0,cPag-1); renderCierre(); $("#cRango").scrollIntoView({block:"center"});};
+  $("#cNext").onclick=()=>{cPag++; renderCierre(); $("#cRango").scrollIntoView({block:"center"});};
+  $("#cPagOk").onclick=()=>{const t=tiendaAct(), B=borrador(t), L=listaConteo().slice(cPag*POR_PAG_CONTEO,(cPag+1)*POR_PAG_CONTEO); let n=0; L.forEach(c=>{if(B.valores[c.id]==null){B.valores[c.id]=S.stock[c.id][t]; n++;}}); guardar(); renderCierre(); toast(n?`✓ ${n} modelos marcados como correctos`:"Esta página ya estaba contada");};
   // Dashboard
   $("#dPeriodo").innerHTML=[[1,"Hoy"],[7,"7 días"],[30,"30 días"]].map(([v,t])=>`<button data-per="${v}" class="px-3.5 py-1.5 rounded-full text-sm font-medium">${t}</button>`).join("");
   $$("[data-per]").forEach(b=>b.onclick=()=>{dPer=+b.dataset.per; renderDash();});
@@ -477,6 +501,10 @@ function armarNav(){
   $("#navBottom").innerHTML=V.map(([v,n,i])=>`<button data-v="${v}" class="tab-item"><svg aria-hidden="true"><use href="#${i}"/></svg>${n}</button>`).join("");
   $$("#navSide [data-v],#navBottom [data-v]").forEach(b=>b.onclick=()=>ver(b.dataset.v));
   $$(".tiendaHeader").forEach(e=>e.classList.toggle("hidden",rol==="gerente"));
+  const fija=rol&&rol!=="gerente"; // vendedor y encargado trabajan en SU tienda
+  $$(".selTienda").forEach(o=>o.value=tienda);
+  $$(".selTienda").forEach(x=>{x.disabled=fija; x.title=fija?"Para cambiar de tienda, cambia de rol":"";});
+  $$(".tiendaHeader,.tiendaSide").forEach(l=>l.onclick=()=>{if(fija){toast("Tu tienda se elige al entrar. Toca tu rol para cambiarla."); abrirInicio();}});
   const r=ROLES[rol]; $$(".rolTxt").forEach(e=>e.textContent=r?(e.closest("header")?r.nombre.split(" ")[0]:r.nombre):"Elegir rol"); $$(".rolIco").forEach(e=>e.textContent=r?r.ico:"👤");
 }
 function abrirInicio(){ $("#inicioTienda").value=tienda; $("#inicio").classList.remove("hidden"); if(stream) cerrarCam(); }
@@ -603,6 +631,8 @@ function vender(id,cant){
   guardar(); render(); toast(`✓ Vendido: ${cant} × ${c.nombre.split(" - ")[0]} · ${bs(cant*c.precio_bs)} · ${PAGOS[pago][1]}`);
   if(ultimo===id) mostrar({clase:id,prob:ultimaProb||1}); return true;
 }
+function pedirReposicion(id,t,btn){ S.pedidos??=[]; S.pedidos.push({fecha:hoy(),id,tienda:t,cant:10}); guardar(); if(btn){btn.textContent="Pedido ✓"; btn.disabled=true;} toast(`📦 Pedido de 10 pares de ${modelo(id).nombre.split(" - ")[0]} enviado a ${t.split(" - ")[0]}`); }
+function recibirPedido(i){const p=S.pedidos[i]; if(!p||p.recibido) return; p.recibido=true; reponer(p.id,p.cant,p.tienda);}
 function reponer(id,cant,t=tiendaAct()){
   asegurarInicio(t); S.stock[id][t]+=cant; S.inicioDia[hoy()+"|"+t][id]+=cant;
   guardar(); render(); toast(`+${cant} pares de ${modelo(id).nombre.split(" - ")[0]} en ${t.split(" - ")[0]}`); if(ultimo===id&&vista==="escaner") mostrar({clase:id,prob:ultimaProb||1});
@@ -621,9 +651,12 @@ function renderInv(){
       ${baj?'<span class="absolute top-2 left-2 text-[10px] font-semibold bg-marca text-white px-2 py-0.5 rounded-full">Stock bajo</span>':''}</div>
     <div class="pt-2.5 px-0.5"><div class="font-semibold text-sm leading-tight line-clamp-2">${corto(c)}</div>
       <div class="text-xs text-mute truncate">${esc(c.marca)} · ${esc(NOMC[c.categoria]||c.categoria)}</div>
-      <div class="flex items-baseline justify-between mt-1"><span class="font-semibold text-sm">${bs(c.precio_bs)}</span><span class="text-xs text-mute"><b class="text-tinta text-sm ${n<BAJO?'!text-marca':''}">${n}</b> aquí · ${stockTotal(c.id)} total</span></div>
-      <div class="flex gap-1 mt-1.5">${TIENDAS.map(x=>{const m=S.stock[c.id][x];return `<span title="${esc(x)}: ${m} pares" class="flex-1 text-center text-[10px] rounded-md py-0.5 ${m<BAJO?'bg-marca-50 text-marca font-semibold':'bg-suave'} ${x===t?'ring-1 ring-tinta':''}">${x.split(" ")[0].slice(0,3)} ${m}</span>`}).join("")}</div></div>
+      <div class="flex items-baseline justify-between mt-1"><span class="font-semibold text-sm">${bs(c.precio_bs)}</span><span class="text-xs text-mute">${rol==="gerente"?`<b class="text-tinta text-sm">${stockTotal(c.id)}</b> en total`:`<b class="text-tinta text-sm ${n<BAJO?'!text-marca':''}">${n}</b> aquí · ${stockTotal(c.id)} total`}</span></div>
+      <div class="flex gap-1 mt-1.5">${TIENDAS.map(x=>{const m=S.stock[c.id][x];return `<span title="${esc(x)}: ${m} pares" class="flex-1 text-center text-[10px] rounded-md py-0.5 ${m<BAJO?'bg-marca-50 text-marca font-semibold':'bg-suave'} ${x===t?'ring-1 ring-tinta':''}">${x.split(" ")[0].slice(0,3)} ${m}</span>`}).join("")}</div>
+      ${rol==="encargado"?`<button class="btn btn-s w-full !min-h-0 py-1.5 mt-2 text-xs" onclick="reponer('${c.id}',5)">+5 reponer aquí</button>`:""}</div>
   </article>`}).join("")||`<p class="text-mute col-span-full py-10 text-center">Sin resultados para "${esc(q)}"</p>`;
+  const ped=(S.pedidos||[]).map((p,i)=>[p,i]).filter(([p])=>!p.recibido&&p.tienda===t&&rol==="encargado");
+  $("#invPedidos").innerHTML=ped.length?`<div class="rounded-2xl bg-aviso-50 p-4 mb-5"><div class="font-semibold text-sm mb-2">📦 Pedidos de reposición de Gerencia (${ped.length})</div>${ped.map(([p,i])=>`<div class="flex items-center justify-between gap-2 text-sm py-1"><span class="truncate">${p.cant} pares · ${corto(modelo(p.id))}</span><button class="btn btn-n !min-h-0 py-1.5 px-3 text-xs" onclick="recibirPedido(${i})">Recibir</button></div>`).join("")}</div>`:"";
   $("#invMas").classList.toggle("hidden",lista.length<=invMax);
   $("#invMas").textContent=`Mostrar más (${lista.length-invMax} restantes)`;
 }
@@ -641,40 +674,80 @@ function renderVentas(){
     <div class="font-semibold tabular-nums">${bs(v.cant*v.precio)}</div></div>`:""}).join("")
     :`<div class="rounded-2xl bg-suave p-8 text-center text-mute text-sm">Aún no hay ventas hoy en esta tienda.<br>Usa el escáner o el formulario.</div>`;
 }
-function renderCierre(){
-  const t=tiendaAct(); $("#cTienda").textContent=t; const ini=asegurarInicio(t);
-  const q=($("#cBuscar").value||"").trim().toLowerCase();
-  const mov=new Set(S.ventas.filter(v=>v.fecha===hoy()&&v.tienda===t).map(v=>v.id));
-  const lista=CAT.filter(c=>c.nombre.toLowerCase().includes(q)).sort((a,b)=>mov.has(b.id)-mov.has(a.id));
-  $("#cMas").classList.toggle("hidden",lista.length<=cMax); $("#cMas").textContent=`Mostrar más (${lista.length-cMax} restantes)`;
-  $("#listaCierre").innerHTML=lista.slice(0,cMax).map(c=>{const vend=S.ventas.filter(v=>v.fecha===hoy()&&v.tienda===t&&v.id===c.id).reduce((a,v)=>a+v.cant,0);
-    return `<div class="card p-3 flex items-center gap-3">
-      <img src="${c.imagen}" loading="lazy" class="w-12 h-12 tile object-contain shrink-0" alt="">
-      <div class="flex-1 min-w-0"><div class="font-semibold text-sm truncate">${mov.has(c.id)?'<span class="text-marca" aria-label="vendido hoy">●</span> ':''}${corto(c)}</div>
-        <div class="text-[11px] text-mute">${ini[c.id]} al iniciar − ${vend} vendidos = <b class="text-tinta">${S.stock[c.id][t]} esperados</b></div></div>
-      <div class="stepper flex items-center gap-1"><button type="button" aria-label="Restar" onclick="paso(this,-1)">−</button>
-        <input data-id="${c.id}" type="number" min="0" inputmode="numeric" value="${S.stock[c.id][t]}" oninput="marcar(this)" aria-label="Conteo físico de ${esc(c.nombre)}"><button type="button" aria-label="Sumar" onclick="paso(this,1)">+</button></div>
-    </div>`}).join("")||`<p class="text-mute col-span-full text-center py-6">Sin resultados</p>`;
+/* ---------- CONTEO DE INVENTARIO (paginado, con borrador) ---------- */
+const POR_PAG_CONTEO=20; let cPag=0, cFiltro="todos";
+function borrador(t=tiendaAct()){ S.conteos??={}; const k=hoy()+"|"+t; return S.conteos[k]??={valores:{},cerrado:false}; }
+function vendidosHoy(t){const m={}; S.ventas.forEach(v=>{if(v.fecha===hoy()&&v.tienda===t) m[v.id]=(m[v.id]||0)+v.cant;}); return m;}
+function listaConteo(){
+  const t=tiendaAct(), B=borrador(t), vend=vendidosHoy(t), q=($("#cBuscar").value||"").trim().toLowerCase(), sec=$("#cSeccion").value;
+  return CAT.filter(c=>(!q||(c.nombre+" "+c.marca).toLowerCase().includes(q))&&(sec==="Todas"||c.seccion===sec)&&(
+      cFiltro==="todos"||(cFiltro==="vendidos"&&vend[c.id])||(cFiltro==="pendientes"&&B.valores[c.id]==null)||
+      (cFiltro==="diferencias"&&B.valores[c.id]!=null&&B.valores[c.id]!==S.stock[c.id][t])))
+    .sort((x,y)=>(vend[y.id]?1:0)-(vend[x.id]?1:0));
 }
-function paso(b,d){const i=b.parentElement.querySelector("input"); i.value=Math.max(0,(parseInt(i.value)||0)+d); marcar(i);}
-function marcar(inp){const esp=S.stock[inp.dataset.id][tiendaAct()], v=Math.max(0,parseInt(inp.value)||0); inp.classList.toggle("text-marca",v<esp); inp.classList.toggle("text-ok",v>esp);}
+function renderCierre(){
+  const t=tiendaAct(), ini=asegurarInicio(t), B=borrador(t), vend=vendidosHoy(t);
+  $("#cTienda").textContent=t;
+  $("#cPanel").classList.toggle("hidden",B.cerrado);
+  $("#cRes").innerHTML=B.cerrado?resultadoConteo(B.resultado):"";
+  if(B.cerrado) return;
+  const contados=Object.keys(B.valores).length, difs=Object.entries(B.valores).filter(([id,v])=>v!==S.stock[id][t]);
+  const faltan=difs.reduce((a,[id,v])=>a+Math.max(0,S.stock[id][t]-v),0);
+  $("#cProg").textContent=`Contados ${contados} de ${CAT.length} modelos`;
+  $("#cBar").style.width=(contados/CAT.length*100)+"%";
+  $("#cDifRes").innerHTML=difs.length?`<span class="text-marca font-semibold">${difs.length} con diferencia · faltan ${faltan} ${faltan===1?"par":"pares"}</span>`:`<span class="text-ok font-semibold">Sin diferencias por ahora</span>`;
+  const nV=Object.keys(vend).length;
+  const F=[["todos","Todos"],["vendidos",`● Vendidos hoy (${nV})`],["pendientes",`Pendientes (${CAT.length-contados})`],["diferencias",`Con diferencia (${difs.length})`]];
+  $("#cFiltros").innerHTML=F.map(([k,n])=>`<button class="chip ${cFiltro===k?"on":""}" data-cf="${k}" aria-pressed="${cFiltro===k}">${n}</button>`).join("");
+  $$("[data-cf]").forEach(b=>b.onclick=()=>{cFiltro=b.dataset.cf; cPag=0; renderCierre();});
+  const lista=listaConteo(), pags=Math.max(1,Math.ceil(lista.length/POR_PAG_CONTEO)); cPag=Math.min(cPag,pags-1);
+  const pg=lista.slice(cPag*POR_PAG_CONTEO,(cPag+1)*POR_PAG_CONTEO);
+  $("#cRango").textContent=lista.length?`${cPag*POR_PAG_CONTEO+1}–${cPag*POR_PAG_CONTEO+pg.length} de ${lista.length} modelos`:"Sin modelos para este filtro";
+  $("#cPag").textContent=`Página ${cPag+1} de ${pags}`;
+  $("#cPrev").disabled=cPag===0; $("#cNext").disabled=cPag>=pags-1; $("#cPagOk").classList.toggle("invisible",!pg.length);
+  $("#listaCierre").innerHTML=pg.map(c=>{const esp=S.stock[c.id][t], v=B.valores[c.id], hecho=v!=null, dif=hecho?v-esp:0;
+    return `<div class="card p-3 ${hecho?(dif?"!border-marca":"!border-ok"):""}">
+      <div class="flex items-center gap-3">
+        <img src="${c.imagen}" loading="lazy" class="w-12 h-12 tile object-contain shrink-0" alt="">
+        <div class="flex-1 min-w-0"><div class="font-semibold text-sm leading-tight line-clamp-2">${vend[c.id]?'<span class="text-marca" title="Vendido hoy">●</span> ':''}${corto(c)}</div>
+          <div class="text-xs text-mute mt-0.5">Sistema <b class="text-tinta">${esp}</b>${vend[c.id]?` · vendidos hoy ${vend[c.id]}`:""}</div></div>
+        <span class="text-xs font-semibold shrink-0 ${hecho?(dif?"text-marca":"text-ok"):"text-mute"}">${hecho?(dif?`${dif>0?"+":""}${dif}`:"✓ Cuadra"):"Sin contar"}</span>
+      </div>
+      <div class="flex items-center justify-between gap-2 mt-2.5 pt-2.5 border-t border-linea">
+        <div class="stepper flex items-center gap-1"><button type="button" aria-label="Restar un par" onclick="ajustarConteo('${c.id}',-1)">−</button>
+          <input data-id="${c.id}" type="number" min="0" inputmode="numeric" value="${hecho?v:""}" placeholder="–" onchange="fijarConteo('${c.id}',this.value)" aria-label="Pares contados de ${esc(c.nombre)}"><button type="button" aria-label="Sumar un par" onclick="ajustarConteo('${c.id}',1)">+</button></div>
+        ${hecho?`<button class="text-xs text-mute underline" onclick="fijarConteo('${c.id}','')">Deshacer</button>`:`<button class="btn btn-s !min-h-0 py-1.5 px-3 text-xs" onclick="fijarConteo('${c.id}',${esp})">✓ Hay ${esp}</button>`}
+      </div></div>`}).join("")||`<p class="text-mute col-span-full text-center py-8">No hay modelos en este filtro.</p>`;
+}
+function fijarConteo(id,val){const B=borrador(); if(val===""||val==null){delete B.valores[id];} else B.valores[id]=Math.max(0,parseInt(val)||0); guardar(); renderCierre();}
+function ajustarConteo(id,d){const B=borrador(), base=B.valores[id]??S.stock[id][tiendaAct()]; fijarConteo(id,Math.max(0,base+d));}
+function resultadoConteo(R){
+  if(!R) return "";
+  const cab=R.filas.length
+    ?`<div class="flex items-center gap-3"><div class="w-11 h-11 rounded-full bg-marca text-white grid place-items-center font-bold">!</div><div><div class="font-bold">Conteo cerrado con diferencias</div><div class="text-sm">Faltante: <b>${R.falt} ${R.falt===1?"par":"pares"} · ${bs(R.monto)}</b>${R.sobra?` · sobrante: ${R.sobra}`:""}</div></div></div>`
+    :`<div class="flex items-center gap-3"><div class="w-11 h-11 rounded-full bg-ok text-white grid place-items-center font-bold">✓</div><div><div class="font-bold">Inventario cuadrado</div><div class="text-sm">Todo lo contado coincide con el sistema.</div></div></div>`;
+  return `<div class="rounded-2xl p-5 fade ${R.filas.length?"bg-marca-50":"bg-ok-50"}">${cab}
+    <div class="text-sm mt-3">Contaste <b>${R.contados}</b> de ${R.total} modelos${R.sinContar?` · <b>${R.sinContar}</b> sin contar mantienen el stock del sistema`:""} · cerrado a las ${R.hora}.</div>
+    ${R.filas.length?`<div class="mt-3 space-y-1.5">${R.filas.slice(0,30).map(f=>`<div class="flex justify-between text-sm bg-white rounded-xl px-3 py-2"><span class="truncate mr-2">${corto(modelo(f.id))}: sistema <b>${f.esp}</b>, contado <b>${f.fis}</b></span><b class="${f.dif<0?'text-marca':'text-ok'}">${f.dif>0?'+':''}${f.dif}</b></div>`).join("")}${R.filas.length>30?`<div class="text-xs text-mute">… y ${R.filas.length-30} más</div>`:""}</div>`:""}
+    <button class="btn btn-s mt-4" onclick="reabrirConteo()">Nuevo conteo (demo)</button></div>`;
+}
+function reabrirConteo(){ if(!confirm("Solo para la demostración: ¿empezar un nuevo conteo hoy?")) return; const k=hoy()+"|"+tiendaAct(); delete S.conteos[k]; guardar(); renderCierre(); }
 $("#cBtn").onclick=()=>{
-  const t=tiendaAct(); let falt=0, monto=0, filas=[];
-  $$("#listaCierre input").forEach(inp=>{
-    const id=inp.dataset.id, esp=S.stock[id][t], fis=Math.max(0,parseInt(inp.value)||0), dif=fis-esp;
+  const t=tiendaAct(), B=borrador(t), ids=Object.keys(B.valores);
+  if(!ids.length){toast("Aún no contaste ningún modelo"); return;}
+  const sinContar=CAT.length-ids.length;
+  if(!confirm(`Vas a cerrar el conteo con ${ids.length} modelos contados${sinContar?` y ${sinContar} sin contar (mantendrán el stock del sistema)`:""}. ¿Continuar?`)) return;
+  let falt=0, sobra=0, monto=0; const filas=[];
+  S.cierres=S.cierres.filter(c=>!(c.fecha===hoy()&&c.tienda===t)); // un solo conteo vigente por día y tienda
+  ids.forEach(id=>{const esp=S.stock[id][t], fis=B.valores[id], dif=fis-esp;
     S.cierres.push({fecha:hoy(),tienda:t,id,esperado:esp,fisico:fis,dif});
-    if(dif!==0){filas.push({id,esp,fis,dif}); if(dif<0){falt+=-dif; monto+=-dif*modelo(id).precio_bs;}}
-    S.stock[id][t]=fis;
-  });
+    if(dif){filas.push({id,esp,fis,dif}); if(dif<0){falt+=-dif; monto+=-dif*modelo(id).precio_bs;} else sobra+=dif;}
+    S.stock[id][t]=fis;});
   const lim=diaMenos(3); S.cierres=S.cierres.filter(c=>c.fecha>=lim||c.dif!==0);
+  B.cerrado=true; B.resultado={filas:filas.sort((a,b)=>a.dif-b.dif),falt,sobra,monto,contados:ids.length,total:CAT.length,sinContar,hora:new Date().toTimeString().slice(0,5)};
   guardar(); renderCierre();
-  $("#cRes").innerHTML = filas.length
-    ? `<div class="rounded-2xl p-5 fade bg-marca-50"><div class="flex items-center gap-3"><div class="w-11 h-11 rounded-full bg-marca text-white grid place-items-center font-bold">!</div><div><div class="font-bold">Se detectaron diferencias</div><div class="text-sm">Faltante: <b>${falt} ${falt===1?"par":"pares"} · ${bs(monto)}</b></div></div></div>
-       <div class="mt-3 space-y-1.5">${filas.map(f=>`<div class="flex justify-between text-sm bg-white rounded-xl px-3 py-2"><span class="truncate mr-2">${corto(modelo(f.id))}: esperado <b>${f.esp}</b>, contado <b>${f.fis}</b></span><b class="${f.dif<0?'text-marca':'text-ok'}">${f.dif>0?'+':''}${f.dif}</b></div>`).join("")}</div></div>`
-    : `<div class="rounded-2xl p-5 fade bg-ok-50 flex items-center gap-3"><div class="w-11 h-11 rounded-full bg-ok text-white grid place-items-center font-bold">✓</div><div><div class="font-bold">Inventario cuadrado</div><div class="text-sm">El sistema y el conteo físico coinciden.</div></div></div>`;
-  window.scrollTo({top:0,behavior:"smooth"}); toast(filas.length?"Cierre con diferencias":"Cierre sin diferencias");
+  window.scrollTo({top:0,behavior:"smooth"}); toast(filas.length?"Conteo cerrado con diferencias":"Conteo cerrado: todo cuadra");
 };
-
 /* ---------- DASHBOARD ---------- */
 let rankN=5;
 function renderDash(){
@@ -740,7 +813,7 @@ function renderDash(){
   const porTiendaF={}; perd.forEach(c=>porTiendaF[c.tienda]=(porTiendaF[c.tienda]||0)-c.dif);
   const peorT=Object.entries(porTiendaF).sort((a,b)=>b[1]-a[1])[0];
   const acc=[];
-  bajos.slice(0,3).forEach(([c,t,n])=>acc.push({txt:`Reponer <b>${corto(c)}</b> en ${esc(t.split(" - ")[0])}`,sub:`${n===1?"Queda 1 par":"Quedan "+n+" pares"}`,btn:"+10",fn:`reponer('${c.id}',10,'${t}')`}));
+  bajos.slice(0,3).forEach(([c,t,n])=>acc.push({txt:`Reponer <b>${corto(c)}</b> en ${esc(t.split(" - ")[0])}`,sub:`${n===1?"Queda 1 par":"Quedan "+n+" pares"}`,btn:"Pedir",fn:`pedirReposicion('${c.id}','${t}',this)`}));
   if(peorT) acc.push({txt:`Revisar faltantes en <b>${esc(peorT[0].split(" - ")[0])}</b>`,sub:`${peorT[1]} pares no aparecieron al contar`,btn:rol==="gerente"?"Avisar":"Ir",fn:rol==="gerente"?`toast('📨 Aviso enviado al Encargado de ${peorT[0].split(" - ")[0]}: revisar ${peorT[1]} pares faltantes')`:`tienda='${peorT[0]}';$$('.selTienda').forEach(o=>o.value=tienda);ver('cierre')`});
   if(orden[0]) acc.push({txt:`Asegurar stock de <b>${corto(modelo(orden[0][0]))}</b>`,sub:`Es el más vendido: ${orden[0][1].p} pares`,btn:"Ver",fn:`ver('inventario');$('#buscar').value=${JSON.stringify(modelo(orden[0][0]).nombre.split(" - ")[0])};renderInv()`});
   acc.push({txt:`Impulsar la <b>línea de cuero</b>`,sub:`En el mercado vale casi el doble por par`,btn:"Ver",fn:`ver('mercado')`});
