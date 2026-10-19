@@ -30,6 +30,7 @@
 <script src="vendor/chart-4.4.1.umd.min.js"></script>
 <script src="js/dominio.js"></script>
 <script src="js/acciones.js"></script>
+<script src="js/xlsx.js"></script>
 <script>
 /* Sistema visual: rojo Manaco (#E40140) como único color de marca sobre base neutra (estilo Nike/Adidas) */
 tailwind.config={theme:{extend:{
@@ -103,6 +104,9 @@ tailwind.config={theme:{extend:{
 <svg width="0" height="0" class="absolute" aria-hidden="true">
   <symbol id="i-scan" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="12" r="3.5"/></symbol>
   <symbol id="i-box" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5M12 13v8"/></symbol>
+  <symbol id="i-truck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M3 6h11v10H3zM14 9h4l3 3v4h-7"/><circle cx="7" cy="18" r="1.8"/><circle cx="17" cy="18" r="1.8"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/><circle cx="17" cy="9" r="2.4"/><path d="M16 14.6c2.8.2 5 2 5 5.4"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></symbol>
   <symbol id="i-caja" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="11" width="18" height="9" rx="2"/><path d="M7 11V5h10v6M10 8h4M7 15h2M11 15h2M15 15h2"/></symbol>
   <symbol id="i-cash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 10v4M18 10v4"/></symbol>
   <symbol id="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></symbol>
@@ -223,6 +227,10 @@ tailwind.config={theme:{extend:{
               <div class="stepper flex items-center gap-1"><button data-d="-1" aria-label="Restar un par">−</button><input id="vCant" type="number" min="1" max="99" value="1" aria-label="Cantidad"><button data-d="1" aria-label="Sumar un par">+</button></div>
             </div>
             <div class="mb-5"><span class="text-sm text-mute">Método de pago</span><div class="flex gap-2 mt-2 flex-wrap pagos"></div></div>
+            <details id="vCliBox" class="mb-5 rounded-2xl bg-suave px-4 py-3"><summary class="cursor-pointer text-sm font-semibold list-none flex justify-between">Cliente (opcional · suma puntos) <span aria-hidden="true">▾</span></summary>
+              <div class="grid gap-2 mt-3"><input id="vCliDoc" class="campo" placeholder="CI o NIT" inputmode="text" autocomplete="off" maxlength="15">
+                <div class="grid grid-cols-2 gap-2"><input id="vCliNom" class="campo" placeholder="Nombre" maxlength="60"><input id="vCliTel" class="campo" placeholder="Teléfono" inputmode="tel" maxlength="20"></div>
+                <p id="vCliInfo" class="text-xs text-mute"></p></div></details>
             <button id="vBtn" class="btn btn-p w-full">Registrar venta</button>
           </div>
           <div class="lg:col-span-3"><h2 class="font-semibold text-lg mb-3">Historial de hoy</h2><div class="space-y-2" id="listaVentas"></div></div>
@@ -330,6 +338,24 @@ tailwind.config={theme:{extend:{
       </section>
 
       <!-- MERCADO -->
+      <section id="v-movimientos" class="vista hidden" aria-labelledby="t-mov">
+        <div class="mb-5"><div class="eyebrow" id="movTienda"></div><h1 id="t-mov" class="titular text-3xl lg:text-4xl">Compras y transferencias</h1>
+          <p class="text-xs text-mute mt-1">Mercadería que <b>entra</b> (compras a proveedores) o <b>se mueve</b> entre tiendas. Todo queda en el kardex.</p></div>
+        <div class="flex gap-1 p-1 bg-suave rounded-full w-fit mb-5" role="tablist" id="movTabs"></div>
+        <div id="movBody"></div>
+      </section>
+
+      <section id="v-clientes" class="vista hidden" aria-labelledby="t-cli">
+        <div class="mb-5"><div class="eyebrow">Fidelización · Estación 4 del caso</div><h1 id="t-cli" class="titular text-3xl lg:text-4xl">Clientes</h1>
+          <p class="text-xs text-mute mt-1">Segmentación RFM: <b>R</b>ecencia (hace cuánto compró), <b>F</b>recuencia (cuántas veces) y <b>M</b>onto (cuánto gastó).</p></div>
+        <div id="cliBody"></div>
+      </section>
+
+      <section id="v-admin" class="vista hidden" aria-labelledby="t-adm">
+        <div class="mb-5"><div class="eyebrow">Gerencia</div><h1 id="t-adm" class="titular text-3xl lg:text-4xl">Administración</h1></div>
+        <div id="admBody" class="grid grid-cols-1 lg:grid-cols-2 gap-5"></div>
+      </section>
+
       <section id="v-mercado" class="vista hidden" aria-labelledby="t-mer">
         <div class="mb-5"><div class="eyebrow">Base de comercio exterior · 230 registros · 2020–2024</div><h1 id="t-mer" class="titular text-3xl lg:text-4xl">Mercado de calzado</h1>
           <p class="text-mute text-sm mt-1 max-w-2xl">Datos de España (referencia externa, no ventas de Manaco).</p></div>
@@ -423,6 +449,9 @@ tailwind.config={theme:{extend:{
 <script src="js/ui/dashboard.js"></script>
 <script src="js/ui/mercado.js"></script>
 <script src="js/ui/caja.js"></script>
+<script src="js/ui/movimientos.js"></script>
+<script src="js/ui/clientes.js"></script>
+<script src="js/ui/admin.js"></script>
 <script src="js/ui/pwa.js"></script>
 </body>
 </html>

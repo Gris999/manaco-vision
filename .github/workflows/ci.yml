@@ -17,6 +17,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: pip install openpyxl   # valida los .xlsx generados con un lector independiente
       - name: 1. Pruebas unitarias e integración (dominio, acciones, API)
         run: npm test
       - name: 2. Tipos (TypeScript sobre JSDoc)

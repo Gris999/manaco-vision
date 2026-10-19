@@ -106,6 +106,18 @@ function procesarLote(u, lote) {
   });
 }
 
+/** Valida los datos de un usuario; devuelve el objeto limpio o un mensaje de error. */
+function validarUsuario(b, nuevo) {
+  const usuario = String(b.usuario || "").toLowerCase().trim(), nombre = String(b.nombre || "").trim().slice(0, 60), rol = String(b.rol || "");
+  if (!/^[a-z0-9._-]{3,30}$/.test(usuario)) return "Usuario: 3 a 30 letras minúsculas, números, punto o guion";
+  if (nombre.length < 3) return "Escribe el nombre";
+  if (!["vendedor", "encargado", "gerente"].includes(rol)) return "Rol inválido";
+  const tienda = rol === "gerente" ? null : String(b.tienda || "");
+  if (rol !== "gerente" && !A.TIENDAS.includes(tienda)) return "Elige la tienda";
+  if (nuevo && String(b.clave || "").length < 8) return "La contraseña debe tener al menos 8 caracteres";
+  return { usuario, nombre, rol, tienda };
+}
+
 /* ---------- Límite de intentos de login (fuerza bruta) ---------- */
 const intentos = new Map();
 function permitirLogin(ip) {
@@ -147,8 +159,7 @@ const RUTAS = {
     const { usuario, clave } = await leerCuerpo(req, 4096);
     const u = await BD.buscarUsuario(String(usuario || "").toLowerCase());
     const ok = u?.activo && crypto.timingSafeEqual(Buffer.from(u.hash, "hex"), Buffer.from(hashClave(String(clave || ""), u.sal), "hex"));
-    intentos.get(ip)?.push(Date.now());
-    if (!ok) return [401, { error: "Usuario o contraseña incorrectos" }];
+    if (!ok) { intentos.get(ip)?.push(Date.now()); return [401, { error: "Usuario o contraseña incorrectos" }]; } // solo cuentan los fallidos
     return [200, { token: emitirToken(u), usuario: { usuario: u.usuario, nombre: u.nombre, rol: u.rol, tienda: u.tienda } }];
   },
   "GET /api/yo": (req, u) => [200, { usuario: u }],
@@ -166,6 +177,30 @@ const RUTAS = {
     if (u.rol !== "gerente") return [403, { error: "Solo Gerencia" }];
     const lim = Math.min(500, Number(url.searchParams.get("limite")) || 100);
     return [200, await BD.auditoria(lim)];
+  },
+  /* ----- Administración de usuarios (solo Gerencia) ----- */
+  "GET /api/usuarios": async (req, u) => u.rol !== "gerente" ? [403, { error: "Solo Gerencia" }] : [200, { usuarios: await BD.listarUsuarios(), tiendas: A.TIENDAS }],
+  "POST /api/usuarios": async (req, u) => {
+    if (u.rol !== "gerente") return [403, { error: "Solo Gerencia" }];
+    const b = await leerCuerpo(req, 4096), datos = validarUsuario(b, true);
+    if (typeof datos === "string") return [400, { error: datos }];
+    if (await BD.buscarUsuario(datos.usuario)) return [409, { error: "Ese usuario ya existe" }];
+    const sal = crypto.randomBytes(16).toString("hex");
+    await BD.crearUsuario({ ...datos, sal, hash: hashClave(b.clave, sal) });
+    return [201, { ok: true, usuario: datos.usuario }];
+  },
+  "POST /api/usuarios/editar": async (req, u) => {
+    if (u.rol !== "gerente") return [403, { error: "Solo Gerencia" }];
+    const b = await leerCuerpo(req, 4096), actual = await BD.buscarUsuario(String(b.usuario || "").toLowerCase());
+    if (!actual) return [404, { error: "Usuario no encontrado" }];
+    const datos = validarUsuario({ ...actual, ...b, usuario: actual.usuario }, false);
+    if (typeof datos === "string") return [400, { error: datos }];
+    const activo = b.activo === undefined ? actual.activo : (b.activo ? 1 : 0);
+    if (actual.usuario === u.usuario && (!activo || datos.rol !== "gerente")) return [400, { error: "No puedes desactivarte ni quitarte el rol de Gerente" }];
+    let { sal, hash } = actual;
+    if (b.clave) { if (String(b.clave).length < 8) return [400, { error: "La contraseña debe tener al menos 8 caracteres" }]; sal = crypto.randomBytes(16).toString("hex"); hash = hashClave(String(b.clave), sal); }
+    await BD.actualizarUsuario({ ...datos, activo, sal, hash });
+    return [200, { ok: true }];
   },
   "POST /api/reiniciar": (req, u) => {
     if (u.rol !== "gerente") return [403, { error: "Solo Gerencia" }];

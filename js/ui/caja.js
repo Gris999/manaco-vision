@@ -97,8 +97,18 @@ function renderCajaCuerpo(){
     <h3 class="eyebrow mt-5 mb-1">Arqueo de caja</h3>${fila("Fondo inicial",bsc(cj.fondo))}${fila("Ventas en efectivo",bsc(r.porPago.efectivo))}${fila("Ingresos / retiros",bsc(ing)+" / "+bsc(-ret))}${fila("Efectivo esperado",bsc(cj.esperado))}${fila("Efectivo contado",bsc(cj.contado))}${fila("Diferencia",(cj.dif>0?"+":"")+bsc(cj.dif),cj.dif===0?"text-ok":"text-marca")}
     <h3 class="eyebrow mt-5 mb-1">Inventario</h3>${r.conteo?fila("Modelos contados · exactitud",r.K.lineas+" · "+(r.K.exactitud??0).toFixed(0)+" %")+fila("Pares faltantes · merma a costo",r.K.faltantes+" · "+bsc(r.K.mermaCosto),r.K.faltantes?"text-marca":"text-ok"):`<p class="text-sm text-aviso py-2">Conteo de inventario pendiente para hoy.</p>`}
     </details>
-    <div class="flex flex-wrap gap-2 mt-6 no-print"><button class="btn btn-n" onclick="window.print()">Imprimir / guardar PDF</button><button class="btn btn-s" onclick="nuevaSesion()">Nueva sesión (demo)</button></div>
+    <div class="flex flex-wrap gap-2 mt-6 no-print"><button class="btn btn-n" onclick="window.print()">Imprimir / guardar PDF</button><button class="btn btn-s" onclick="excelZ()">Descargar Excel</button><button class="btn btn-s" onclick="nuevaSesion()">Nueva sesión (demo)</button></div>
   </div>`;
 }
 
 /* ---------- PWA: instalación, offline y actualizaciones ---------- */
+
+/* Reporte Z de la sesión en Excel (para contabilidad) */
+function excelZ(){
+  const cj=cajaHoy(), r=resumenSesion(), t=tiendaAct();
+  const resumen=[["Concepto","Bs"],["Fondo inicial",cj.fondo],["Venta bruta (con IVA)",r.bruto],["IVA débito 13 %",r.iva],["Venta neta",r.neto],["Costo de lo vendido",r.costo],["Utilidad bruta",r.utilidad],["IT 3 %",r.it],
+    ["Efectivo",r.porPago.efectivo],["QR",r.porPago.qr],["Tarjeta",r.porPago.tarjeta],["Efectivo esperado",cj.esperado??D.esperadoCaja(cj,r.porPago.efectivo)],["Efectivo contado",cj.contado??""],["Diferencia",cj.dif??""]];
+  const ventas=[["N°","Hora","Modelo","Pares","Total Bs","Pago","Anulada"],...ventasDeSesion(t).map(v=>[v.nro??"",v.hora,modelo(v.id)?.nombre||v.id,v.cant,D.redondear(v.cant*v.precio),v.pago,v.anulada?"Sí":""])];
+  const movs=[["Hora","Tipo","Monto Bs","Motivo"],...(cj.movs||[]).map(m=>[m.hora,m.tipo,m.monto,m.motivo])];
+  descargar(`Reporte_Z_${t.split(" - ")[0].replace(/\s/g,"")}_${cj.fecha}.xlsx`,Xlsx.crear([{nombre:"Resumen Z",filas:resumen},{nombre:"Ventas",filas:ventas},{nombre:"Ingresos y retiros",filas:movs}]));
+}

@@ -15,7 +15,10 @@
     ABRIR_CAJA: ["encargado"], MOV_CAJA: ["encargado"], CERRAR_CAJA: ["encargado"], NUEVA_SESION: ["encargado"],
     VENDER: ["vendedor", "encargado"], ANULAR: ["encargado"], REPONER: ["encargado"],
     PEDIR: ["gerente"], RECIBIR: ["encargado"], CERRAR_CONTEO: ["encargado"], REABRIR_CONTEO: ["encargado"],
+    CREAR_PROVEEDOR: ["gerente"], REGISTRAR_COMPRA: ["encargado"], TRANSFERIR: ["encargado"], RECIBIR_TRANSFERENCIA: ["encargado"],
   };
+  /** Acciones que no pertenecen a una tienda (las hace Gerencia para toda la empresa). */
+  const SIN_TIENDA = new Set(["PEDIR", "CREAR_PROVEEDOR"]);
   const MOTIVOS = { defecto: "Defecto de fábrica", talla: "Cambio de talla", otro: "Otro motivo" };
 
   class ErrorNegocio extends Error {}
@@ -42,6 +45,16 @@
     const cj = S.cajas[k];
     return D.esperadoCaja(cj, D.resumenVentas(ventasSesion(S, k)).porPago.efectivo);
   }
+  /** Costo vigente del modelo: el promedio ponderado de las compras reales, o el simulado del catálogo. */
+  const costoDe = (S, id, ctx) => S.costos?.[id] ?? ctx.modelo(id).costo_bs;
+  const stockTotal = (S, id, ctx) => ctx.tiendas.reduce((n, t) => n + S.stock[id][t], 0);
+  /** Cliente opcional en la venta: documento (CI/NIT) obligatorio si se registra. */
+  function leerCliente(c) {
+    if (!c || !c.doc) return null;
+    const doc = texto(c.doc, 15).toUpperCase();
+    if (!/^[0-9A-Z-]{4,15}$/.test(doc)) falla("Documento del cliente inválido (CI o NIT, 4 a 15 caracteres)");
+    return { doc, nombre: texto(c.nombre, 60), tel: texto(c.tel, 20).replace(/[^0-9+ ]/g, "") };
+  }
   const pedidoPendiente = (S, id, t) => (S.pedidos || []).some(p => p.id === id && p.tienda === t && !p.recibido);
   function asegurarInicio(S, t, fecha, ctx) {
     S.inicioDia ??= {};
@@ -59,7 +72,7 @@
     const P = PERMISOS[a.tipo];
     if (!P) falla("Acción desconocida: " + a.tipo);
     if (!P.includes(a.rol)) falla("Tu rol no puede hacer esta operación");
-    if (a.tipo !== "PEDIR" && !ctx.tiendas.includes(a.tienda)) falla("Tienda inválida");
+    if (!SIN_TIENDA.has(a.tipo) && !ctx.tiendas.includes(a.tienda)) falla("Tienda inválida");
     const { fecha, hora } = a, t = a.tienda, d = a.datos || {};
     S.log ??= [];
     if (S.log.some(x => x.id === a.id)) return { msg: "Ya registrada", repetida: true }; // idempotente (reintentos de red)
@@ -105,11 +118,18 @@
         if (!sesion(S, t, fecha)?.abierta) falla(sesion(S, t, fecha) ? `La caja de ${t.split(" - ")[0]} ya se cerró hoy.` : `Primero el Encargado debe abrir la caja de ${t.split(" - ")[0]}.`);
         asegurarInicio(S, t, fecha, ctx);
         if (S.stock[d.id][t] < cant) falla(`Solo hay ${S.stock[d.id][t]} pares en ${t}`);
+        const cli = leerCliente(d.cliente), costo = costoDe(S, d.id, ctx);
         S.nroVenta ??= {};
-        const nro = (S.nroVenta[t] = (S.nroVenta[t] || 0) + 1);
-        D.moverStock(S, { id: d.id, tienda: t, cant: -cant, tipo: "venta", ref: `Venta N° ${nro}`, fecha, hora, costo: c.costo_bs });
-        S.ventas.push({ nro, fecha, hora, sesion: sesionKey(S, t, fecha), id: d.id, tienda: t, cant, precio: c.precio_bs, costo: c.costo_bs, pago: d.pago, usuario: a.usuario });
-        r = { msg: "Vendido", nro, cant, total: D.redondear(cant * c.precio_bs) }; break;
+        const nro = (S.nroVenta[t] = (S.nroVenta[t] || 0) + 1), total = D.redondear(cant * c.precio_bs);
+        D.moverStock(S, { id: d.id, tienda: t, cant: -cant, tipo: "venta", ref: `Venta N° ${nro}`, fecha, hora, costo });
+        S.ventas.push({ nro, fecha, hora, sesion: sesionKey(S, t, fecha), id: d.id, tienda: t, cant, precio: c.precio_bs, costo, pago: d.pago, usuario: a.usuario, ...(cli ? { cliente: cli.doc } : {}) });
+        let puntos = 0;
+        if (cli) {
+          const x = ((S.clientes ??= {})[cli.doc] ??= { doc: cli.doc, nombre: "", tel: "", puntos: 0, alta: fecha });
+          if (cli.nombre) x.nombre = cli.nombre; if (cli.tel) x.tel = cli.tel;
+          puntos = D.puntosPorCompra(total); x.puntos += puntos;
+        }
+        r = { msg: "Vendido", nro, cant, total, puntos }; break;
       }
       case "ANULAR": {
         const v = S.ventas.find(x => x.tienda === t && x.nro === d.nro);
@@ -119,13 +139,14 @@
         const det = texto(d.detalle), motivo = MOTIVOS[d.tipoMotivo] + (det ? ": " + det : "");
         if (v.pago === "efectivo" && v.cant * v.precio > esperadoSesion(S, sesionKey(S, t, fecha))) falla("No hay efectivo suficiente en caja para devolver");
         D.moverStock(S, { id: v.id, tienda: t, cant: v.cant, tipo: "devolucion", ref: `Anulación venta N° ${v.nro}: ${motivo}`, fecha, hora, costo: v.costo });
+        if (v.cliente && S.clientes?.[v.cliente]) S.clientes[v.cliente].puntos = Math.max(0, S.clientes[v.cliente].puntos - D.puntosPorCompra(v.cant * v.precio));
         Object.assign(v, { anulada: true, tipoAnulacion: d.tipoMotivo, motivoAnulacion: motivo, horaAnulacion: hora, sesionAnulacion: sesionKey(S, t, fecha) });
         r = { msg: `Venta N° ${v.nro} anulada · stock devuelto` }; break;
       }
       case "REPONER": {
         const c = ctx.modelo(d.id), cant = D.leerCantidad(d.cant, 999); if (!c || cant == null) falla("Reposición inválida");
         asegurarInicio(S, t, fecha, ctx);
-        D.moverStock(S, { id: d.id, tienda: t, cant, tipo: "reposicion", ref: texto(d.ref) || "Reposición", fecha, hora, costo: c.costo_bs });
+        D.moverStock(S, { id: d.id, tienda: t, cant, tipo: "reposicion", ref: texto(d.ref) || "Reposición", fecha, hora, costo: costoDe(S, d.id, ctx) });
         S.inicioDia[fecha + "|" + t][d.id] += cant;
         r = { msg: `+${cant} pares`, cant }; break;
       }
@@ -151,7 +172,7 @@
         let falt = 0, sobra = 0, monto = 0; const filas = [];
         S.cierres = (S.cierres || []).filter(c => !(c.fecha === fecha && c.tienda === t)); // un solo conteo vigente por día
         for (const id of ids) {
-          const esp = S.stock[id][t], fis = valores[id], dif = fis - esp, costo = ctx.modelo(id).costo_bs;
+          const esp = S.stock[id][t], fis = valores[id], dif = fis - esp, costo = costoDe(S, id, ctx);
           S.cierres.push({ fecha, tienda: t, id, esperado: esp, fisico: fis, dif });
           if (dif) {
             filas.push({ id, esp, fis, dif });
@@ -163,6 +184,53 @@
         const k = fecha + "|" + t; (S.conteos ??= {})[k] ??= { valores: {} };
         Object.assign(S.conteos[k], { valores, cerrado: true, resultado: { filas: filas.sort((x, y) => x.dif - y.dif), falt, sobra, monto: D.redondear(monto), contados: ids.length, total: ctx.ids.length, hora } });
         r = { msg: filas.length ? "Conteo cerrado con diferencias" : "Conteo cerrado: todo cuadra" }; break;
+      }
+      case "CREAR_PROVEEDOR": {
+        const nombre = texto(d.nombre, 80), nit = texto(d.nit, 15).replace(/\D/g, "");
+        if (nombre.length < 3) falla("Escribe el nombre del proveedor");
+        if (!/^\d{6,15}$/.test(nit)) falla("NIT inválido (6 a 15 dígitos)");
+        if ((S.proveedores || []).some(p => p.nit === nit)) falla("Ya existe un proveedor con ese NIT");
+        (S.proveedores ??= []).push({ pid: a.id, nombre, nit, contacto: texto(d.contacto, 80), alta: fecha });
+        r = { msg: "Proveedor registrado", pid: a.id }; break;
+      }
+      case "REGISTRAR_COMPRA": {
+        const prov = (S.proveedores || []).find(p => p.pid === d.proveedor); if (!prov) falla("Elige un proveedor");
+        const lineas = Array.isArray(d.lineas) ? d.lineas : [];
+        if (!lineas.length || lineas.length > 50) falla("Agrega entre 1 y 50 modelos a la compra");
+        const L = lineas.map(l => {
+          const cant = D.leerCantidad(l.cant, 999), costo = D.leerMonto(l.costo);
+          if (!ctx.modelo(l.id)) falla("Modelo inválido en la compra");
+          if (cant == null) falla("Cantidad inválida en la compra"); if (!costo) falla("Costo unitario inválido");
+          return { id: l.id, cant, costo };
+        });
+        const factura = texto(d.factura, 20);
+        for (const l of L) { // costo promedio ponderado con el stock de TODAS las tiendas
+          (S.costos ??= {})[l.id] = D.costoPromedio(stockTotal(S, l.id, ctx), costoDe(S, l.id, ctx), l.cant, l.costo);
+          asegurarInicio(S, t, fecha, ctx);
+          D.moverStock(S, { id: l.id, tienda: t, cant: l.cant, tipo: "compra", ref: `Compra ${factura || "sin factura"} · ${prov.nombre}`, fecha, hora, costo: l.costo });
+          S.inicioDia[fecha + "|" + t][l.id] += l.cant;
+        }
+        (S.compras ??= []).push({ cid: a.id, fecha, hora, tienda: t, proveedor: prov.pid, factura, lineas: L, usuario: a.usuario });
+        r = { msg: `Compra registrada: ${L.reduce((n, l) => n + l.cant, 0)} pares`, resumen: D.resumenCompras([{ factura, lineas: L }]) }; break;
+      }
+      case "TRANSFERIR": {
+        const cant = D.leerCantidad(d.cant, 999);
+        if (!ctx.modelo(d.id) || cant == null) falla("Transferencia inválida");
+        if (!ctx.tiendas.includes(d.destino) || d.destino === t) falla("Elige otra tienda de destino");
+        if (S.stock[d.id][t] < cant) falla(`Solo hay ${S.stock[d.id][t]} pares en ${t}`);
+        D.moverStock(S, { id: d.id, tienda: t, cant: -cant, tipo: "transferencia", ref: `Envío a ${d.destino}`, fecha, hora, costo: costoDe(S, d.id, ctx) });
+        (S.transferencias ??= []).push({ tid: a.id, fecha, hora, origen: t, destino: d.destino, id: d.id, cant, estado: "en tránsito", usuario: a.usuario });
+        r = { msg: `${cant} pares enviados a ${d.destino.split(" - ")[0]}` }; break;
+      }
+      case "RECIBIR_TRANSFERENCIA": {
+        const x = (S.transferencias || []).find(z => z.tid === d.tid);
+        if (!x || x.estado !== "en tránsito") falla("Transferencia no encontrada o ya recibida");
+        if (x.destino !== t) falla("Esa transferencia es para otra tienda");
+        asegurarInicio(S, t, fecha, ctx);
+        D.moverStock(S, { id: x.id, tienda: t, cant: x.cant, tipo: "transferencia", ref: `Recibido de ${x.origen}`, fecha, hora, costo: costoDe(S, x.id, ctx) });
+        S.inicioDia[fecha + "|" + t][x.id] += x.cant;
+        Object.assign(x, { estado: "recibida", fechaRecibida: fecha, recibidoPor: a.usuario });
+        r = { msg: `+${x.cant} pares recibidos de ${x.origen.split(" - ")[0]}` }; break;
       }
       case "REABRIR_CONTEO": { if (S.conteos) delete S.conteos[fecha + "|" + t]; r = { msg: "Nuevo conteo" }; break; }
     }
@@ -204,10 +272,25 @@
         cajas[f + "|" + t] = { fecha: f, tienda: t, abierta: false, fondo: 500, hApertura: "09:00", hCierre: "20:30", esperado, contado: esperado + dif, dif };
       });
     }
-    const S = { stock: st, inicioDia: {}, ventas, cierres, cajas, version: 6 };
+    // Clientes y proveedores de demostración (generador aparte: no altera stock ni ventas anteriores)
+    let r2 = 7; const rnd2 = () => (r2 = (r2 * 9301 + 49297) % 233280) / 233280;
+    const NOM = ["Ana", "Luis", "María", "Jorge", "Carla", "Diego", "Sofía", "Marco", "Paola", "Raúl", "Lucía", "Iván"], AP = ["Quispe", "Mamani", "Rojas", "Flores", "Vargas", "Gutiérrez", "Choque", "Pérez"];
+    const clientes = {}, docs = Array.from({ length: 1400 }, (_, i) => String(3000000 + i * 7919));
+    for (const v of ventas) {
+      if (rnd2() > 0.25) continue;
+      const doc = docs[Math.floor(Math.pow(rnd2(), 2.2) * docs.length)]; // pocos clientes compran mucho (Pareto)
+      const x = (clientes[doc] ??= { doc, nombre: NOM[Math.floor(rnd2() * NOM.length)] + " " + AP[Math.floor(rnd2() * AP.length)], tel: "7" + String(1000000 + Math.floor(rnd2() * 8999999)).slice(0, 7), puntos: 0, alta: v.fecha });
+      v.cliente = doc; x.puntos += D.puntosPorCompra(v.cant * v.precio);
+    }
+    const proveedores = [
+      { pid: "prov-planta", nombre: "Planta Manaco Quillacollo (simulado)", nit: "1023456021", contacto: "Logística planta", alta: dia(60) },
+      { pid: "prov-cuero", nombre: "Curtiembre Andina S.R.L. (simulado)", nit: "2034567013", contacto: "Ventas", alta: dia(60) },
+      { pid: "prov-import", nombre: "Importadora Deportiva Sur (simulado)", nit: "3045678015", contacto: "Comercial", alta: dia(60) },
+    ];
+    const S = { stock: st, inicioDia: {}, ventas, cierres, cajas, clientes, proveedores, compras: [], transferencias: [], version: 6 };
     return D.migrar(S, CAT.map(c => c.id), TIENDAS, hoy);
   }
 
-  const Acciones = { PERMISOS, MOTIVOS, MARGEN_COSTO, TIENDAS, prepararCatalogo, ErrorNegocio, aplicar, estadoInicial, sesionKey, ventasSesion, esperadoSesion, pedidoPendiente };
+  const Acciones = { PERMISOS, MOTIVOS, costoDe, stockTotal, MARGEN_COSTO, TIENDAS, prepararCatalogo, ErrorNegocio, aplicar, estadoInicial, sesionKey, ventasSesion, esperadoSesion, pedidoPendiente };
   if (typeof module !== "undefined" && module.exports) module.exports = Acciones; else global.Acciones = Acciones;
 })(typeof window !== "undefined" ? window : globalThis);

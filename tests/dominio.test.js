@@ -106,7 +106,7 @@ test("migración v6 → v7: saldo inicial, N° de venta y sesión activa", () =>
   const e = { stock: { a: { LP: 4, CB: 0 } }, ventas: [{ tienda: "LP" }, { tienda: "LP" }, { tienda: "CB" }],
     cajas: { "2026-10-19|LP": { tienda: "LP", abierta: true } } };
   D.migrar(e, ["a"], ["LP", "CB"], "2026-10-19");
-  assert.equal(e.version, 7);
+  assert.equal(e.version, 8);
   assert.equal(e.movs.length, 2);
   assert.deepEqual(e.ventas.map(v => v.nro), [1, 2, 1]);
   assert.equal(e.sesionActiva.LP, "2026-10-19|LP");
@@ -151,4 +151,25 @@ test("agregaciones del Resumen: ranking, facturación por clave, serie diaria e 
   assert.deepEqual(D.facturacionPor(V, v => v.tienda, ["LP", "CB", "SC"]), [["LP", 200], ["CB", 150.5], ["SC", 0]]);
   assert.deepEqual(D.serieDiaria(V, ["2026-10-18", "2026-10-19"]), [250.5, 100]);
   assert.deepEqual(D.inventarioValorizado({ a: { LP: 2, CB: 1 } }, ["a"], ["LP"], () => 10.1), { pares: 2, valor: 20.2 });
+});
+
+test("compras: costo promedio ponderado, crédito fiscal e IVA a pagar", () => {
+  assert.equal(D.costoPromedio(10, 100, 10, 130), 115);      // (10×100 + 10×130) / 20
+  assert.equal(D.costoPromedio(0, 100, 5, 90.5), 90.5);       // sin stock: el costo de compra
+  assert.equal(D.costoPromedio(3, 100, 0, 0), 100);
+  const r = D.resumenCompras([{ factura: "F-1", lineas: [{ cant: 10, costo: 100 }] }, { factura: "", lineas: [{ cant: 2, costo: 50 }] }]);
+  assert.deepEqual(r, { total: 1100, pares: 12, creditoFiscal: 130, neto: 970 });
+  assert.equal(D.ivaPorPagar(200, 130), 70); assert.equal(D.ivaPorPagar(100, 130), -30);
+});
+
+test("clientes: puntos y segmentación RFM", () => {
+  assert.equal(D.puntosPorCompra(349), 34); assert.equal(D.puntosPorCompra(9.99), 0);
+  const v = (cliente, fecha, precio, extra = {}) => ({ cliente, fecha, precio, cant: 1, ...extra });
+  const S = D.segmentarClientes([
+    v("A", "2026-10-01", 2000), v("B", "2026-09-01", 100), v("B", "2026-10-10", 100), v("B", "2026-10-15", 100), v("C", "2026-10-18", 300),
+    v("D", "2026-07-01", 200), v("E", "2026-10-18", 999, { anulada: true }), { fecha: "2026-10-18", precio: 50, cant: 1 },
+  ], "2026-10-19");
+  const seg = Object.fromEntries(S.map(x => [x.doc, x.segmento]));
+  assert.deepEqual(seg, { A: "VIP", B: "Frecuente", C: "Nuevo", D: "En riesgo" });
+  assert.equal(S[0].doc, "A");
 });

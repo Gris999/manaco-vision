@@ -60,6 +60,23 @@ test("atomicidad: una acción rechazada no deja el estado a medias", async () =>
   const { j: b } = await api("/api/estado", { token: ger }); assert.equal(b.rev, a.rev);
 });
 
+test("administración de usuarios: solo gerente; crear, desactivar y cambiar clave", async () => {
+  const ger = await login("gerente", "Manaco-Gerente-2026"), enc = await login("encargado.lp", "Manaco-LP-2026");
+  assert.equal((await api("/api/usuarios", { token: enc })).status, 403);
+  assert.equal((await api("/api/usuarios", { token: ger, body: { usuario: "x", nombre: "X", rol: "vendedor", tienda: "La Paz - El Prado", clave: "12345678" } })).status, 400);
+  let r = await api("/api/usuarios", { token: ger, body: { usuario: "vendedora.lp2", nombre: "Lucía Q.", rol: "vendedor", tienda: "La Paz - El Prado", clave: "Clave-Nueva-1" } });
+  assert.equal(r.status, 201);
+  assert.equal((await api("/api/usuarios", { token: ger, body: { usuario: "vendedora.lp2", nombre: "Otra", rol: "vendedor", tienda: "La Paz - El Prado", clave: "Clave-Nueva-1" } })).status, 409);
+  const tok = await login("vendedora.lp2", "Clave-Nueva-1"); assert.ok(tok);
+  assert.ok((await api("/api/usuarios", { token: ger })).j.usuarios.some(u => u.usuario === "vendedora.lp2"));
+  // cambiar clave y desactivar: el token anterior deja de servir
+  assert.equal((await api("/api/usuarios/editar", { token: ger, body: { usuario: "vendedora.lp2", clave: "Otra-Clave-2" } })).status, 200);
+  assert.ok(await login("vendedora.lp2", "Otra-Clave-2"));
+  await api("/api/usuarios/editar", { token: ger, body: { usuario: "vendedora.lp2", activo: false } });
+  assert.equal((await api("/api/estado", { token: tok })).status, 401);
+  assert.equal((await api("/api/usuarios/editar", { token: ger, body: { usuario: "gerente", activo: false } })).status, 400, "no puede desactivarse a sí mismo");
+});
+
 test("límite de intentos de login", async () => {
   let ultimo; for (let i = 0; i < 12; i++) ultimo = (await api("/api/login", { body: { usuario: "nadie", clave: "x" } })).status;
   assert.equal(ultimo, 429);

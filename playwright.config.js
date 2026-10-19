@@ -8,7 +8,7 @@ module.exports = defineConfig({
   timeout: 60_000,
   workers: 1,
   reporter: [["list"]],
-  use: { baseURL: `http://localhost:${PUERTO}`, ...devices["Pixel 7"], serviceWorkers: "block", channel: process.env.CI ? undefined : "chrome" },
+  use: { acceptDownloads: true, baseURL: `http://localhost:${PUERTO}`, ...devices["Pixel 7"], serviceWorkers: "block", channel: process.env.CI ? undefined : "chrome" },
   webServer: {
     command: "node server/servidor.js",
     url: `http://localhost:${PUERTO}/api/salud`,

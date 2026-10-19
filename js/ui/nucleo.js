@@ -2,11 +2,11 @@
    Script clásico: comparte el ámbito global con los demás módulos de js/ui (ver docs/ARQUITECTURA.md). */
 const D=window.Dominio; // reglas de negocio puras (js/dominio.js, con pruebas en tests/)
 const TIENDAS=Acciones.TIENDAS;
-const VISTAS=[["escaner","Escáner","i-scan"],["inventario","Inventario","i-box"],["ventas","Ventas","i-cash"],["cierre","Conteo","i-moon"],["caja","Caja","i-caja"],["dashboard","Resumen","i-chart"],["mercado","Mercado","i-globe"]];
+const VISTAS=[["escaner","Escáner","i-scan"],["inventario","Inventario","i-box"],["ventas","Ventas","i-cash"],["cierre","Conteo","i-moon"],["caja","Caja","i-caja"],["dashboard","Resumen","i-chart"],["mercado","Mercado","i-globe"],["movimientos","Movimientos","i-truck"],["clientes","Clientes","i-users"],["admin","Admin","i-gear"]];
 const ROLES={
   vendedor:{nombre:"Vendedor",ico:"👟",vistas:["escaner","ventas"],desc:"Escanea el zapato y vende.",tareas:["Reconocer el modelo con la cámara","Consultar stock en las 3 tiendas","Registrar la venta"]},
-  encargado:{nombre:"Encargado de tienda",ico:"🏬",vistas:["caja","cierre","inventario","escaner"],desc:"Abre y cierra la caja y cuenta el stock.",tareas:["Apertura y arqueo de caja","Conteo de inventario y faltantes","Reporte Z del día"]},
-  gerente:{nombre:"Gerente",ico:"📊",vistas:["dashboard","mercado","inventario"],desc:"Decide con datos de las 3 tiendas.",tareas:["Resumen y semáforo del negocio","Qué hacer hoy","Mercado: base del Excel"]},
+  encargado:{nombre:"Encargado de tienda",ico:"🏬",vistas:["caja","cierre","inventario","movimientos","escaner"],desc:"Caja, conteo, compras y transferencias.",tareas:["Apertura y arqueo de caja","Conteo de inventario y faltantes","Reporte Z del día"]},
+  gerente:{nombre:"Gerente",ico:"📊",vistas:["dashboard","clientes","inventario","mercado","admin"],desc:"Decide con datos; clientes, proveedores y usuarios.",tareas:["Resumen y semáforo del negocio","Qué hacer hoy","Mercado: base del Excel"]},
 };
 let rol=null; try{rol=localStorage.getItem("mv_rol")}catch(e){}
 if(!ROLES[rol]) rol=null;
@@ -132,6 +132,9 @@ function render(){
   if(vista==="caja") renderCaja();
   if(vista==="dashboard") renderDash();
   if(vista==="mercado") renderMercado();
+  if(vista==="movimientos") renderMovimientos();
+  if(vista==="clientes") renderClientes();
+  if(vista==="admin") renderAdmin();
 }
 
 /* ---------- IA ---------- */

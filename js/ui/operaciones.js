@@ -1,18 +1,18 @@
 /* Capa de presentación — Operaciones: venta, reposición, pedidos y anulación (todas pasan por el kardex).
    Script clásico: comparte el ámbito global con los demás módulos de js/ui (ver docs/ARQUITECTURA.md). */
 let ultimaVenta={id:null,t:0};
-function vender(id,cant){
+function vender(id,cant,cliente=null){
   if(ultimaVenta.id===id&&Date.now()-ultimaVenta.t<900) return false; // evita ventas duplicadas por doble toque
-  const r=ejecutar("VENDER",{id,cant,pago}); if(!r) return false;
+  const r=ejecutar("VENDER",{id,cant,pago,...(cliente?{cliente}:{})}); if(!r) return false;
   ultimaVenta={id,t:Date.now()}; const c=modelo(id);
-  render(); toast(`✓ Vendido: ${r.cant} × ${c.nombre.split(" - ")[0]} · ${bs(r.total)} · ${PAGOS[pago][1]}`);
+  render(); toast(`✓ Vendido: ${r.cant} × ${c.nombre.split(" - ")[0]} · ${bs(r.total)} · ${PAGOS[pago][1]}${r.puntos?` · +${r.puntos} puntos`:""}`);
   if(ultimo===id) mostrar({clase:id,prob:ultimaProb||1}); return true;
 }
 const pedidoPendiente=(id,t)=>Acciones.pedidoPendiente(S,id,t);
 function pedirReposicion(id,t,btn){
   if(!ejecutar("PEDIR",{id,tienda:t},"")) return;
   if(btn){btn.textContent="Pedido ✓"; btn.disabled=true;} toast(`📦 Pedido de 10 pares de ${modelo(id).nombre.split(" - ")[0]} enviado a ${t.split(" - ")[0]}`); }
-const TIPOMOV={inicial:["Saldo inicial","text-mute"],venta:["Venta","text-marca"],reposicion:["Reposición","text-ok"],ajuste:["Ajuste por conteo","text-aviso"],devolucion:["Devolución / anulación","text-ok"]};
+const TIPOMOV={inicial:["Saldo inicial","text-mute"],venta:["Venta","text-marca"],reposicion:["Reposición","text-ok"],ajuste:["Ajuste por conteo","text-aviso"],devolucion:["Devolución / anulación","text-ok"],compra:["Compra a proveedor","text-ok"],transferencia:["Transferencia","text-aviso"]};
 function verKardex(id){
   const c=modelo(id), ts=rol==="gerente"?TIENDAS:[tiendaAct()];
   $("#tKardex").textContent=c.nombre;
@@ -45,7 +45,12 @@ function reponer(id,cant,t=tiendaAct()){
 }
 $("#vBtn").onclick=()=>{const id=$("#vModelo").value,n=D.leerCantidad($("#vCant").value);
   if(n==null){toast("La cantidad debe ser un número entero de 1 a 99"); $("#vCant").focus(); return;}
-  if(vender(id,n)) $("#vCant").value=1;};
+  const doc=$("#vCliDoc").value.trim(), cliente=doc?{doc,nombre:$("#vCliNom").value,tel:$("#vCliTel").value}:null;
+  if(vender(id,n,cliente)){ $("#vCant").value=1; ["#vCliDoc","#vCliNom","#vCliTel"].forEach(s=>$(s).value=""); $("#vCliInfo").textContent=""; $("#vCliBox").open=false; }};
+// Cliente conocido: completa el nombre y muestra sus puntos
+$("#vCliDoc").oninput=deb(()=>{const x=S.clientes?.[$("#vCliDoc").value.trim().toUpperCase()];
+  $("#vCliInfo").textContent=x?`Cliente registrado: ${x.nombre||"sin nombre"} · ${x.puntos} puntos`:$("#vCliDoc").value.trim()?"Cliente nuevo: se registrará con esta venta":"";
+  if(x){ if(!$("#vCliNom").value) $("#vCliNom").value=x.nombre; if(!$("#vCliTel").value) $("#vCliTel").value=x.tel; }},250);
 
 function renderInv(){
   const q=$("#buscar").value.trim().toLowerCase();

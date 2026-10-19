@@ -75,3 +75,44 @@ test("estado inicial determinista", () => {
   const C = [{ id: "x", categoria: "Deportivo", precio_bs: 100, costo_bs: 60 }];
   assert.deepEqual(A.estadoInicial(C, TI, "2026-10-19").stock, A.estadoInicial(C, TI, "2026-10-19").stock);
 });
+
+test("compras: proveedor, costo promedio ponderado real y kardex", () => {
+  const S = nuevo();
+  assert.throws(() => run(S, acc("CREAR_PROVEEDOR", "encargado", { nombre: "Bata", nit: "1020304050" }, "")), /rol no puede/);
+  const p = acc("CREAR_PROVEEDOR", "gerente", { nombre: "Fábrica Manaco", nit: "1020304050" }, ""); run(S, p);
+  assert.throws(() => run(S, acc("CREAR_PROVEEDOR", "gerente", { nombre: "Otro", nit: "1020304050" }, "")), /NIT/);
+  assert.throws(() => run(S, acc("REGISTRAR_COMPRA", "encargado", { proveedor: p.id, lineas: [{ id: "z1", cant: 5, costo: "0" }] })), /Costo/);
+  // z1: stock total 10 (5+5) a costo 60; se compran 10 a 72 → promedio 66
+  run(S, acc("REGISTRAR_COMPRA", "encargado", { proveedor: p.id, factura: "F-77", lineas: [{ id: "z1", cant: 10, costo: "72" }] }));
+  assert.equal(S.costos.z1, 66); assert.equal(S.stock.z1.LP, 15);
+  assert.equal(S.movs.at(-1).tipo, "compra");
+  // la venta siguiente usa el costo REAL, no el simulado
+  run(S, acc("ABRIR_CAJA", "encargado", { fondo: 0 }));
+  run(S, acc("VENDER", "vendedor", { id: "z1", cant: 1, pago: "qr" }));
+  assert.equal(S.ventas.at(-1).costo, 66);
+  assert.equal(D.resumenCompras(S.compras).creditoFiscal, 93.6);
+  assert.deepEqual(D.verificarKardex(S), []);
+});
+
+test("transferencias entre tiendas: en tránsito hasta que el destino recibe", () => {
+  const S = nuevo();
+  assert.throws(() => run(S, acc("TRANSFERIR", "encargado", { id: "z1", cant: 2, destino: "LP" })), /otra tienda/);
+  assert.throws(() => run(S, acc("TRANSFERIR", "encargado", { id: "z1", cant: 9, destino: "CB" })), /Solo hay/);
+  const tr = acc("TRANSFERIR", "encargado", { id: "z1", cant: 2, destino: "CB" }); run(S, tr);
+  assert.equal(S.stock.z1.LP, 3); assert.equal(S.stock.z1.CB, 5); assert.equal(S.transferencias[0].estado, "en tránsito");
+  assert.throws(() => run(S, acc("RECIBIR_TRANSFERENCIA", "encargado", { tid: tr.id }, "LP")), /otra tienda/);
+  run(S, acc("RECIBIR_TRANSFERENCIA", "encargado", { tid: tr.id }, "CB"));
+  assert.equal(S.stock.z1.CB, 7); assert.equal(S.transferencias[0].estado, "recibida");
+  assert.throws(() => run(S, acc("RECIBIR_TRANSFERENCIA", "encargado", { tid: tr.id }, "CB")), /ya recibida/);
+  assert.deepEqual(D.verificarKardex(S), []);
+});
+
+test("clientes: se registran en la venta, suman puntos y los pierden al anular", () => {
+  const S = nuevo(); run(S, acc("ABRIR_CAJA", "encargado", { fondo: 500 }));
+  assert.throws(() => run(S, acc("VENDER", "vendedor", { id: "z2", cant: 1, pago: "qr", cliente: { doc: "<x>" } })), /Documento/);
+  run(S, acc("VENDER", "vendedor", { id: "z2", cant: 1, pago: "efectivo", cliente: { doc: "4567890", nombre: "Ana Pérez", tel: "70012345" } }));
+  assert.deepEqual(S.clientes["4567890"], { doc: "4567890", nombre: "Ana Pérez", tel: "70012345", puntos: 20, alta: "2026-10-19" });
+  assert.equal(S.ventas.at(-1).cliente, "4567890");
+  run(S, acc("ANULAR", "encargado", { nro: S.ventas.at(-1).nro, tipoMotivo: "talla" }));
+  assert.equal(S.clientes["4567890"].puntos, 0);
+});

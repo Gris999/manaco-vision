@@ -35,6 +35,8 @@ function sqlite(archivo) {
     async crearUsuario(u) { q("INSERT INTO usuarios (usuario, nombre, rol, tienda, sal, hash) VALUES (?, ?, ?, ?, ?, ?)").run(u.usuario, u.nombre, u.rol, u.tienda, u.sal, u.hash); },
     /** @returns {Promise<Usuario|undefined>} */
     async buscarUsuario(usuario) { return /** @type {any} */ (q("SELECT * FROM usuarios WHERE usuario = ?").get(usuario)); },
+    async listarUsuarios() { return q("SELECT usuario, nombre, rol, tienda, activo FROM usuarios ORDER BY rol, tienda, usuario").all(); },
+    async actualizarUsuario(u) { q("UPDATE usuarios SET nombre = ?, rol = ?, tienda = ?, activo = ?, sal = ?, hash = ? WHERE usuario = ?").run(u.nombre, u.rol, u.tienda, u.activo, u.sal, u.hash, u.usuario); },
     async leerInstantanea() { const f = /** @type {any} */ (q("SELECT rev, estado FROM instantanea WHERE n = 1").get()); return f && { rev: f.rev, estado: JSON.parse(f.estado) }; },
     /** Guarda acciones nuevas + instantanea en UNA transacción (todo o nada). */
     async confirmar(acciones, rechazos, rev, estado, ahora) {
@@ -71,6 +73,8 @@ async function postgres(url) {
     async contarUsuarios() { return Number((await uno("SELECT COUNT(*) AS n FROM usuarios")).n); },
     async crearUsuario(u) { await pool.query("INSERT INTO usuarios (usuario, nombre, rol, tienda, sal, hash) VALUES ($1, $2, $3, $4, $5, $6)", [u.usuario, u.nombre, u.rol, u.tienda, u.sal, u.hash]); },
     async buscarUsuario(usuario) { return uno("SELECT * FROM usuarios WHERE usuario = $1", [usuario]); },
+    async listarUsuarios() { return (await pool.query("SELECT usuario, nombre, rol, tienda, activo FROM usuarios ORDER BY rol, tienda, usuario")).rows; },
+    async actualizarUsuario(u) { await pool.query("UPDATE usuarios SET nombre = $1, rol = $2, tienda = $3, activo = $4, sal = $5, hash = $6 WHERE usuario = $7", [u.nombre, u.rol, u.tienda, u.activo, u.sal, u.hash, u.usuario]); },
     async leerInstantanea() { const f = await uno("SELECT rev, estado FROM instantanea WHERE n = 1"); return f && { rev: Number(f.rev), estado: f.estado }; },
     async confirmar(acciones, rechazos, rev, estado, ahora) {
       const c = await pool.connect();

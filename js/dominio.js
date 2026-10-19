@@ -196,8 +196,55 @@
     };
   }
 
+  /* ---------- Compras: costo real y crédito fiscal ---------- */
+  /**
+   * Costo promedio ponderado (método aceptado por la norma contable boliviana y por Odoo "AVCO"):
+   * (stock × costo actual + cantidad comprada × costo de compra) ÷ (stock + cantidad comprada).
+   */
+  function costoPromedio(stock, costoActual, cant, costoCompra) {
+    const tot = stock + cant;
+    return tot > 0 ? bs(Math.round((Math.max(0, stock) * cent(costoActual) + cant * cent(costoCompra)) / tot)) : bs(cent(costoCompra));
+  }
+  /** Totales de compras: neto, IVA crédito fiscal (13 % del total facturado) y pares. */
+  function resumenCompras(compras) {
+    let total = 0, pares = 0, facturado = 0;
+    for (const c of compras) for (const l of c.lineas) {
+      const t = l.cant * cent(l.costo); total += t; pares += l.cant; if (c.factura) facturado += t;
+    }
+    const credito = Math.round(facturado * IVA);
+    return { total: bs(total), pares, creditoFiscal: bs(credito), neto: bs(total - credito) };
+  }
+  /** IVA a pagar al SIN = débito fiscal (ventas) − crédito fiscal (compras con factura); si es negativo, saldo a favor. */
+  const ivaPorPagar = (debito, credito) => bs(cent(debito) - cent(credito));
+
+  /* ---------- Clientes: fidelización y segmentación ---------- */
+  /** 1 punto por cada Bs 10 de compra (sin decimales). */
+  const puntosPorCompra = montoBs => Math.floor(cent(montoBs) / 1000);
+  /**
+   * Segmentación RFM (Recencia, Frecuencia, Monto) RELATIVA a la propia cartera:
+   * VIP = el 10 % que más gasta (percentil 90 de monto) · En riesgo = no compra hace > 30 días ·
+   * Nuevo = primera compra en los últimos 30 días y como máximo 2 compras · Frecuente = el resto.
+   */
+  function segmentarClientes(ventas, hoy, { pctVip = 0.9, diasRiesgo = 30 } = {}) {
+    const c = {};
+    for (const v of ventas) {
+      if (!v.cliente || v.anulada) continue;
+      const x = (c[v.cliente] ??= { doc: v.cliente, compras: 0, monto: 0, ultima: v.fecha, primera: v.fecha });
+      x.compras++; x.monto = bs(cent(x.monto) + cent(v.precio) * v.cant);
+      if (v.fecha > x.ultima) x.ultima = v.fecha; if (v.fecha < x.primera) x.primera = v.fecha;
+    }
+    const dias = f => Math.round((new Date(hoy).getTime() - new Date(f).getTime()) / 864e5);
+    const montos = Object.values(c).map(x => x.monto).sort((a, b) => a - b);
+    const umbralVip = montos.length ? montos[Math.min(montos.length - 1, Math.floor(montos.length * pctVip))] : Infinity;
+    for (const x of Object.values(c)) {
+      x.recencia = dias(x.ultima);
+      x.segmento = x.monto >= umbralVip ? "VIP" : x.recencia > diasRiesgo ? "En riesgo" : x.compras <= 2 && dias(x.primera) <= 30 ? "Nuevo" : "Frecuente";
+    }
+    return Object.values(c).sort((a, b) => b.monto - a.monto);
+  }
+
   /* ---------- Migración de datos guardados ---------- */
-  const VERSION_ESQUEMA = 7;
+  const VERSION_ESQUEMA = 8;
   /** v6 → v7: saldo inicial en el kardex, N° de venta y sesiones independientes de la fecha. */
   function migrar(estado, ids, tiendas, hoy) {
     estado.version ??= 6;
@@ -213,10 +260,14 @@
       for (const [k, c] of Object.entries(estado.cajas || {})) { c.movs ??= []; if (c.abierta) estado.sesionActiva[c.tienda] = k; }
       estado.version = 7;
     }
+    if (estado.version < 8) { // v8: módulos de compras, proveedores, clientes y transferencias
+      estado.compras ??= []; estado.proveedores ??= []; estado.clientes ??= {}; estado.transferencias ??= []; estado.costos ??= {};
+      estado.version = 8;
+    }
     return estado;
   }
 
   const Dominio = { IVA, IT, cent, bs, redondear, leerCantidad, leerMonto, rankingModelos, facturacionPor, serieDiaria, inventarioValorizado, sumarDias, ventana, enRango, desglose, resumenVentas, variacion,
-    esperadoCaja, totalArqueo, moverStock, verificarKardex, kpiConteos, cobertura, tipoDevolucion, kpiCalidad, migrar, VERSION_ESQUEMA };
+    costoPromedio, resumenCompras, ivaPorPagar, puntosPorCompra, segmentarClientes, esperadoCaja, totalArqueo, moverStock, verificarKardex, kpiConteos, cobertura, tipoDevolucion, kpiCalidad, migrar, VERSION_ESQUEMA };
   if (typeof module !== "undefined" && module.exports) module.exports = Dominio; else global.Dominio = Dominio;
 })(typeof window !== "undefined" ? window : globalThis);
