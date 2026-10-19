@@ -72,6 +72,8 @@ El **producto mínimo viable (MVP)** se definió primero: reconocer un zapato co
 | 11 | Realismo operativo | Conteo cíclico (≈35 modelos por día, no 725) |
 | 12 | Revisión contable | Anulaciones con reverso, conteo ciego, faltantes y sobrantes separados |
 | 13 | Ingeniería y cierre del caso | Código modular, documentación formal, indicadores de la Estación 4 |
+| 14 | Calidad de producto | E2E de los 3 roles: 3 bugs corregidos; metodología comparada; auditoría de escalabilidad |
+| 15 | Escalabilidad | Reductor de acciones compartido, backend (API + SQLite + login), IndexedDB, sincronización offline, diálogos propios, tipos, CI y Playwright |
 
 ## 2b. Métodos y técnicas usados (y para qué)
 

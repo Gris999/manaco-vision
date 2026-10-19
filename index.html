@@ -29,6 +29,7 @@
 <script src="vendor/mobilenet-2.1.1.min.js"></script>
 <script src="vendor/chart-4.4.1.umd.min.js"></script>
 <script src="js/dominio.js"></script>
+<script src="js/acciones.js"></script>
 <script>
 /* Sistema visual: rojo Manaco (#E40140) como único color de marca sobre base neutra (estilo Nike/Adidas) */
 tailwind.config={theme:{extend:{
@@ -130,7 +131,7 @@ tailwind.config={theme:{extend:{
     </div>
     <button class="btnRol w-full flex items-center gap-3 rounded-2xl bg-suave p-3 mb-5 text-left hover:bg-linea" aria-label="Cambiar de rol">
       <span class="rolIco w-10 h-10 p-2 rounded-xl bg-marca text-white shrink-0"></span>
-      <span class="min-w-0 flex-1"><span class="eyebrow block">Entraste como</span><span class="rolTxt font-semibold block leading-tight"></span></span>
+      <span class="min-w-0 flex-1"><span class="eyebrow block">Entraste como</span><span class="rolTxt font-semibold block leading-tight"></span><span class="syncTxt text-[11px] text-mute block mt-0.5"></span></span>
       <span class="text-xs font-semibold text-marca">Cambiar</span>
     </button>
     <nav class="space-y-1" id="navSide"></nav>
@@ -378,7 +379,8 @@ tailwind.config={theme:{extend:{
     <label class="block card p-4 mb-4 bg-white max-w-md"><span class="eyebrow">1 · Tu tienda (vendedor y encargado)</span><select id="inicioTienda" class="campo mt-1.5"></select></label>
     <div class="eyebrow mb-2">2 · Elige tu rol</div>
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="rolesGrid"></div>
-    <p class="text-xs text-mute mt-6">Prototipo académico · caso de estudio Manaco. Sin contraseñas: en producción cada rol tendría su usuario.</p>
+    <div id="inicioSesion" class="card p-4 mt-6 bg-white max-w-md"></div>
+    <p class="text-xs text-mute mt-4">Prototipo académico · caso de estudio Manaco. <b>Modo demo</b>: eliges el rol y los datos quedan en este equipo. <b>Modo servidor</b>: cada persona entra con su usuario, el rol lo asigna el servidor y las 3 tiendas comparten los datos.</p>
   </div>
 </div>
 <!-- Zapatos de muestra para apuntar la cámara desde otro teléfono -->
@@ -413,6 +415,7 @@ tailwind.config={theme:{extend:{
 <div id="bannerOffline" class="hidden fixed left-1/2 -translate-x-1/2 top-[calc(env(safe-area-inset-top)+12px)] whitespace-nowrap z-40 bg-white border border-linea text-tinta rounded-full px-4 py-2 shadow-lg text-xs font-medium" role="status">Sin conexión · trabajando con los datos guardados</div>
 <div id="toast" role="status" aria-live="polite" class="fixed left-1/2 top-[76px] lg:top-auto lg:bottom-8 z-40 bg-tinta text-white text-sm font-medium px-5 py-3 rounded-full shadow-xl max-w-[90vw] text-center"></div>
 
+<script src="js/ui/estado.js"></script>
 <script src="js/ui/nucleo.js"></script>
 <script src="js/ui/ia.js"></script>
 <script src="js/ui/operaciones.js"></script>

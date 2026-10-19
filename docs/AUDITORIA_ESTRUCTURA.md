@@ -1,50 +1,64 @@
-# Auditoría de estructura y escalabilidad (revisión senior, v21)
+# Auditoría de estructura y escalabilidad (v22)
 
-Veredicto corto: **el código es adecuado para un prototipo académico y está bien separado en su núcleo (dominio), pero NO es escalable tal como está.** Pasar a 50 tiendas, a varios usuarios por tienda o a datos centralizados exige los cambios de la §4. Esto se dice tal cual en la defensa: reconocer los límites es parte del criterio de ingeniería.
+**Veredicto (v22)**: la deuda técnica medida en v21 se corrigió. El sistema ahora tiene:
+- Un **backend real** (API + SQLite + login por rol).
+- **Una sola fuente de reglas** compartida entre el celular y el servidor.
+- **Sincronización offline-first**.
+- **Pruebas en 4 niveles con CI**.
 
-## 1. Cómo está estructurado hoy
+Sigue siendo un prototipo académico. La §4 indica lo que aún falta para operar 50 tiendas en producción.
 
-| Capa | Archivos | Calidad |
+## 1. Deuda técnica de v21 y su corrección
+
+| # | Problema en v21 | Corrección en v22 | Evidencia |
+|---|---|---|---|
+| D1 | Estado global mutado desde 6 archivos | **Patrón *command* / reductor**: toda operación es una acción (`VENDER`, `ANULAR`, `CERRAR_CAJA`…) que pasa por `Acciones.aplicar()`. La vista solo llama a `ejecutar(tipo, datos)`; los borradores (conteo y arqueo a medias) viven aparte, en `BORR` | `js/acciones.js`; `grep` de mutaciones de `S` en `js/ui/` = 0, salvo la carga y la sincronización |
+| D2 | Riesgo de XSS con `innerHTML` | Revisados los 54 puntos: todo texto de usuario pasa por `esc()`; el reductor limpia y limita el texto libre (`texto()`, 120 caracteres); los nombres de sesión usan `textContent` | Revisión manual + prueba de rutas privadas |
+| D3 | Cálculos en la vista (17 `reduce`) | Ranking, facturación por tienda, serie diaria e inventario valorizado pasaron a `dominio.js`, con pruebas | `rankingModelos`, `facturacionPor`, `serieDiaria`, `inventarioValorizado` |
+| D4 | `localStorage` (≈5 MB, un dispositivo) | **IndexedDB** en el celular (cientos de MB) + **servidor con SQLite** compartido por las 3 tiendas; migración automática desde `localStorage` | `js/ui/estado.js` (`Almacen`), `server/servidor.js` |
+| D5 | Sin autenticación | **Login** con contraseñas *scrypt*, token firmado HS256 de 12 h, límite de 10 intentos cada 5 min. **El servidor impone rol, usuario y tienda** desde la base de datos, no desde lo que envía el celular | Prueba: el vendedor que dice ser gerente es rechazado; la venta "en otra tienda" se registra en la suya |
+| D6 | E2E solo con scripts manuales | **Playwright** con 2 flujos completos (modo demo con 3 roles y modo servidor con 2 celulares) + **GitHub Actions** en cada *push* | `e2e/flujos.spec.js`, `.github/workflows/ci.yml` |
+| D7 | `prompt()` y `confirm()` nativos | Diálogos propios accesibles (`role="dialog"`, Escape, foco). La anulación pide el motivo de una lista (defecto, talla, otro), así el KPI de defectos es confiable | `dialogo()` y `confirmar()` |
+| D8 | Catálogo completo en memoria | Sin cambio (725 modelos ≈ 0,4 MB). Ver §4 | — |
+| B4 | VERSION del service worker olvidada | `npm run verificar-version` falla si cambian archivos en caché sin subir VERSION; corre en CI | `herramientas/verificar_version.js` (probado en positivo y negativo) |
+| — | Sin tipos | `// @ts-check` + `tsc` sobre el dominio, las acciones y el servidor; encontró 2 errores reales (resta de `Date` y tupla sin tipo) | `npm run tipos` |
+
+## 2. Estructura actual
+
+```
+Celular (PWA)                                   Servidor (Node 22)
+┌───────────────────────────┐                  ┌───────────────────────────────┐
+│ Presentación  js/ui/*.js  │                  │ HTTP  server/servidor.js      │
+│   ↓ ejecutar(tipo, datos) │                  │   login · permisos · CORS     │
+│ Aplicación   ui/estado.js │ ── acciones ──▶  │   ↓                           │
+│   cola offline · IndexedDB│ ◀── estado ────  │ Acciones.aplicar (MISMA)      │
+│   ↓                       │                  │   ↓                           │
+│ Acciones  js/acciones.js  │ ◀─ código común ─▶│ SQLite: usuarios, acciones,   │
+│ Dominio   js/dominio.js   │                  │ rechazos, instantánea         │
+└───────────────────────────┘                  └───────────────────────────────┘
+```
+
+**Por qué es escalable ahora:**
+- La lógica no se duplica.
+- El servidor guarda **cada acción** (auditoría: quién, qué y cuándo) y una instantánea del estado.
+- Cada acción tiene un id único, así que **reintentar no duplica**.
+- Si una acción falla, el estado no cambia (atomicidad con `structuredClone`).
+
+## 3. Métricas de calidad
+
+| Métrica | v21 | v22 |
 |---|---|---|
-| Dominio | `js/dominio.js` (≈200 líneas) | **Buena.** Funciones puras, sin DOM; dinero en centavos; 17 pruebas unitarias; reutilizable en un backend Node tal cual |
-| Presentación | `js/ui/*.js` (8 archivos, ≈810 líneas) + `index.html` | **Regular.** Separada por módulo funcional, pero son *scripts clásicos* que comparten **52 variables globales** y mutan el estado `S` directamente (98 accesos) |
-| Persistencia | `guardar()` y `cargar()` sobre `localStorage` | **Débil para escalar.** Un único documento JSON de ≈1,8 MB; límite del navegador ≈5 MB |
-| Infraestructura | `sw.js`, `manifest.json` | **Buena.** Caché versionada y aviso de actualización |
+| Pruebas automáticas | 17 | **29 unitarias y de integración + 2 E2E** |
+| Capas con reglas probadas | dominio | dominio, acciones y API |
+| Mutaciones directas de `S` en la vista | 98 accesos | 0 |
+| `prompt` / `confirm` nativos | 6 | 0 |
+| Autenticación | no | sí (scrypt + token) |
+| Datos compartidos entre tiendas | no | sí (servidor) |
+| CI | no | sí (4 compuertas) |
 
-## 2. Lo que está bien (y por qué)
-1. **Separación dominio / vista**: las reglas de dinero y stock no dependen de la pantalla; por eso se pueden probar en Node.
-2. **Kardex como única puerta del stock**: `moverStock()` garantiza trazabilidad; `verificarKardex()` detecta inconsistencias.
-3. **Validación de entradas en el dominio** (`leerCantidad`, `leerMonto`), no repartida en la vista.
-4. **Migración de esquema versionada** (`VERSION_ESQUEMA`, `migrar()` idempotente).
-5. **Sin dependencias de compilación**: se abre y se audita en cualquier navegador.
-
-## 3. Deuda técnica (encontrada y medida)
-
-| # | Problema | Evidencia | Riesgo | Corrección propuesta |
-|---|---|---|---|---|
-| D1 | Estado global mutable | 52 globales; `S` se modifica desde 6 archivos | Un módulo puede romper a otro; difícil de probar la vista | *Store* único con acciones (`dispatch("VENDER", …)`), estilo Redux o Zustand |
-| D2 | Vista por *template strings* + `innerHTML` | 54 asignaciones `innerHTML`; 36 líneas de más de 300 caracteres | Riesgo de XSS si falta `esc()`; difícil de mantener | Componentes (Preact, Lit o Vue) o, al menos, funciones de plantilla pequeñas |
-| D3 | Cálculos en la vista | 17 `reduce()` en `js/ui/` (totales, rankings) | Reglas duplicadas sin pruebas | Moverlos a `dominio.js` (por ejemplo `rankingModelos`, `ventasPorTienda`) |
-| D4 | Persistencia en `localStorage` | 1 documento por dispositivo | Sin sincronización entre tiendas; tope de ≈5 MB (≈15.000 ventas) | API + PostgreSQL; IndexedDB como caché offline |
-| D5 | Sin autenticación | El rol se elige libremente | Cualquiera puede anular ventas | Login + JWT; permisos por rol en el servidor |
-| D6 | Sin pruebas automáticas de la interfaz | El E2E se corrió con scripts en el navegador, no en CI | Regresiones visuales | Playwright en GitHub Actions |
-| D7 | `prompt()` y `confirm()` nativos | Anulación y cierres | Mala experiencia en móvil | Modales propios |
-| D8 | Carga entera del catálogo en memoria | `catalogo.json` con 725 modelos | Con 10.000 modelos sería lento | Paginación desde la API e índices |
-
-## 4. Ruta para hacerlo escalable (en orden)
-1. **Backend**: API REST (FastAPI o Node/Express) + PostgreSQL. Tablas: `modelo`, `stock`, `movimiento` (kardex), `venta`, `sesion_caja`, `conteo`, `pedido`, `usuario`. El dominio actual se reutiliza en Node o se traduce 1:1.
-2. **Sincronización offline**: cola de operaciones en IndexedDB que se envía al volver la conexión; el servidor es la fuente de verdad del kardex.
-3. **Seguridad**: login, roles validados en el servidor, auditoría de anulaciones.
-4. **Frontend**: TypeScript + *bundler* (Vite) + componentes; estado con acciones.
-5. **Calidad**: CI con `npm test` + Playwright en cada *push*; medición de cobertura.
-6. **IA**: reentrenamiento periódico con fotos tomadas en tienda; modelo versionado.
-
-## 5. Escalabilidad en números (estimación)
-
-| Escenario | ¿Funciona hoy? |
-|---|---|
-| 3 tiendas, 1 celular por tienda, demo | ✅ |
-| 3 tiendas, varios vendedores por tienda | ❌ Cada celular tiene su propio stock (no se comparte) |
-| 1 año de ventas (~60.000) | ❌ Supera el límite de `localStorage` |
-| 725 → 5.000 modelos | ⚠️ Funciona, pero conviene paginar desde un servidor |
-| 50 tiendas | ❌ Requiere backend (§4) |
+## 4. Lo que falta para producción a gran escala (honesto)
+1. **Base de datos**: SQLite basta para 3–10 tiendas con un servidor. Para 50 o más tiendas: PostgreSQL y tablas normalizadas de ventas y stock en vez de una instantánea JSON. La interfaz `procesarLote()` no cambia.
+2. **Instantánea completa**: hoy el celular descarga el estado completo (≈2 MB) cuando cambia. A escala: deltas por `rev`.
+3. **Concurrencia**: el servidor procesa las acciones en serie (un proceso Node). Basta para decenas de tiendas; más allá, colas o particionar por tienda.
+4. **Presentación**: sigue en *template strings* (sin framework). Migrar a componentes con TypeScript mejoraría el mantenimiento, no la escala.
+5. **Facturación SIN, gestión de usuarios desde la app, copias de seguridad automáticas** de la base.

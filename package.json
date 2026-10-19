@@ -3,6 +3,18 @@
   "private": true,
   "description": "PWA académica: inventario de calzado con visión artificial (caso Manaco)",
   "scripts": {
-    "test": "node --test tests/dominio.test.js"
+    "test": "node --test tests/*.test.js",
+    "start": "node server/servidor.js",
+    "test:e2e": "playwright test",
+    "tipos": "tsc -p tsconfig.json",
+    "verificar-version": "node herramientas/verificar_version.js"
+  },
+  "engines": {
+    "node": ">=22.5"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.1",
+    "@types/node": "^22.10.2",
+    "typescript": "^5.6.3"
   }
 }

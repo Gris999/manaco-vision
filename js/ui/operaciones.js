@@ -1,29 +1,17 @@
 /* Capa de presentación — Operaciones: venta, reposición, pedidos y anulación (todas pasan por el kardex).
    Script clásico: comparte el ámbito global con los demás módulos de js/ui (ver docs/ARQUITECTURA.md). */
-function asegurarInicio(t){
-  const k=hoy()+"|"+t;
-  if(!S.inicioDia[k]){S.inicioDia[k]={}; CAT.forEach(c=>S.inicioDia[k][c.id]=S.stock[c.id][t]);}
-  return S.inicioDia[k];
-}
 let ultimaVenta={id:null,t:0};
 function vender(id,cant){
   if(ultimaVenta.id===id&&Date.now()-ultimaVenta.t<900) return false; // evita ventas duplicadas por doble toque
-  const t=tiendaAct(), c=modelo(id); cant=D.leerCantidad(cant);
-  if(!c||cant==null) return false;
-  if(!cajaAbierta(t)){toast(cajaHoy(t)?`La caja de ${t.split(" - ")[0]} ya se cerró hoy.`:`Primero el Encargado debe abrir la caja de ${t.split(" - ")[0]}.`);return false;}
-  asegurarInicio(t);
-  if(S.stock[id][t]<cant){toast(`Solo hay ${S.stock[id][t]} pares en ${t}`);return false;}
-  const nro=(S.nroVenta[t]=(S.nroVenta[t]||0)+1), hora=new Date().toTimeString().slice(0,5);
-  D.moverStock(S,{id,tienda:t,cant:-cant,tipo:"venta",ref:`Venta N° ${nro}`,fecha:hoy(),hora,costo:c.costo_bs});
-  S.ventas.push({nro,fecha:hoy(),hora,sesion:sesionKey(t),id,tienda:t,cant,precio:c.precio_bs,costo:c.costo_bs,pago});
-  ultimaVenta={id,t:Date.now()};
-  guardar(); render(); toast(`✓ Vendido: ${cant} × ${c.nombre.split(" - ")[0]} · ${bs(cant*c.precio_bs)} · ${PAGOS[pago][1]}`);
+  const r=ejecutar("VENDER",{id,cant,pago}); if(!r) return false;
+  ultimaVenta={id,t:Date.now()}; const c=modelo(id);
+  render(); toast(`✓ Vendido: ${r.cant} × ${c.nombre.split(" - ")[0]} · ${bs(r.total)} · ${PAGOS[pago][1]}`);
   if(ultimo===id) mostrar({clase:id,prob:ultimaProb||1}); return true;
 }
-const pedidoPendiente=(id,t)=>(S.pedidos||[]).some(p=>p.id===id&&p.tienda===t&&!p.recibido);
-function pedirReposicion(id,t,btn){ S.pedidos??=[];
-  if(pedidoPendiente(id,t)){toast("Ya hay un pedido pendiente de ese modelo para esa tienda"); return;}
-  S.pedidos.push({fecha:hoy(),id,tienda:t,cant:10}); guardar(); if(btn){btn.textContent="Pedido ✓"; btn.disabled=true;} toast(`📦 Pedido de 10 pares de ${modelo(id).nombre.split(" - ")[0]} enviado a ${t.split(" - ")[0]}`); }
+const pedidoPendiente=(id,t)=>Acciones.pedidoPendiente(S,id,t);
+function pedirReposicion(id,t,btn){
+  if(!ejecutar("PEDIR",{id,tienda:t},"")) return;
+  if(btn){btn.textContent="Pedido ✓"; btn.disabled=true;} toast(`📦 Pedido de 10 pares de ${modelo(id).nombre.split(" - ")[0]} enviado a ${t.split(" - ")[0]}`); }
 const TIPOMOV={inicial:["Saldo inicial","text-mute"],venta:["Venta","text-marca"],reposicion:["Reposición","text-ok"],ajuste:["Ajuste por conteo","text-aviso"],devolucion:["Devolución / anulación","text-ok"]};
 function verKardex(id){
   const c=modelo(id), ts=rol==="gerente"?TIENDAS:[tiendaAct()];
@@ -43,21 +31,17 @@ function verKardex(id){
 $("#modalKardex").addEventListener("click",e=>{if(e.target.id==="modalKardex") e.target.classList.add("hidden");});
 document.addEventListener("keydown",e=>{if(e.key==="Escape") $$("#modalKardex,#modalIOS").forEach(m=>m.classList.add("hidden"));});
 /* Anulación / devolución: revierte el stock en el kardex y deja la venta marcada (no se borra: trazabilidad) */
-function anularVenta(nro){
-  const t=tiendaAct(), v=S.ventas.find(x=>x.tienda===t&&x.nro===nro);
-  if(!v||v.anulada) return;
-  if(!cajaAbierta(t)){toast("Solo se puede anular con la caja abierta");return;}
-  const motivo=(prompt(`Anular la venta N° ${nro} (${v.cant} × ${modelo(v.id)?.nombre.split(" - ")[0]} · ${bsc(v.cant*v.precio)}). \nMotivo (ej.: "defecto: suela despegada", "cambio de talla", "no le gustó"):`,"Defecto: suela despegada")||"").trim();
-  if(!motivo) return;
-  if(v.pago==="efectivo"&&v.cant*v.precio>D.esperadoCaja(cajaHoy(t),resumenSesion(t).porPago.efectivo)){toast("No hay efectivo suficiente en caja para devolver");return;}
-  D.moverStock(S,{id:v.id,tienda:t,cant:v.cant,tipo:"devolucion",ref:`Anulación venta N° ${nro}: ${motivo}`,fecha:hoy(),hora:new Date().toTimeString().slice(0,5),costo:v.costo});
-  Object.assign(v,{anulada:true,motivoAnulacion:motivo,horaAnulacion:new Date().toTimeString().slice(0,5)});
-  guardar(); render(); toast(`Venta N° ${nro} anulada · stock devuelto`);
+async function anularVenta(nro){
+  const t=tiendaAct(), v=S.ventas.find(x=>x.tienda===t&&x.nro===nro); if(!v||v.anulada) return;
+  const r=await dialogo({titulo:`Anular la venta N° ${nro}`,texto:`${v.cant} × ${modelo(v.id)?.nombre.split(" - ")[0]} · ${bsc(v.cant*v.precio)}. El stock vuelve al inventario y el dinero sale de la caja.`,
+    opciones:Object.entries(Acciones.MOTIVOS),campo:{etiqueta:"Detalle (opcional)",placeholder:"Ej.: suela despegada"},aceptar:"Anular venta",peligro:true});
+  if(!r) return;
+  const res=ejecutar("ANULAR",{nro,tipoMotivo:r.opcion,detalle:r.texto}); if(res){render(); toast(res.msg);}
 }
-function recibirPedido(i){const p=S.pedidos[i]; if(!p||p.recibido) return; p.recibido=true; p.fechaRecibido=hoy(); reponer(p.id,p.cant,p.tienda);}
+function recibirPedido(i){const p=S.pedidos[i]; if(!p) return; const r=ejecutar("RECIBIR",{pid:p.pid,i}); if(r){render(); toast(`${r.msg} · ${modelo(p.id).nombre.split(" - ")[0]}`);}}
 function reponer(id,cant,t=tiendaAct()){
-  asegurarInicio(t); D.moverStock(S,{id,tienda:t,cant,tipo:"reposicion",ref:"Reposición",fecha:hoy(),hora:new Date().toTimeString().slice(0,5),costo:modelo(id).costo_bs}); S.inicioDia[hoy()+"|"+t][id]+=cant;
-  guardar(); render(); toast(`+${cant} pares de ${modelo(id).nombre.split(" - ")[0]} en ${t.split(" - ")[0]}`); if(ultimo===id&&vista==="escaner") mostrar({clase:id,prob:ultimaProb||1});
+  if(!ejecutar("REPONER",{id,cant},t)) return;
+  render(); toast(`+${cant} pares de ${modelo(id).nombre.split(" - ")[0]} en ${t.split(" - ")[0]}`); if(ultimo===id&&vista==="escaner") mostrar({clase:id,prob:ultimaProb||1});
 }
 $("#vBtn").onclick=()=>{const id=$("#vModelo").value,n=D.leerCantidad($("#vCant").value);
   if(n==null){toast("La cantidad debe ser un número entero de 1 a 99"); $("#vCant").focus(); return;}

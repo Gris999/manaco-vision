@@ -1,11 +1,7 @@
 /* Capa de presentación — Caja: sesión, movimientos, arqueo y Reporte Z.
    Script clásico: comparte el ámbito global con los demás módulos de js/ui (ver docs/ARQUITECTURA.md). */
 document.addEventListener("click",e=>{const b=e.target.closest("[data-pago]"); if(!b) return; pago=b.dataset.pago; $$("[data-pago]").forEach(x=>x.classList.toggle("on",x.dataset.pago===pago));});
-function ventasDeSesion(t=tiendaAct()){
-  const k=sesionKey(t), cj=S.cajas?.[k];
-  const conSesion=S.ventas.filter(v=>v.sesion===k);
-  return conSesion.length||!cj?.idx0?conSesion:S.ventas.slice(cj.idx0).filter(v=>v.tienda===t&&v.fecha===cj.fecha);
-}
+const ventasDeSesion=(t=tiendaAct())=>Acciones.ventasSesion(S,sesionKey(t));
 function resumenSesion(t=tiendaAct()){
   const vs=ventasDeSesion(t).map(conCosto), R=D.resumenVentas(vs), cj=cajaHoy(t);
   const fecha=cj?.fecha||hoy(), conteo=S.cierres.filter(c=>c.fecha===fecha&&c.tienda===t), K=D.kpiConteos(conteo,id=>modelo(id)?.costo_bs||0);
@@ -13,38 +9,31 @@ function resumenSesion(t=tiendaAct()){
   return {...R,vs,conteo:conteo.length,K,rango:nros.length?`N° ${Math.min(...nros)} – ${Math.max(...nros)}`:"—"};
 }
 function abrirCaja(){
-  const fondo=D.leerMonto($("#fondoIni").value), t=tiendaAct(), k=cajaKey(t)+"#"+Date.now();
-  if(fondo==null){toast("Escribe el fondo inicial en Bs (0 si empiezas sin cambio)"); $("#fondoIni").focus(); return;}
-  S.cajas[k]={fecha:hoy(),tienda:t,abierta:true,fondo,movs:[],hApertura:new Date().toTimeString().slice(0,5),idx0:S.ventas.length};
-  (S.sesionActiva??={})[t]=k; if(S.permitirNueva) delete S.permitirNueva[t]; asegurarInicio(t); guardar(); renderCaja(); toast(`🟢 Caja abierta con ${bsc(fondo)}`);
+  const r=ejecutar("ABRIR_CAJA",{fondo:$("#fondoIni").value}); if(!r){$("#fondoIni").focus(); return;}
+  renderCaja(); toast(`🟢 Caja abierta con ${bsc(r.fondo)}`);
 }
 function movCaja(){
-  const tipo=$("#mcTipo").value, monto=D.leerMonto($("#mcMonto").value)||0, motivo=$("#mcMotivo").value.trim();
-  if(monto<=0){toast("Escribe un monto mayor a 0");return;} if(!motivo){toast("Escribe el motivo (ej.: depósito al banco)");return;}
-  const cj=cajaHoy(), r=resumenSesion();
-  if(tipo==="retiro"&&monto>D.esperadoCaja(cj,r.porPago.efectivo)){toast("No hay tanto efectivo en caja");return;}
-  (cj.movs??=[]).push({tipo,monto,motivo,hora:new Date().toTimeString().slice(0,5)}); guardar(); renderCaja();
-  toast(`${tipo==="retiro"?"↗ Retiro":"↘ Ingreso"} de ${bsc(monto)} registrado`);
+  const tipo=$("#mcTipo").value, r=ejecutar("MOV_CAJA",{tipo,monto:$("#mcMonto").value,motivo:$("#mcMotivo").value});
+  if(r){renderCaja(); toast(`${tipo==="retiro"?"↗ Retiro":"↘ Ingreso"} de ${bsc(r.monto)} registrado`);}
 }
 const leerArqueo=()=>{const o={}; $$("[data-den]").forEach(i=>o[i.dataset.den]=i.value); return o;};
-const guardarArqueo=deb(()=>guardar(),400);
-function actArqueo(){const cj=cajaHoy(); cj.arqueo=leerArqueo(); guardarArqueo();
-  const r=resumenSesion(), esp=D.esperadoCaja(cj,r.porPago.efectivo), t=D.totalArqueo(cj.arqueo), d=D.redondear(t-esp);
+const arqueoBorrador=()=>BORR.arqueo[sesionKey()]||{};
+function actArqueo(){BORR.arqueo[sesionKey()]=leerArqueo(); guardar();
+  const cj=cajaHoy(), r=resumenSesion(), esp=D.esperadoCaja(cj,r.porPago.efectivo), t=D.totalArqueo(arqueoBorrador()), d=D.redondear(t-esp);
   $("#arqTotal").textContent=bsc(t); $("#arqDif").textContent=(d>0?"+":"")+bsc(d); $("#arqDif").className="text-2xl font-bold tabular-nums "+(d===0?"text-ok":d<0?"text-marca":"text-aviso");}
-function cerrarCaja(){
-  const cj=cajaHoy(), r=resumenSesion(), esperado=D.esperadoCaja(cj,r.porPago.efectivo), contado=D.totalArqueo(cj.arqueo||leerArqueo());
+async function cerrarCaja(){
+  const cj=cajaHoy(), r=resumenSesion(), esperado=D.esperadoCaja(cj,r.porPago.efectivo), arqueo=leerArqueo(), contado=D.totalArqueo(arqueo);
   if(contado===0&&esperado>0){toast("Primero cuenta el efectivo: escribe cuántos billetes y monedas hay"); document.querySelector("[data-den]")?.focus(); return;}
-  if(!confirm(`¿Cerrar la caja? Contaste ${bsc(contado)} y el sistema espera ${bsc(esperado)}.${contado===0?" ⚠️ No ingresaste ningún billete.":""} Después no se podrá vender en esta sesión.`)) return;
-  Object.assign(cj,{abierta:false,hCierre:new Date().toTimeString().slice(0,5),esperado,contado,dif:D.redondear(contado-esperado)});
-  delete S.sesionActiva[cj.tienda]; guardar(); renderCaja(); toast("Caja cerrada · Reporte Z listo");
+  if(!await confirmar("¿Cerrar la caja?",`Contaste ${bsc(contado)} y el sistema espera ${bsc(esperado)}. Después no se podrá vender en esta sesión.`,"Cerrar caja")) return;
+  const k=sesionKey(); if(ejecutar("CERRAR_CAJA",{arqueo})){delete BORR.arqueo[k]; guardar(); renderCaja(); toast("Caja cerrada · Reporte Z listo");}
 }
 // Demo: permite abrir otra sesión el mismo día (la anterior queda en el historial, como en Odoo)
-function nuevaSesion(){ if(confirm("¿Abrir una nueva sesión de caja hoy? La sesión cerrada queda guardada en el historial.")){ S.permitirNueva??={}; S.permitirNueva[tiendaAct()]=hoy(); guardar(); renderCaja();} }
+async function nuevaSesion(){ if(await confirmar("¿Abrir una nueva sesión de caja hoy?","La sesión cerrada queda guardada en el historial.","Nueva sesión")&&ejecutar("NUEVA_SESION",{})) renderCaja(); }
 function renderCaja(){
   renderCajaCuerpo();
   // Recorrido del día: dónde estoy y qué sigue
   const t=tiendaAct(); let cj=cajaHoy(); if(cj&&!cj.abierta&&S.permitirNueva?.[t]===hoy()) cj=null;
-  const vendio=cj&&resumenSesion().transacciones>0, contado=!!borrador(t).cerrado, cerrada=cj&&!cj.abierta;
+  const vendio=cj&&resumenSesion().transacciones>0, contado=!!conteoCerrado(t), cerrada=cj&&!cj.abierta;
   const pasos=[["Abrir caja",!!cj],["Vender",vendio||cerrada],["Contar inventario",contado],["Arqueo y cierre",cerrada]];
   const sig=pasos.findIndex(p=>!p[1]);
   const consejo=sig===-1?"Día cerrado. Puedes imprimir el Reporte Z.":cerrada&&!contado?`Caja cerrada, pero <b>falta el conteo de inventario</b>. <button class="underline font-semibold" onclick="ver('cierre')">Hacerlo ahora →</button>`:sig===0?"Empieza abriendo la caja con el fondo para cambio.":sig===1?"Los vendedores ya pueden vender. Cuando termine el día, sigue con el conteo.":sig===2?`Antes de cerrar, <button class="underline font-semibold" onclick="ver('cierre')">haz el conteo de inventario →</button>`:"Cuenta el efectivo abajo y cierra la caja.";
@@ -84,7 +73,7 @@ function renderCajaCuerpo(){
           ${(cj.movs||[]).length?`<div class="mt-3 space-y-1">${cj.movs.map(m=>`<div class="flex justify-between text-xs"><span>${m.hora} · ${esc(m.motivo)}</span><b class="${m.tipo==="retiro"?"text-marca":"text-ok"}">${m.tipo==="retiro"?"−":"+"}${bsc(m.monto)}</b></div>`).join("")}</div>`:""}</div>
       </div>
       <div class="lg:col-span-3 card p-5 h-fit"><h2 class="font-bold text-lg">Arqueo: cuenta el efectivo</h2><p class="text-sm text-mute mb-4">Escribe cuántos billetes y monedas hay de cada valor.</p>
-        <div class="grid grid-cols-3 sm:grid-cols-6 gap-2">${DENOM.map(d=>`<label class="rounded-xl bg-suave p-2 text-center"><span class="text-xs text-mute block">Bs ${String(d).replace(".",",")}</span><input data-den="${d}" type="number" min="0" inputmode="numeric" placeholder="0" class="w-full bg-white rounded-lg text-center font-semibold py-1.5 mt-1" value="${cj.arqueo?.[d]??""}" oninput="actArqueo()" aria-label="Cantidad de Bs ${d}"></label>`).join("")}</div>
+        <div class="grid grid-cols-3 sm:grid-cols-6 gap-2">${DENOM.map(d=>`<label class="rounded-xl bg-suave p-2 text-center"><span class="text-xs text-mute block">Bs ${String(d).replace(".",",")}</span><input data-den="${d}" type="number" min="0" inputmode="numeric" placeholder="0" class="w-full bg-white rounded-lg text-center font-semibold py-1.5 mt-1" value="${arqueoBorrador()[d]??""}" oninput="actArqueo()" aria-label="Cantidad de Bs ${d}"></label>`).join("")}</div>
         <div class="grid grid-cols-2 gap-3 mt-5">
           <div class="rounded-2xl bg-suave p-4"><div class="text-xs text-mute">Contado</div><div id="arqTotal" class="text-2xl font-bold tabular-nums">Bs 0</div></div>
           <div class="rounded-2xl bg-suave p-4"><div class="text-xs text-mute">Diferencia</div><div id="arqDif" class="text-2xl font-bold tabular-nums"></div></div>

@@ -34,6 +34,8 @@ Manaco no integra los datos de mercado con los datos internos de ventas, inventa
 | HU-16 | Gerente | exportar el Reporte Z y las ventas a Excel | llevarlo a contabilidad | Could | — | Pendiente |
 | HU-17 | Vendedor | emitir factura con NIT | cumplir con el SIN | Could | — | Fuera de alcance |
 | HU-18 | Gerente | segmentar clientes por compras | dirigir campañas | Could | Requiere registrar cliente en la venta | Pendiente |
+| HU-19 | Todos | entrar con mi usuario y contraseña | que nadie use un rol que no le corresponde | Must | El servidor impone rol y tienda; 10 intentos cada 5 min | ✅ v22 |
+| HU-20 | Encargado y Gerente | ver en mi celular lo que vendió otro celular | trabajar con un solo inventario | Must | Sincronización cada 20 s y al reconectar; sin internet, cola local | ✅ v22 |
 
 ## 4. Requisitos no funcionales
 
@@ -45,11 +47,11 @@ Manaco no integra los datos de mercado con los datos internos de ventas, inventa
 | RNF-04 | Portabilidad | Android, iPhone y escritorio; instalable | Chrome, Safari iOS 17+ y Edge |
 | RNF-05 | Exactitud contable | Sin errores de redondeo; IVA incluido en el precio | 17 pruebas unitarias |
 | RNF-06 | Mantenibilidad | Dominio separado y probado; un módulo por función | `js/dominio.js` + `js/ui/*` |
-| RNF-07 | Seguridad y privacidad | Las fotos no salen del celular; HTTPS | IA local; GitHub Pages con HTTPS |
+| RNF-07 | Seguridad y privacidad | Las fotos no salen del celular; login con scrypt y token; el servidor valida permisos; rutas privadas no se sirven; texto libre limpiado | Pruebas de API (`tests/servidor.test.js`) |
 | RNF-08 | Trazabilidad | Todo cambio de stock queda en el kardex | `verificarKardex()` = 0 errores |
 
 ## 5. Restricciones y supuestos
 - **Supuesto**: los costos son simulados (52–62 % del precio según la línea), igual que las ventas históricas y el stock inicial.
 - **Supuesto**: 3 tiendas de referencia (La Paz, Cochabamba y Santa Cruz).
-- **Restricción**: sin servidor; los datos viven en cada dispositivo.
+- **Modos**: sin servidor (demo, datos por dispositivo) o con servidor (datos compartidos, login).
 - **Restricción**: catálogo e imágenes públicas de bata.com.bo, de uso académico.

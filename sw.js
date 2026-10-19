@@ -2,12 +2,12 @@
    - Precarga la app, las librerías, los datos y la IA (~20 MB) para usarla sin internet.
    - Las fotos del catálogo se guardan a medida que se ven y luego en segundo plano.
    - Al publicar una versión nueva, sube VERSION: la app mostrará "Hay una nueva versión". */
-const VERSION = "v21-2026-10-19";
+const VERSION = "v22-2026-10-19";
 const NUCLEO = `mv-nucleo-${VERSION}`;
 const FOTOS = "mv-fotos-v1"; // las fotos casi no cambian: se conservan entre versiones
 
 const PRECARGA = [
-  "./", "index.html", "manifest.json", "js/dominio.js", "js/ui/nucleo.js", "js/ui/ia.js", "js/ui/operaciones.js", "js/ui/conteo.js", "js/ui/dashboard.js", "js/ui/mercado.js", "js/ui/caja.js", "js/ui/pwa.js", "catalogo.json", "mercado.json",
+  "./", "index.html", "manifest.json", "js/dominio.js", "js/acciones.js", "js/ui/estado.js", "js/ui/nucleo.js", "js/ui/ia.js", "js/ui/operaciones.js", "js/ui/conteo.js", "js/ui/dashboard.js", "js/ui/mercado.js", "js/ui/caja.js", "js/ui/pwa.js", "catalogo.json", "mercado.json",
   "vendor/poppins.css", "vendor/tailwind-3.4.16.js", "vendor/tf-4.22.0.min.js",
   "vendor/mobilenet-2.1.1.min.js", "vendor/chart-4.4.1.umd.min.js",
   ...["300-normal", "400-normal", "500-normal", "600-normal", "700-normal", "800-normal", "700-italic", "800-italic"].map(f => `vendor/fonts/poppins-${f}.woff2`),
@@ -49,7 +49,7 @@ self.addEventListener("fetch", e => {
   const req = e.request;
   if (req.method !== "GET") return;
   const url = new URL(req.url);
-  if (url.origin !== location.origin) return; // todo lo externo va directo a la red
+  if (url.origin !== location.origin || url.pathname.includes("/api/")) return; // externo y API: siempre a la red
 
   // Páginas: primero la red (para ver cambios), si no hay red, la copia guardada
   if (req.mode === "navigate") {

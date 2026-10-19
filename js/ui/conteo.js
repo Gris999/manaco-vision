@@ -1,7 +1,9 @@
 /* Capa de presentación — Conteo cíclico de inventario (paginado, con borrador y conteo ciego).
    Script clásico: comparte el ámbito global con los demás módulos de js/ui (ver docs/ARQUITECTURA.md). */
 const POR_PAG_CONTEO=20, POR_PAG_HOY=10, ROTACION_DIA=20, TOPE_HOY=35; let cPag=0, cFiltro="hoy";
-function borrador(t=tiendaAct()){ S.conteos??={}; const k=hoy()+"|"+t; return S.conteos[k]??={valores:{},cerrado:false}; }
+/* Borrador local del conteo (lo que el encargado va anotando). Al cerrar se envía como UNA acción CERRAR_CONTEO. */
+function borrador(t=tiendaAct()){ const k=hoy()+"|"+t; return BORR.conteo[k]??={valores:{},ciego:false}; }
+const conteoCerrado=(t=tiendaAct())=>S.conteos?.[hoy()+"|"+t]?.cerrado?S.conteos[hoy()+"|"+t]:null;
 function vendidosHoy(t){const m={}; S.ventas.forEach(v=>{if(!v.anulada&&v.fecha===hoy()&&v.tienda===t) m[v.id]=(m[v.id]||0)+v.cant;}); return m;}
 /* Conteo CÍCLICO (práctica estándar de retail): cada día se cuenta un grupo pequeño elegido por el sistema
    y una parte rotativa del catálogo, así todo se cuenta cada ~5 semanas sin contar 725 modelos a la vez. */
@@ -25,11 +27,12 @@ function listaConteo(){
       (cFiltro==="diferencias"&&B.valores[c.id]!=null&&B.valores[c.id]!==S.stock[c.id][t])));
 }
 function renderCierre(){
-  const t=tiendaAct(), ini=asegurarInicio(t), B=borrador(t), vend=vendidosHoy(t), H=listaDelDia(t);
+  const t=tiendaAct(), B=borrador(t), vend=vendidosHoy(t), H=listaDelDia(t);
   $("#cTienda").textContent=t;
-  $("#cPanel").classList.toggle("hidden",B.cerrado);
-  $("#cRes").innerHTML=B.cerrado?resultadoConteo(B.resultado):"";
-  if(B.cerrado) return;
+  const CC=conteoCerrado(t);
+  $("#cPanel").classList.toggle("hidden",!!CC);
+  $("#cRes").innerHTML=CC?resultadoConteo(CC.resultado):"";
+  if(CC) return;
   const hechosHoy=H.ids.filter(id=>B.valores[id]!=null).length, difs=Object.entries(B.valores).filter(([id,v])=>v!==S.stock[id][t]);
   const faltan=difs.reduce((a,[id,v])=>a+Math.max(0,S.stock[id][t]-v),0), extra=Object.keys(B.valores).filter(id=>!H.motivo[id]).length;
   $("#cProg").textContent=`Hoy: ${hechosHoy} de ${H.ids.length} modelos${extra?` (+${extra} extra)`:""}`;
@@ -79,21 +82,15 @@ function resultadoConteo(R){
     ${R.filas.length?`<div class="mt-3 space-y-1.5">${R.filas.slice(0,30).map(f=>`<div class="flex justify-between text-sm bg-white rounded-xl px-3 py-2"><span class="truncate mr-2">${corto(modelo(f.id))}: sistema <b>${f.esp}</b>, contado <b>${f.fis}</b></span><b class="${f.dif<0?'text-marca':'text-ok'}">${f.dif>0?'+':''}${f.dif}</b></div>`).join("")}${R.filas.length>30?`<div class="text-xs text-mute">… y ${R.filas.length-30} más</div>`:""}</div>`:""}
     <button class="btn btn-s mt-4" onclick="reabrirConteo()">Nuevo conteo (demo)</button></div>`;
 }
-function reabrirConteo(){ if(!confirm("Solo para la demostración: ¿empezar un nuevo conteo hoy?")) return; const k=hoy()+"|"+tiendaAct(); delete S.conteos[k]; guardar(); renderCierre(); }
-$("#cBtn").onclick=()=>{
+async function reabrirConteo(){ if(!await confirmar("¿Empezar un nuevo conteo hoy?","Solo para la demostración. El conteo cerrado se reemplaza.","Nuevo conteo")) return;
+  if(ejecutar("REABRIR_CONTEO",{})){ delete BORR.conteo[hoy()+"|"+tiendaAct()]; guardar(); renderCierre(); } }
+$("#cBtn").onclick=async()=>{
   const t=tiendaAct(), B=borrador(t), ids=Object.keys(B.valores);
   if(!ids.length){toast("Aún no contaste ningún modelo"); return;}
-  const H=listaDelDia(t), pendHoy=H.ids.filter(id=>B.valores[id]==null).length, sinContar=CAT.length-ids.length;
-  if(!confirm(pendHoy?`Te faltan ${pendHoy} modelos de la lista de hoy. ¿Cerrar igual? Los no contados mantienen el stock del sistema.`:`Vas a cerrar el conteo de hoy (${ids.length} modelos). ¿Continuar?`)) return;
-  let falt=0, sobra=0, monto=0; const filas=[];
-  S.cierres=S.cierres.filter(c=>!(c.fecha===hoy()&&c.tienda===t)); // un solo conteo vigente por día y tienda
-  ids.forEach(id=>{const esp=S.stock[id][t], fis=B.valores[id], dif=fis-esp;
-    S.cierres.push({fecha:hoy(),tienda:t,id,esperado:esp,fisico:fis,dif});
-    if(dif){filas.push({id,esp,fis,dif}); if(dif<0){falt+=-dif; monto+=-dif*modelo(id).costo_bs;} else sobra+=dif;}
-    if(dif) D.moverStock(S,{id,tienda:t,cant:dif,tipo:"ajuste",ref:"Conteo de inventario",fecha:hoy(),hora:new Date().toTimeString().slice(0,5),costo:modelo(id).costo_bs});});
-  const lim=diaMenos(3); S.cierres=S.cierres.filter(c=>c.fecha>=lim||c.dif!==0);
-  B.cerrado=true; B.resultado={filas:filas.sort((a,b)=>a.dif-b.dif),falt,sobra,monto,contados:ids.length,total:CAT.length,sinContar,hora:new Date().toTimeString().slice(0,5)};
-  guardar(); renderCierre();
-  window.scrollTo({top:0,behavior:"smooth"}); toast(filas.length?"Conteo cerrado con diferencias":"Conteo cerrado: todo cuadra");
+  const pendHoy=listaDelDia(t).ids.filter(id=>B.valores[id]==null).length;
+  if(!await confirmar(pendHoy?`Te faltan ${pendHoy} modelos de la lista de hoy`:"Cerrar el conteo de hoy",pendHoy?"¿Cerrar igual? Los no contados mantienen el stock del sistema.":`Vas a cerrar el conteo (${ids.length} modelos) y ajustar las diferencias en el kardex.`,"Cerrar conteo")) return;
+  const r=ejecutar("CERRAR_CONTEO",{valores:B.valores},t); if(!r) return;
+  delete BORR.conteo[hoy()+"|"+t]; guardar(); renderCierre();
+  window.scrollTo({top:0,behavior:"smooth"}); toast(r.msg);
 };
 /* ---------- DASHBOARD ---------- */

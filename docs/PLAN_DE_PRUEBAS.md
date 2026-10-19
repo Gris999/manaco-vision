@@ -4,8 +4,10 @@
 
 | Nivel | Qué prueba | Herramienta | Cuándo |
 |---|---|---|---|
-| **Unitarias** | Reglas de dominio: IVA, IT, utilidad, ventanas de fechas, caja, arqueo, kardex, KPIs, calidad, migración | `node:test` (`npm test`) | En cada cambio del dominio |
-| **Integración / E2E** | Flujos completos por rol en el navegador | Navegador integrado (Chromium) con scripts | En cada iteración |
+| **Unitarias** | Reglas de dominio y del reductor de acciones: permisos, día completo, idempotencia, reproducción | `node:test` (`npm test`) | En cada *push* (CI) |
+| **Integración (API)** | Servidor real con una base de datos temporal: login, 401, rutas privadas, rol impuesto, atomicidad, límite de intentos | `node:test` + `fetch` | En cada *push* (CI) |
+| **Tipos** | Dominio, acciones y servidor | `tsc` sobre JSDoc (`npm run tipos`) | En cada *push* (CI) |
+| **E2E** | Modo demo (3 roles, día completo) y modo servidor (2 celulares) | Playwright (`npm run test:e2e`) | En cada *push* (CI) |
 | **Dispositivo** | Cámara, fotos, instalación y gestos en Safari | Simulador iPhone 17 (Xcode) | Si cambia algo de iOS, cámara o PWA |
 | **Exploratorias (QA)** | Usabilidad, densidad, mensajes y casos raros | Revisión manual por rol | Antes de cada publicación |
 | **Modelo de IA** | Precisión top-1 y top-3 | Conjunto de validación (20 %) | Al reentrenar |
@@ -50,6 +52,14 @@
 - 726 clases (725 modelos + "no es zapato"), 2.738 fotos originales y 22.150 aumentadas.
 - Validación: **82 % top-1** y **95 % top-3**. Modo prueba: 90 % con el correcto en el top-3.
 - Error típico: el mismo modelo en otro color (mitigado con el top-3).
+
+## 4b. Suite automática v22 (29 + 2)
+- `tests/dominio.test.js` (18): contabilidad, fechas, caja, kardex, KPIs, calidad, validación de entradas y agregaciones del Resumen.
+- `tests/acciones.test.js` (6): permisos por rol; día completo (abrir → vender → retiro → anular por defecto → contar → cerrar con faltante); pedido sin duplicar y recibido solo por la tienda destino; idempotencia; reproducción del registro de acciones; estado inicial determinista.
+- `tests/servidor.test.js` (5): salud pública y 401; rutas privadas; dos usuarios donde el servidor impone rol y tienda; atomicidad; límite de intentos de login.
+- `e2e/flujos.spec.js` (2): por la interfaz real en un celular emulado (Pixel 7).
+
+Pruebas manuales adicionales en el navegador (v22): migración desde `localStorage`; venta de otro celular visible en la caja del encargado; **servidor apagado → la venta queda en cola → al reiniciar el servidor se envía sola** (rev 2 → 3).
 
 ## 5. Criterios de salida
 - 100 % de las pruebas unitarias pasan.

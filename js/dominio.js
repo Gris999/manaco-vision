@@ -1,3 +1,4 @@
+// @ts-check
 /* Dominio de Manaco Vision: reglas de negocio PURAS (sin DOM, sin localStorage).
    Se usa en el navegador (window.Dominio) y en Node para las pruebas (module.exports).
    Referencias: Odoo pos.session / stock.move y ERPNext Stock Ledger Entry / POS Closing Entry.
@@ -84,6 +85,28 @@
   }
   const variacion = (actual, anterior) => anterior ? (actual - anterior) / anterior * 100 : null;
 
+  /* ---------- Agregaciones para el Resumen (antes estaban en la vista, sin pruebas) ---------- */
+  /** Pares y facturación por modelo, ordenado por pares (desc). */
+  function rankingModelos(ventas) {
+    const m = {};
+    for (const v of ventas) { if (v.anulada) continue; const o = (m[v.id] ??= { p: 0, bs: 0 }); o.p += v.cant; o.bs = bs(cent(o.bs) + cent(v.precio) * v.cant); }
+    return Object.entries(m).sort((a, b) => b[1].p - a[1].p);
+  }
+  /** Facturación bruta agrupada por una clave (tienda, categoría…), ordenada desc. */
+  function facturacionPor(ventas, clave, claves) {
+    const g = {}; for (const k of claves || []) g[k] = [];
+    for (const v of ventas) (g[clave(v)] ??= []).push(v);
+    return Object.entries(g).map(([k, vs]) => /** @type {[string, number]} */ ([k, resumenVentas(vs).bruto])).sort((a, b) => b[1] - a[1]);
+  }
+  /** Facturación bruta de cada día de la lista. */
+  const serieDiaria = (ventas, dias) => dias.map(d => resumenVentas(ventas.filter(v => v.fecha === d)).bruto);
+  /** Pares en stock y su valor a costo en las tiendas indicadas. */
+  function inventarioValorizado(stock, ids, tiendas, costoDe) {
+    let pares = 0, valor = 0;
+    for (const id of ids) for (const t of tiendas) { const n = stock[id][t]; pares += n; valor += n * cent(costoDe(id)); }
+    return { pares, valor: bs(valor) };
+  }
+
   /* ---------- Caja (sesión tipo pos.session) ---------- */
   /** Efectivo esperado = fondo + ventas en efectivo + ingresos − retiros. */
   function esperadoCaja(sesion, ventasEfectivoBs) {
@@ -159,9 +182,9 @@
     let vend = 0, dev = 0; const porTipo = { defecto: 0, talla: 0, otro: 0 };
     for (const v of ventas) {
       vend += v.cant;
-      if (v.anulada) { dev += v.cant; porTipo[tipoDevolucion(v.motivoAnulacion)] += v.cant; }
+      if (v.anulada) { dev += v.cant; porTipo[v.tipoAnulacion || tipoDevolucion(v.motivoAnulacion)] += v.cant; }
     }
-    const dias = (a, b) => Math.round((new Date(b) - new Date(a)) / 864e5);
+    const dias = (a, b) => Math.round((new Date(b).getTime() - new Date(a).getTime()) / 864e5);
     const recibidos = pedidos.filter(p => p.recibido && p.fechaRecibido).map(p => dias(p.fecha, p.fechaRecibido));
     return {
       pares: vend, devueltos: dev, porTipo,
@@ -193,7 +216,7 @@
     return estado;
   }
 
-  const Dominio = { IVA, IT, cent, bs, redondear, leerCantidad, leerMonto, sumarDias, ventana, enRango, desglose, resumenVentas, variacion,
+  const Dominio = { IVA, IT, cent, bs, redondear, leerCantidad, leerMonto, rankingModelos, facturacionPor, serieDiaria, inventarioValorizado, sumarDias, ventana, enRango, desglose, resumenVentas, variacion,
     esperadoCaja, totalArqueo, moverStock, verificarKardex, kpiConteos, cobertura, tipoDevolucion, kpiCalidad, migrar, VERSION_ESQUEMA };
   if (typeof module !== "undefined" && module.exports) module.exports = Dominio; else global.Dominio = Dominio;
 })(typeof window !== "undefined" ? window : globalThis);

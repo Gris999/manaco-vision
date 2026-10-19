@@ -143,3 +143,12 @@ test("validación de entradas: cantidad y monto", () => {
   assert.equal(D.leerMonto("500"), 500); assert.equal(D.leerMonto("12,5"), 12.5); assert.equal(D.leerMonto("0"), 0);
   for (const m of ["", "abc", "-5", "1.234"]) assert.equal(D.leerMonto(m), null, m);
 });
+
+test("agregaciones del Resumen: ranking, facturación por clave, serie diaria e inventario a costo", () => {
+  const V = [{ id: "a", cant: 2, precio: 100, tienda: "LP", fecha: "2026-10-18" }, { id: "b", cant: 1, precio: 50.5, tienda: "CB", fecha: "2026-10-18" },
+    { id: "a", cant: 1, precio: 100, tienda: "CB", fecha: "2026-10-19" }, { id: "b", cant: 9, precio: 1, tienda: "LP", fecha: "2026-10-19", anulada: true }];
+  assert.deepEqual(D.rankingModelos(V), [["a", { p: 3, bs: 300 }], ["b", { p: 1, bs: 50.5 }]]);
+  assert.deepEqual(D.facturacionPor(V, v => v.tienda, ["LP", "CB", "SC"]), [["LP", 200], ["CB", 150.5], ["SC", 0]]);
+  assert.deepEqual(D.serieDiaria(V, ["2026-10-18", "2026-10-19"]), [250.5, 100]);
+  assert.deepEqual(D.inventarioValorizado({ a: { LP: 2, CB: 1 } }, ["a"], ["LP"], () => 10.1), { pares: 2, valor: 20.2 });
+});

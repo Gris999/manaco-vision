@@ -1,0 +1,12 @@
+{
+  "_nota": "Usuarios de DEMOSTRACIÓN (prototipo académico). Al primer arranque se guardan con hash scrypt en la base; cambie las claves en producción.",
+  "usuarios": [
+    { "usuario": "gerente", "nombre": "Gerencia General", "rol": "gerente", "tienda": null, "clave": "Manaco-Gerente-2026" },
+    { "usuario": "encargado.lp", "nombre": "Encargado La Paz", "rol": "encargado", "tienda": "La Paz - El Prado", "clave": "Manaco-LP-2026" },
+    { "usuario": "vendedor.lp", "nombre": "Vendedor La Paz", "rol": "vendedor", "tienda": "La Paz - El Prado", "clave": "Manaco-VLP-2026" },
+    { "usuario": "encargado.cb", "nombre": "Encargado Cochabamba", "rol": "encargado", "tienda": "Cochabamba - Heroínas", "clave": "Manaco-CB-2026" },
+    { "usuario": "vendedor.cb", "nombre": "Vendedor Cochabamba", "rol": "vendedor", "tienda": "Cochabamba - Heroínas", "clave": "Manaco-VCB-2026" },
+    { "usuario": "encargado.sc", "nombre": "Encargado Santa Cruz", "rol": "encargado", "tienda": "Santa Cruz - Ventura Mall", "clave": "Manaco-SC-2026" },
+    { "usuario": "vendedor.sc", "nombre": "Vendedor Santa Cruz", "rol": "vendedor", "tienda": "Santa Cruz - Ventura Mall", "clave": "Manaco-VSC-2026" }
+  ]
+}

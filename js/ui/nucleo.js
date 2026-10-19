@@ -1,7 +1,7 @@
 /* Capa de presentación — Núcleo: configuración, estado, persistencia, navegación por roles y render.
    Script clásico: comparte el ámbito global con los demás módulos de js/ui (ver docs/ARQUITECTURA.md). */
 const D=window.Dominio; // reglas de negocio puras (js/dominio.js, con pruebas en tests/)
-const TIENDAS=["La Paz - El Prado","Cochabamba - Heroínas","Santa Cruz - Ventura Mall"];
+const TIENDAS=Acciones.TIENDAS;
 const VISTAS=[["escaner","Escáner","i-scan"],["inventario","Inventario","i-box"],["ventas","Ventas","i-cash"],["cierre","Conteo","i-moon"],["caja","Caja","i-caja"],["dashboard","Resumen","i-chart"],["mercado","Mercado","i-globe"]];
 const ROLES={
   vendedor:{nombre:"Vendedor",ico:"👟",vistas:["escaner","ventas"],desc:"Escanea el zapato y vende.",tareas:["Reconocer el modelo con la cámara","Consultar stock en las 3 tiendas","Registrar la venta"]},
@@ -14,7 +14,6 @@ const vistasRol=()=>rol?ROLES[rol].vistas:VISTAS.map(v=>v[0]);
 const duenoVista=v=>Object.values(ROLES).find(r=>r.vistas.includes(v))?.nombre||"";
 const UMBRAL=0.55, KEY="manacoVision_v6", BAJO=5;
 const PAGOS={efectivo:["💵","Efectivo"],qr:["📱","QR"],tarjeta:["💳","Tarjeta"]};
-const MARGEN_COSTO={"Deportivo":0.62,"Casual cuero (suela caucho)":0.58,"Formal cuero/cuero":0.52}; // costo ≈ % del precio (simulado)
 const DENOM=[200,100,50,20,10,5,2,1,0.5,0.2,0.1];
 let pago="efectivo";
 const cajaKey=(t=tiendaAct())=>hoy()+"|"+t;
@@ -41,37 +40,14 @@ const corto=c=>c?esc(c.nombre.split(" - ")[0].replace(/^(DEPORTIVO|ZAPATO DE VES
 const stockTotal=id=>TIENDAS.reduce((a,t)=>a+S.stock[id][t],0);
 const deb=(f,ms=180)=>{let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>f(...a),ms)}};
 
-function guardar(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){toast("No se pudo guardar en este navegador")}}
 let tt; function toast(msg){const t=$("#toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(tt); tt=setTimeout(()=>t.classList.remove("show"),2600);}
 
-function semilla(){
-  let r=42; const rnd=()=>(r=(r*9301+49297)%233280)/233280;
-  const st={}; CAT.forEach(c=>{st[c.id]={}; TIENDAS.forEach(t=>st[c.id][t]=rnd()<0.03?1+Math.floor(rnd()*4):5+Math.floor(rnd()*20))});
-  const peso={"Deportivo":1.4,"Casual cuero (suela caucho)":1.0,"Formal cuero/cuero":0.7};
-  const ventas=[];
-  for(let d=60; d>=1; d--){
-    const f=diaMenos(d);
-    TIENDAS.forEach((t,ti)=>CAT.forEach(c=>{
-      if(rnd()>Math.min(1,30/CAT.length)) return;
-      const rp=rnd();
-      ventas.push({fecha:f,hora:"12:00",sesion:f+"|"+t,id:c.id,tienda:t,cant:1+Math.floor(rnd()*2*(peso[c.categoria]||1)*(1+ti*0.2)),precio:c.precio_bs,costo:c.costo_bs,pago:rp<0.55?"efectivo":rp<0.9?"qr":"tarjeta"});
-    }));
-  }
-  const cierres=[];
-  for(let d=3; d>=1; d--){const f=diaMenos(d); TIENDAS.forEach(t=>CAT.forEach(c=>{const dif=rnd()<0.008?-1:0; cierres.push({fecha:f,tienda:t,id:c.id,esperado:10,fisico:10+dif,dif})}));}
-  const cajas={};
-  for(let d=60; d>=1; d--){const f=diaMenos(d); TIENDAS.forEach(t=>{
-    const ef=ventas.filter(v=>v.fecha===f&&v.tienda===t&&v.pago==="efectivo").reduce((a,v)=>a+v.cant*v.precio,0);
-    const esperado=Math.round(500+ef), r=rnd(), dif=r<0.86?0:[-20,-10,-5,5,10,-50][Math.floor(rnd()*6)];
-    cajas[f+"|"+t]={fecha:f,tienda:t,abierta:false,fondo:500,hApertura:"09:00",hCierre:"20:30",esperado,contado:esperado+dif,dif};
-  });}
-  return {stock:st,inicioDia:{},ventas,cierres,cajas};
-}
+const semilla=()=>Acciones.estadoInicial(CAT,TIENDAS,hoy());
 
 async function init(){
   try{CAT=await (await fetch("catalogo.json",{cache:"no-cache"})).json();}catch(e){$("#resultado").innerHTML=`<p class="text-error">No se pudo cargar el catálogo. Revisa tu conexión.</p>`;return;}
-  CAT.forEach(c=>{if(!c.precio_bs) c.precio_bs=189.3; c.costo_bs=Math.round(c.precio_bs*(MARGEN_COSTO[c.categoria]||0.58)); IDX[c.id]=c;});
-  try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){}
+  Acciones.prepararCatalogo(CAT).forEach(c=>IDX[c.id]=c);
+  S=await cargarEstado();
   if(!S||!S.stock||!S.cajas||CAT.some(c=>!S.stock[c.id])) S=semilla();
   D.migrar(S,CAT.map(c=>c.id),TIENDAS,hoy()); guardar();
   const errK=D.verificarKardex(S); if(errK.length) console.warn("Kardex descuadrado",errK);
@@ -111,7 +87,9 @@ async function init(){
   $$("[data-per]").forEach(b=>b.onclick=()=>{dPer=+b.dataset.per; renderDash();});
   $("#dTienda").innerHTML=`<option value="Todas">Las 3 tiendas</option>`+TIENDAS.map(t=>`<option>${t}</option>`).join("");
   $("#dTienda").onchange=e=>{dTie=e.target.value; renderDash();};
-  $("#btnReset").onclick=()=>{if(confirm("¿Reiniciar los datos de demostración? Se perderán las ventas y cierres registrados.")){S=semilla(); guardar(); render(); toast("Datos reiniciados");}};
+  $("#btnReset").onclick=async()=>{ if(Sync.activo){toast("Con servidor, los datos se reinician desde el servidor");return;}
+    if(await confirmar("¿Reiniciar los datos de demostración?","Se perderán las ventas y cierres registrados en este equipo.","Reiniciar",true)){S=semilla(); BORR={conteo:{},arqueo:{}}; guardar(); render(); toast("Datos reiniciados");}};
+  await Sync.iniciar(); pintarSesion();
   if(new URLSearchParams(location.search).has("muestra")){ $("#inicio").classList.add("hidden"); abrirMuestra(); }
   const rp=new URLSearchParams(location.search).get("rol"); if(ROLES[rp]) {rol=rp; try{localStorage.setItem("mv_rol",rol)}catch(e){}}
   resultadoVacio(); cargarIA(); initMercado();
@@ -131,8 +109,9 @@ function armarNav(){
 }
 function abrirInicio(){ $("#inicioTienda").value=tienda; $("#inicio").classList.remove("hidden"); if(stream) cerrarCam(); }
 function elegirRol(k){
+  if(Sync.activo&&k!==Sync.sesion.rol){toast(`Tu usuario es ${ROLES[Sync.sesion.rol].nombre}. Para usar otro rol, cierra sesión.`); return;}
   rol=k; try{localStorage.setItem("mv_rol",k)}catch(e){}
-  tienda=$("#inicioTienda").value; $$(".selTienda").forEach(o=>o.value=tienda);
+  tienda=Sync.activo&&Sync.sesion.tienda?Sync.sesion.tienda:$("#inicioTienda").value; $$(".selTienda").forEach(o=>o.value=tienda);
   $("#inicio").classList.add("hidden"); armarNav(); ver(ROLES[k].vistas[0]);
   toast(`Entraste como ${ROLES[k].nombre}${k!=="gerente"?" · "+tienda.split(" - ")[0]:""}`);
 }
@@ -156,3 +135,20 @@ function render(){
 }
 
 /* ---------- IA ---------- */
+
+/* Inicio de sesión (modo servidor) */
+function pintarSesion(){
+  const box=$("#inicioSesion"); if(!box) return;
+  box.innerHTML=Sync.activo
+    ?`<div class="flex items-center justify-between gap-3"><div class="min-w-0"><div class="eyebrow">Sesión en el servidor</div><div class="font-semibold truncate">${esc(Sync.sesion.nombre)} · ${esc(ROLES[Sync.sesion.rol]?.nombre||"")}</div><div class="text-xs text-mute truncate">${esc(Sync.sesion.tienda||"Las 3 tiendas")}</div></div><button class="btn btn-s !min-h-0 py-2 px-3 text-sm" onclick="Sync.salir()">Cerrar sesión</button></div>`
+    :`<div class="eyebrow mb-2">Modo servidor (datos compartidos)</div>
+      <form id="fLogin" class="grid gap-2"><input name="url" class="campo" placeholder="Servidor (ej.: http://localhost:8787)" autocomplete="url" required>
+      <div class="grid grid-cols-2 gap-2"><input name="usuario" class="campo" placeholder="Usuario" autocomplete="username" required><input name="clave" type="password" class="campo" placeholder="Contraseña" autocomplete="current-password" required></div>
+      <button class="btn btn-n">Iniciar sesión</button></form>`;
+  const f=$("#fLogin"); if(!f) return;
+  f.url.value=localStorage.getItem("mv_url")||(location.hostname.endsWith("github.io")?"":location.origin); // servido por la API: mismo origen
+  f.onsubmit=async e=>{e.preventDefault(); const b=f.querySelector("button"); b.disabled=true; b.textContent="Entrando…";
+    try{ localStorage.setItem("mv_url",f.url.value); await Sync.entrar(f.url.value,f.usuario.value.trim(),f.clave.value);
+      f.clave.value=""; $("#inicio").classList.add("hidden"); pintarSesion(); armarNav(); ver(ROLES[rol].vistas[0]); toast(`Entraste como ${Sync.sesion.nombre}`);
+    }catch(err){ toast(err.message||"No se pudo conectar"); b.disabled=false; b.textContent="Iniciar sesión"; }};
+}

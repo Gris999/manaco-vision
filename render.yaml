@@ -1,0 +1,17 @@
+# Despliegue del servidor en Render (plan gratuito). En Render: New → Blueprint → elegir este repositorio.
+# Nota: en el plan gratuito el disco no es persistente; para producción usar un disco (Render Disk) o PostgreSQL.
+services:
+  - type: web
+    name: manaco-vision-api
+    runtime: node
+    plan: free
+    buildCommand: npm ci --omit=dev
+    startCommand: node server/servidor.js
+    healthCheckPath: /api/salud
+    envVars:
+      - key: PUERTO
+        value: "10000"
+      - key: SECRETO_JWT
+        generateValue: true
+      - key: CORS_ORIGENES
+        value: https://gris999.github.io

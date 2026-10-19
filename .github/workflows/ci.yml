@@ -1,0 +1,29 @@
+# Integración continua: cada push y pull request ejecuta las 4 compuertas de calidad.
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+jobs:
+  calidad:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: 1. Pruebas unitarias e integración (dominio, acciones, API)
+        run: npm test
+      - name: 2. Tipos (TypeScript sobre JSDoc)
+        run: npm run tipos
+      - name: 3. VERSION del service worker
+        run: npm run verificar-version -- HEAD~1
+      - name: 4. E2E en navegador (Playwright)
+        run: |
+          npx playwright install --with-deps chromium
+          npm run test:e2e

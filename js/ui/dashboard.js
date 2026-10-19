@@ -10,14 +10,13 @@ function renderDash(){
   const tend=dPer===1?null:D.variacion(R.bruto,Ra.bruto); // "Hoy" está en curso: no se compara con un día completo
   const nombrePer={1:"hoy",7:"los últimos 7 días completos",30:"los últimos 30 días completos"}[dPer], antPer={7:"los 7 días anteriores",30:"los 30 días anteriores"}[dPer];
   const donde=dTie==="Todas"?"en las 3 tiendas":"en "+dTie, flecha=v=>v>=0?"▲":"▼";
-  const porMod={}; V.forEach(v=>{(porMod[v.id]??={p:0,bs:0}); porMod[v.id].p+=v.cant; porMod[v.id].bs+=v.cant*v.precio;});
-  const orden=Object.entries(porMod).sort((a,b)=>b[1].p-a[1].p);
+  const orden=D.rankingModelos(V);
   const C=S.cierres.filter(c=>enW(c.fecha)&&deT(c)), K=D.kpiConteos(C,id=>modelo(id)?.costo_bs||0);
   const tiendasScope=dTie==="Todas"?TIENDAS:[dTie];
   const bajos=[]; CAT.forEach(c=>tiendasScope.forEach(t=>{if(S.stock[c.id][t]<BAJO) bajos.push([c,t,S.stock[c.id][t]])})); bajos.sort((a,b)=>a[2]-b[2]);
-  const stockScope=CAT.reduce((a,c)=>a+tiendasScope.reduce((b,t)=>b+S.stock[c.id][t],0),0);
+  const INV=D.inventarioValorizado(S.stock,CAT.map(c=>c.id),tiendasScope,id=>modelo(id).costo_bs), stockScope=INV.pares;
   const W30=D.ventana(30,D.sumarDias(hoy(),-1)), pares30=vivas.filter(v=>D.enRango(v.fecha,W30.desde,W30.hasta)&&deT(v)).reduce((a,v)=>a+v.cant,0);
-  const cob=D.cobertura(stockScope,pares30,30), valInv=CAT.reduce((a,c)=>a+tiendasScope.reduce((b,t)=>b+S.stock[c.id][t],0)*c.costo_bs,0);
+  const cob=D.cobertura(stockScope,pares30,30), valInv=INV.valor;
   const tasaMerma=R.neto?K.mermaCosto/R.neto*100:0;
 
   $("#hero").innerHTML=`<div class="absolute -right-16 -bottom-24 w-72 h-72 rounded-full bg-white/10"></div><div class="absolute right-24 -top-20 w-40 h-40 rounded-full bg-white/10"></div>
@@ -94,7 +93,7 @@ function renderDash(){
   $("#verTodos").onclick=()=>{rankN=rankN===5?15:5; renderDash();};
 
   const Vt=vivas.filter(v=>enW(v.fecha));
-  const pt=TIENDAS.map(t=>[t,D.resumenVentas(Vt.filter(v=>v.tienda===t)).bruto]).sort((a,b)=>b[1]-a[1]), totT=pt.reduce((a,x)=>a+x[1],0)||1;
+  const pt=D.facturacionPor(Vt,v=>v.tienda,TIENDAS), totT=pt.reduce((a,x)=>a+x[1],0)||1;
   $("#tiendas").innerHTML=pt.map(([t,v],i)=>`<div class="${dTie!=="Todas"&&dTie!==t?'opacity-40':''}"><div class="flex justify-between items-baseline mb-1.5"><span class="font-semibold text-sm">${i+1}. ${esc(t)}</span><span class="font-bold tabular-nums">${bs(v)}</span></div>
     <div class="barra !h-3"><i style="width:${v/(pt[0][1]||1)*100}%;background:${["#E40140","#111111","#CACACB"][i]}"></i></div>
     <div class="text-xs text-mute mt-1">${(v/totT*100).toFixed(0)}% de lo facturado</div></div>`).join("");
@@ -109,7 +108,7 @@ function renderDash(){
   $("#catLeyenda").innerHTML=cats.map((k,i)=>`<div class="flex items-center gap-3"><span class="w-3 h-3 rounded-full shrink-0" style="background:${pal[i]}"></span><div class="flex-1"><div class="text-sm font-semibold">${NOMC[k]}</div><div class="text-xs text-mute">${bs(vc[i])}</div></div><div class="text-lg font-bold">${R.bruto?(vc[i]/R.bruto*100).toFixed(0):0}%</div></div>`).join("");
 
   const nd=dPer===1?14:dPer, dias=[...Array(nd)].map((_,i)=>D.sumarDias(hoy(),-(nd-i))), Vd=vivas.filter(deT);
-  const vd=dias.map(d=>D.resumenVentas(Vd.filter(v=>v.fecha===d)).bruto), prom=vd.reduce((a,b)=>a+b,0)/Math.max(vd.length,1);
+  const vd=D.serieDiaria(Vd,dias), prom=vd.reduce((a,b)=>a+b,0)/Math.max(vd.length,1);
   $("#diaNota").textContent=`Promedio: ${bs(prom)} por día · ${nd} días completos (sin hoy)`;
   g("chDia",{type:"bar",data:{labels:dias.map(d=>+d.slice(8)+"/"+(+d.slice(5,7))),datasets:[
     {type:"line",data:vd.map(()=>prom),borderColor:"#111",borderDash:[5,5],pointRadius:0,borderWidth:1.5,order:0},
