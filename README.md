@@ -39,6 +39,14 @@ Deep link: `?rol=vendedor|encargado|gerente`.
 - El Resumen del gerente muestra la ganancia y el margen por categoría, el inventario a costo y el estado de las cajas.
 - Costos **simulados**: 52 % (formal de cuero), 58 % (casual) y 62 % (deportivo) del precio.
 
+## Contabilidad, inventario y arquitectura (v11)
+- **Impuestos Bolivia:** el precio incluye **IVA 13 %**. Venta neta = bruta − IVA; **utilidad bruta = neta − costo**; margen de contribución = utilidad − **IT 3 %**.
+- **Kardex** (libro de movimientos, como el *Stock Ledger Entry* de ERPNext o el `stock.move` de Odoo): el stock solo cambia por `moverStock()` (venta, reposición, ajuste por conteo, saldo inicial), con el saldo después de cada movimiento; se verifica que kardex = stock.
+- **Caja tipo `pos.session`:** sesión con id único e independiente de la fecha, ingresos y retiros de efectivo (`cash in/out`), arqueo con borrador y Reporte Z con estado de resultados.
+- **KPIs:** ventanas de N días completos exactos, ticket promedio ≠ precio promedio por par, merma a **costo**, exactitud de inventario (IRA), cobertura en días.
+- **Código:** reglas de negocio puras en `js/dominio.js` (dinero en centavos) con **pruebas unitarias**: `npm test`. Migración de esquema sin perder datos (`D.migrar`).
+- Auditoría completa: `AUDITORIA_SENIOR.md`.
+
 ## Fuentes de datos
 1. **Excel del caso** (comercio exterior, España): 230 registros → vista *Mercado* y estrategia.
 2. **Catálogo público de la tienda en línea** (bata.com.bo): 725 modelos → IA e inventario. El Excel no contiene modelos de zapatos.

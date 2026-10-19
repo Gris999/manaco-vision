@@ -2,12 +2,12 @@
    - Precarga la app, las librerías, los datos y la IA (~20 MB) para usarla sin internet.
    - Las fotos del catálogo se guardan a medida que se ven y luego en segundo plano.
    - Al publicar una versión nueva, sube VERSION: la app mostrará "Hay una nueva versión". */
-const VERSION = "v10-2026-10-19";
+const VERSION = "v11-2026-10-19";
 const NUCLEO = `mv-nucleo-${VERSION}`;
 const FOTOS = "mv-fotos-v1"; // las fotos casi no cambian: se conservan entre versiones
 
 const PRECARGA = [
-  "./", "index.html", "manifest.json", "catalogo.json", "mercado.json",
+  "./", "index.html", "manifest.json", "js/dominio.js", "catalogo.json", "mercado.json",
   "vendor/poppins.css", "vendor/tailwind-3.4.16.js", "vendor/tf-4.22.0.min.js",
   "vendor/mobilenet-2.1.1.min.js", "vendor/chart-4.4.1.umd.min.js",
   ...["300-normal", "400-normal", "500-normal", "600-normal", "700-normal", "800-normal", "700-italic", "800-italic"].map(f => `vendor/fonts/poppins-${f}.woff2`),

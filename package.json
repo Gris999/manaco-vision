@@ -1,0 +1,8 @@
+{
+  "name": "manaco-vision",
+  "private": true,
+  "description": "PWA académica: inventario de calzado con visión artificial (caso Manaco)",
+  "scripts": {
+    "test": "node --test tests/dominio.test.js"
+  }
+}

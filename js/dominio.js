@@ -1,0 +1,151 @@
+/* Dominio de Manaco Vision: reglas de negocio PURAS (sin DOM, sin localStorage).
+   Se usa en el navegador (window.Dominio) y en Node para las pruebas (module.exports).
+   Referencias: Odoo pos.session / stock.move y ERPNext Stock Ledger Entry / POS Closing Entry.
+
+   Convenciones:
+   - Dinero en BOLIVIANOS con 2 decimales; internamente se calcula en CENTAVOS enteros.
+   - Fechas como texto "AAAA-MM-DD" (hora local de la tienda).
+   - Precio de venta al público INCLUYE IVA (Bolivia). */
+(function (global) {
+  "use strict";
+
+  const IVA = 0.13; // débito fiscal, incluido en el precio
+  const IT = 0.03;  // impuesto a las transacciones, sobre la venta bruta
+
+  /* ---------- Dinero ---------- */
+  const cent = bs => Math.round((Number(bs) || 0) * 100);
+  const bs = c => Math.round(c) / 100;
+  const redondear = n => bs(cent(n));
+
+  /* ---------- Fechas ---------- */
+  const aFecha = d => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+  function sumarDias(fecha, k) {
+    const [a, m, d] = fecha.split("-").map(Number);
+    return aFecha(new Date(a, m - 1, d + k)); // mediodía implícito: sin problemas de horario de verano
+  }
+  /** Ventana de N días que TERMINA hoy (inclusive) y la ventana anterior del mismo tamaño. */
+  function ventana(dias, hoy) {
+    const desde = sumarDias(hoy, -(dias - 1));
+    return { desde, hasta: hoy, antDesde: sumarDias(desde, -dias), antHasta: sumarDias(desde, -1), dias };
+  }
+  const enRango = (f, desde, hasta) => f >= desde && f <= hasta;
+
+  /* ---------- Contabilidad de ventas ---------- */
+  /** Desglose de una venta bruta (precio con IVA). */
+  function desglose(brutoBs) {
+    const b = cent(brutoBs), iva = Math.round(b * IVA), it = Math.round(b * IT);
+    return { bruto: bs(b), iva: bs(iva), neto: bs(b - iva), it: bs(it) };
+  }
+  /**
+   * Resumen contable de un conjunto de ventas.
+   * venta: {cant, precio, costo, pago, nro?}
+   * - Venta neta = bruta − IVA 13 %
+   * - Utilidad bruta = neta − costo de lo vendido
+   * - Margen de contribución = utilidad bruta − IT 3 %
+   */
+  function resumenVentas(ventas) {
+    let b = 0, c = 0, pares = 0;
+    const porPago = { efectivo: 0, qr: 0, tarjeta: 0 };
+    for (const v of ventas) {
+      const lb = cent(v.precio) * v.cant, lc = cent(v.costo) * v.cant;
+      b += lb; c += lc; pares += v.cant;
+      const k = porPago[v.pago] != null ? v.pago : "efectivo";
+      porPago[k] += lb;
+    }
+    const iva = Math.round(b * IVA), it = Math.round(b * IT), neto = b - iva;
+    const utilidad = neto - c, contribucion = utilidad - it;
+    const trans = ventas.length;
+    return {
+      bruto: bs(b), iva: bs(iva), neto: bs(neto), it: bs(it), costo: bs(c),
+      utilidad: bs(utilidad), contribucion: bs(contribucion),
+      margenBruto: neto ? utilidad / neto * 100 : 0,          // % sobre venta neta
+      margenContribucion: neto ? contribucion / neto * 100 : 0,
+      pares, transacciones: trans,
+      ticketPromedio: trans ? bs(b / trans) : 0,               // facturación / nº de ventas
+      precioPromedioPar: pares ? bs(b / pares) : 0,            // facturación / pares
+      porPago: { efectivo: bs(porPago.efectivo), qr: bs(porPago.qr), tarjeta: bs(porPago.tarjeta) },
+    };
+  }
+  const variacion = (actual, anterior) => anterior ? (actual - anterior) / anterior * 100 : null;
+
+  /* ---------- Caja (sesión tipo pos.session) ---------- */
+  /** Efectivo esperado = fondo + ventas en efectivo + ingresos − retiros. */
+  function esperadoCaja(sesion, ventasEfectivoBs) {
+    let e = cent(sesion.fondo) + cent(ventasEfectivoBs);
+    for (const m of sesion.movs || []) e += (m.tipo === "retiro" ? -1 : 1) * cent(m.monto);
+    return bs(e);
+  }
+  function totalArqueo(conteo) { // {"200": 3, "0.5": 2}
+    let t = 0;
+    for (const [den, n] of Object.entries(conteo)) t += Math.round(Number(den) * 100) * Math.max(0, parseInt(n) || 0);
+    return bs(t);
+  }
+
+  /* ---------- Inventario: kardex (libro de movimientos) ---------- */
+  /**
+   * Único punto que cambia el stock. Registra un movimiento con el saldo resultante,
+   * como un Stock Ledger Entry (actual_qty, qty_after_transaction, voucher).
+   * tipo: "inicial" | "venta" | "reposicion" | "ajuste"
+   */
+  function moverStock(estado, { id, tienda, cant, tipo, ref = "", fecha, hora = "", costo = 0 }) {
+    const actual = estado.stock[id][tienda];
+    const saldo = actual + cant;
+    if (!Number.isInteger(cant) || cant === 0) throw new Error("Cantidad inválida para el movimiento");
+    if (saldo < 0) throw new Error(`Stock insuficiente: hay ${actual}`);
+    estado.stock[id][tienda] = saldo;
+    (estado.movs ??= []).push({ fecha, hora, tienda, id, tipo, cant, saldo, ref, costo });
+    return saldo;
+  }
+  /** Verifica que el último saldo del kardex coincida con el stock (invariante). */
+  function verificarKardex(estado) {
+    const ultimo = {};
+    for (const m of estado.movs || []) ultimo[m.id + "|" + m.tienda] = m.saldo;
+    const errores = [];
+    for (const [k, saldo] of Object.entries(ultimo)) {
+      const [id, tienda] = k.split("|");
+      if (estado.stock[id]?.[tienda] !== saldo) errores.push({ id, tienda, kardex: saldo, stock: estado.stock[id]?.[tienda] });
+    }
+    return errores;
+  }
+
+  /* ---------- KPIs de inventario ---------- */
+  /** Exactitud (IRA), faltantes, sobrantes y merma valorizada A COSTO. */
+  function kpiConteos(lineas, costoDe) {
+    let exactas = 0, falt = 0, sobra = 0, merma = 0;
+    for (const l of lineas) {
+      if (l.dif === 0) exactas++;
+      else if (l.dif < 0) { falt += -l.dif; merma += -l.dif * cent(costoDe(l.id)); }
+      else sobra += l.dif;
+    }
+    return { lineas: lineas.length, exactas, exactitud: lineas.length ? exactas / lineas.length * 100 : null, faltantes: falt, sobrantes: sobra, mermaCosto: bs(merma) };
+  }
+  /** Días de cobertura = stock ÷ venta diaria promedio (∞ si no se vende). */
+  function cobertura(stock, paresVendidos, dias) {
+    const diaria = paresVendidos / dias;
+    return diaria > 0 ? stock / diaria : Infinity;
+  }
+
+  /* ---------- Migración de datos guardados ---------- */
+  const VERSION_ESQUEMA = 7;
+  /** v6 → v7: saldo inicial en el kardex, N° de venta y sesiones independientes de la fecha. */
+  function migrar(estado, ids, tiendas, hoy) {
+    estado.version ??= 6;
+    if (estado.version < 7) {
+      estado.movs = [];
+      for (const id of ids) for (const t of tiendas) {
+        const s = estado.stock[id][t];
+        estado.movs.push({ fecha: hoy, hora: "", tienda: t, id, tipo: "inicial", cant: s, saldo: s, ref: "Saldo inicial (migración)" });
+      }
+      estado.nroVenta = {};
+      for (const v of estado.ventas) { estado.nroVenta[v.tienda] = (estado.nroVenta[v.tienda] || 0) + 1; v.nro ??= estado.nroVenta[v.tienda]; }
+      estado.sesionActiva = {};
+      for (const [k, c] of Object.entries(estado.cajas || {})) { c.movs ??= []; if (c.abierta) estado.sesionActiva[c.tienda] = k; }
+      estado.version = 7;
+    }
+    return estado;
+  }
+
+  const Dominio = { IVA, IT, cent, bs, redondear, sumarDias, ventana, enRango, desglose, resumenVentas, variacion,
+    esperadoCaja, totalArqueo, moverStock, verificarKardex, kpiConteos, cobertura, migrar, VERSION_ESQUEMA };
+  if (typeof module !== "undefined" && module.exports) module.exports = Dominio; else global.Dominio = Dominio;
+})(typeof window !== "undefined" ? window : globalThis);

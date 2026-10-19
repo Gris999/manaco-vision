@@ -28,6 +28,7 @@
 <script src="vendor/tf-4.22.0.min.js"></script>
 <script src="vendor/mobilenet-2.1.1.min.js"></script>
 <script src="vendor/chart-4.4.1.umd.min.js"></script>
+<script src="js/dominio.js"></script>
 <script>
 /* Sistema visual: rojo Manaco (#E40140) como único color de marca sobre base neutra (estilo Nike/Adidas) */
 tailwind.config={theme:{extend:{
@@ -296,7 +297,7 @@ tailwind.config={theme:{extend:{
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-5 gap-5 mb-8">
-          <div class="card p-5 lg:col-span-3"><h2 class="font-bold text-xl">¿Cuánto ganamos?</h2><p class="text-mute text-sm mb-4">Ganancia bruta = precio de venta − costo del zapato (costos simulados)</p><div id="ganancias"></div></div>
+          <div class="card p-5 lg:col-span-3"><h2 class="font-bold text-xl">¿Cuánto ganamos?</h2><p class="text-mute text-sm mb-4">Utilidad bruta = venta neta (sin IVA 13 %) − costo del zapato · costos simulados</p><div id="ganancias"></div></div>
           <div class="card p-5 lg:col-span-2"><h2 class="font-bold text-xl">Cajas de las tiendas</h2><p class="text-mute text-sm mb-4">Estado de hoy y últimos arqueos</p><div id="cajasDash"></div></div>
         </div>
 
@@ -368,6 +369,14 @@ tailwind.config={theme:{extend:{
     <p class="text-xs text-mute mt-6">Prototipo académico · caso de estudio Manaco. Sin contraseñas: en producción cada rol tendría su usuario.</p>
   </div>
 </div>
+<!-- Kardex: libro de movimientos de un modelo -->
+<div id="modalKardex" class="hidden fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="tKardex">
+  <div class="bg-white rounded-3xl p-5 w-full max-w-lg max-h-[85vh] overflow-y-auto fade">
+    <div class="flex items-start justify-between gap-3 mb-3"><div><div class="eyebrow">Kardex · libro de movimientos</div><h2 id="tKardex" class="font-bold text-lg leading-tight"></h2></div>
+      <button class="w-9 h-9 rounded-full bg-suave shrink-0" onclick="$('#modalKardex').classList.add('hidden')" aria-label="Cerrar">✕</button></div>
+    <div id="kardexBody"></div>
+  </div>
+</div>
 <!-- Instrucciones de instalación (iPhone / navegadores sin botón automático) -->
 <div id="modalIOS" class="hidden fixed inset-0 z-50 bg-black/50 flex items-end sm:items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="tIOS">
   <div class="bg-white rounded-3xl p-6 w-full max-w-sm fade">
@@ -385,6 +394,7 @@ tailwind.config={theme:{extend:{
 <div id="toast" role="status" aria-live="polite" class="fixed left-1/2 top-[76px] lg:top-auto lg:bottom-8 z-40 bg-tinta text-white text-sm font-medium px-5 py-3 rounded-full shadow-xl max-w-[90vw] text-center"></div>
 
 <script>
+const D=window.Dominio; // reglas de negocio puras (js/dominio.js, con pruebas en tests/)
 const TIENDAS=["La Paz - El Prado","Cochabamba - Heroínas","Santa Cruz - Ventura Mall"];
 const VISTAS=[["escaner","Escáner","i-scan"],["inventario","Inventario","i-box"],["ventas","Ventas","i-cash"],["cierre","Conteo","i-moon"],["caja","Caja","i-caja"],["dashboard","Resumen","i-chart"],["mercado","Mercado","i-globe"]];
 const ROLES={
@@ -402,17 +412,19 @@ const MARGEN_COSTO={"Deportivo":0.62,"Casual cuero (suela caucho)":0.58,"Formal 
 const DENOM=[200,100,50,20,10,5,2,1,0.5,0.2,0.1];
 let pago="efectivo";
 const cajaKey=(t=tiendaAct())=>hoy()+"|"+t;
-const cajaHoy=(t=tiendaAct())=>S.cajas?.[cajaKey(t)];
+// Sesión de caja: la abierta no depende de la fecha; si no hay abierta, la última de hoy. Cada sesión tiene id único.
+const sesionesDeHoy=(t=tiendaAct())=>Object.keys(S.cajas||{}).filter(k=>k===cajaKey(t)||k.startsWith(cajaKey(t)+"#")).sort();
+const sesionKey=(t=tiendaAct())=>S.sesionActiva?.[t]||sesionesDeHoy(t).at(-1)||cajaKey(t);
+const cajaHoy=(t=tiendaAct())=>S.cajas?.[sesionKey(t)];
 const cajaAbierta=(t=tiendaAct())=>!!cajaHoy(t)?.abierta;
-const costoDe=v=>v.costo??modelo(v.id)?.costo_bs??0;
-const ganancia=v=>v.cant*(v.precio-costoDe(v));
+const conCosto=v=>v.costo!=null?v:{...v,costo:modelo(v.id)?.costo_bs??0};
 const chipsPago=()=>Object.entries(PAGOS).map(([k,[i,n]])=>`<button type="button" data-pago="${k}" class="chip ${pago===k?"on":""}">${i} ${n}</button>`).join("");
 const NOMC={"Deportivo":"Deportivo","Casual cuero (suela caucho)":"Casual","Formal cuero/cuero":"Formal de cuero"};
 let invMax=24, CAT=[], IDX={}, CLASES=[], net=null, head=null, S=null, charts={}, vista="escaner", filtroCat="Todas", tienda=TIENDAS[0];
 let dPer=30, dTie="Todas";
 const $=s=>document.querySelector(s), $$=s=>document.querySelectorAll(s);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const bs=n=>"Bs "+Math.round(n).toLocaleString("es-BO");
+const bs=n=>(Math.round(n)<0?"−":"")+"Bs "+Math.abs(Math.round(n)).toLocaleString("es-BO");
 const bsc=n=>(n<-0.004?"−":"")+"Bs "+Math.abs(n).toLocaleString("es-BO",{minimumFractionDigits:2,maximumFractionDigits:2}); // montos de caja con centavos
 const fechaLocal=d=>{const x=new Date(d); return x.getFullYear()+"-"+String(x.getMonth()+1).padStart(2,"0")+"-"+String(x.getDate()).padStart(2,"0");};
 const hoy=()=>fechaLocal(Date.now());
@@ -436,7 +448,7 @@ function semilla(){
     TIENDAS.forEach((t,ti)=>CAT.forEach(c=>{
       if(rnd()>Math.min(1,30/CAT.length)) return;
       const rp=rnd();
-      ventas.push({fecha:f,hora:"12:00",id:c.id,tienda:t,cant:1+Math.floor(rnd()*2*(peso[c.categoria]||1)*(1+ti*0.2)),precio:c.precio_bs,costo:c.costo_bs,pago:rp<0.55?"efectivo":rp<0.9?"qr":"tarjeta"});
+      ventas.push({fecha:f,hora:"12:00",sesion:f+"|"+t,id:c.id,tienda:t,cant:1+Math.floor(rnd()*2*(peso[c.categoria]||1)*(1+ti*0.2)),precio:c.precio_bs,costo:c.costo_bs,pago:rp<0.55?"efectivo":rp<0.9?"qr":"tarjeta"});
     }));
   }
   const cierres=[];
@@ -454,7 +466,9 @@ async function init(){
   try{CAT=await (await fetch("catalogo.json",{cache:"no-cache"})).json();}catch(e){$("#resultado").innerHTML=`<p class="text-error">No se pudo cargar el catálogo. Revisa tu conexión.</p>`;return;}
   CAT.forEach(c=>{if(!c.precio_bs) c.precio_bs=189.3; c.costo_bs=Math.round(c.precio_bs*(MARGEN_COSTO[c.categoria]||0.58)); IDX[c.id]=c;});
   try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){}
-  if(!S||!S.stock||!S.cajas||CAT.some(c=>!S.stock[c.id])) {S=semilla(); guardar();}
+  if(!S||!S.stock||!S.cajas||CAT.some(c=>!S.stock[c.id])) S=semilla();
+  D.migrar(S,CAT.map(c=>c.id),TIENDAS,hoy()); guardar();
+  const errK=D.verificarKardex(S); if(errK.length) console.warn("Kardex descuadrado",errK);
   $$(".selTienda").forEach(sel=>{sel.innerHTML=TIENDAS.map(t=>`<option value="${t}">${t}</option>`).join(""); sel.onchange=()=>{tienda=sel.value; $$(".selTienda").forEach(o=>o.value=tienda); render(); if(ultimo&&ultimo!=="otro") mostrar({clase:ultimo,prob:ultimaProb}); toast("Tienda: "+tienda);};});
   armarNav();
   $$(".btnRol").forEach(b=>b.onclick=abrirInicio);
@@ -626,15 +640,30 @@ function vender(id,cant){
   if(!cajaAbierta(t)){toast(cajaHoy(t)?`La caja de ${t.split(" - ")[0]} ya se cerró hoy.`:`Primero el Encargado debe abrir la caja de ${t.split(" - ")[0]}.`);return false;}
   asegurarInicio(t);
   if(S.stock[id][t]<cant){toast(`Solo hay ${S.stock[id][t]} pares en ${t}`);return false;}
-  S.stock[id][t]-=cant;
-  S.ventas.push({fecha:hoy(),hora:new Date().toTimeString().slice(0,5),id,tienda:t,cant,precio:c.precio_bs,costo:c.costo_bs,pago});
+  const nro=(S.nroVenta[t]=(S.nroVenta[t]||0)+1), hora=new Date().toTimeString().slice(0,5);
+  D.moverStock(S,{id,tienda:t,cant:-cant,tipo:"venta",ref:`Venta N° ${nro}`,fecha:hoy(),hora,costo:c.costo_bs});
+  S.ventas.push({nro,fecha:hoy(),hora,sesion:sesionKey(t),id,tienda:t,cant,precio:c.precio_bs,costo:c.costo_bs,pago});
   guardar(); render(); toast(`✓ Vendido: ${cant} × ${c.nombre.split(" - ")[0]} · ${bs(cant*c.precio_bs)} · ${PAGOS[pago][1]}`);
   if(ultimo===id) mostrar({clase:id,prob:ultimaProb||1}); return true;
 }
 function pedirReposicion(id,t,btn){ S.pedidos??=[]; S.pedidos.push({fecha:hoy(),id,tienda:t,cant:10}); guardar(); if(btn){btn.textContent="Pedido ✓"; btn.disabled=true;} toast(`📦 Pedido de 10 pares de ${modelo(id).nombre.split(" - ")[0]} enviado a ${t.split(" - ")[0]}`); }
+const TIPOMOV={inicial:["Saldo inicial","text-mute"],venta:["Venta","text-marca"],reposicion:["Reposición","text-ok"],ajuste:["Ajuste por conteo","text-aviso"]};
+function verKardex(id){
+  const c=modelo(id), ts=rol==="gerente"?TIENDAS:[tiendaAct()];
+  $("#tKardex").textContent=c.nombre;
+  $("#kardexBody").innerHTML=ts.map(t=>{const M=(S.movs||[]).filter(m=>m.id===id&&m.tienda===t), ultimo=M.at(-1)?.saldo, ok=ultimo===S.stock[id][t];
+    return `<div class="mb-4"><div class="flex justify-between items-center mb-2"><span class="font-semibold text-sm">${esc(t)}</span>
+      <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full ${ok?"bg-ok-50 text-ok":"bg-marca-50 text-marca"}">${ok?"✓ Kardex = stock":"⚠ Descuadre"} · ${S.stock[id][t]} pares</span></div>
+      <table class="w-full text-xs"><thead><tr class="text-left text-mute border-b border-linea"><th class="py-1.5 font-medium">Fecha</th><th class="font-medium">Movimiento</th><th class="text-right font-medium">Cant.</th><th class="text-right font-medium">Saldo</th></tr></thead>
+      <tbody>${M.slice(-15).reverse().map(m=>`<tr class="border-b border-linea"><td class="py-1.5">${m.fecha.slice(8)}/${m.fecha.slice(5,7)} ${m.hora||""}</td><td><span class="${TIPOMOV[m.tipo]?.[1]||""} font-medium">${TIPOMOV[m.tipo]?.[0]||m.tipo}</span>${m.ref&&m.tipo!=="inicial"?`<div class="text-mute">${esc(m.ref)}</div>`:""}</td><td class="text-right tabular-nums font-semibold">${m.cant>0?"+":""}${m.cant}</td><td class="text-right tabular-nums">${m.saldo}</td></tr>`).join("")}</tbody></table>
+      ${M.length>15?`<div class="text-[11px] text-mute mt-1">Mostrando los últimos 15 de ${M.length} movimientos</div>`:""}</div>`;}).join("");
+  $("#modalKardex").classList.remove("hidden");
+}
+$("#modalKardex").addEventListener("click",e=>{if(e.target.id==="modalKardex") e.target.classList.add("hidden");});
+document.addEventListener("keydown",e=>{if(e.key==="Escape") $$("#modalKardex,#modalIOS").forEach(m=>m.classList.add("hidden"));});
 function recibirPedido(i){const p=S.pedidos[i]; if(!p||p.recibido) return; p.recibido=true; reponer(p.id,p.cant,p.tienda);}
 function reponer(id,cant,t=tiendaAct()){
-  asegurarInicio(t); S.stock[id][t]+=cant; S.inicioDia[hoy()+"|"+t][id]+=cant;
+  asegurarInicio(t); D.moverStock(S,{id,tienda:t,cant,tipo:"reposicion",ref:"Reposición",fecha:hoy(),hora:new Date().toTimeString().slice(0,5),costo:modelo(id).costo_bs}); S.inicioDia[hoy()+"|"+t][id]+=cant;
   guardar(); render(); toast(`+${cant} pares de ${modelo(id).nombre.split(" - ")[0]} en ${t.split(" - ")[0]}`); if(ultimo===id&&vista==="escaner") mostrar({clase:id,prob:ultimaProb||1});
 }
 $("#vBtn").onclick=()=>{const id=$("#vModelo").value,n=parseInt($("#vCant").value)||1; if(vender(id,n)) $("#vCant").value=1;};
@@ -653,7 +682,9 @@ function renderInv(){
       <div class="text-xs text-mute truncate">${esc(c.marca)} · ${esc(NOMC[c.categoria]||c.categoria)}</div>
       <div class="flex items-baseline justify-between mt-1"><span class="font-semibold text-sm">${bs(c.precio_bs)}</span><span class="text-xs text-mute">${rol==="gerente"?`<b class="text-tinta text-sm">${stockTotal(c.id)}</b> en total`:`<b class="text-tinta text-sm ${n<BAJO?'!text-marca':''}">${n}</b> aquí · ${stockTotal(c.id)} total`}</span></div>
       <div class="flex gap-1 mt-1.5">${TIENDAS.map(x=>{const m=S.stock[c.id][x];return `<span title="${esc(x)}: ${m} pares" class="flex-1 text-center text-[10px] rounded-md py-0.5 ${m<BAJO?'bg-marca-50 text-marca font-semibold':'bg-suave'} ${x===t?'ring-1 ring-tinta':''}">${x.split(" ")[0].slice(0,3)} ${m}</span>`}).join("")}</div>
-      ${rol==="encargado"?`<button class="btn btn-s w-full !min-h-0 py-1.5 mt-2 text-xs" onclick="reponer('${c.id}',5)">+5 reponer aquí</button>`:""}</div>
+      <div class="grid ${rol==="encargado"?"grid-cols-2":"grid-cols-1"} gap-1.5 mt-2">
+        ${rol==="encargado"?`<button class="btn btn-s !min-h-0 py-1.5 text-xs" onclick="reponer('${c.id}',5)">+5 reponer</button>`:""}
+        <button class="btn btn-s !min-h-0 py-1.5 text-xs" onclick="verKardex('${c.id}')">Movimientos</button></div></div>
   </article>`}).join("")||`<p class="text-mute col-span-full py-10 text-center">Sin resultados para "${esc(q)}"</p>`;
   const ped=(S.pedidos||[]).map((p,i)=>[p,i]).filter(([p])=>!p.recibido&&p.tienda===t&&rol==="encargado");
   $("#invPedidos").innerHTML=ped.length?`<div class="rounded-2xl bg-aviso-50 p-4 mb-5"><div class="font-semibold text-sm mb-2">📦 Pedidos de reposición de Gerencia (${ped.length})</div>${ped.map(([p,i])=>`<div class="flex items-center justify-between gap-2 text-sm py-1"><span class="truncate">${p.cant} pares · ${corto(modelo(p.id))}</span><button class="btn btn-n !min-h-0 py-1.5 px-3 text-xs" onclick="recibirPedido(${i})">Recibir</button></div>`).join("")}</div>`:"";
@@ -670,7 +701,7 @@ function renderVentas(){
   const tot=vs.reduce((a,v)=>a+v.cant*v.precio,0), pares=vs.reduce((a,v)=>a+v.cant,0);
   $("#vKpis").innerHTML=[["Facturado",bs(tot)],["Pares",pares],["Ventas",vs.length]].map(([k,v])=>`<div class="rounded-2xl bg-suave p-4"><div class="text-xs text-mute">${k}</div><div class="text-xl sm:text-2xl font-bold tabular-nums">${v}</div></div>`).join("");
   $("#listaVentas").innerHTML=vs.length?vs.map(v=>{const c=modelo(v.id);return c?`<div class="card p-3 flex items-center gap-3 fade">
-    <img src="${c.imagen}" class="w-12 h-12 tile object-contain" alt=""><div class="flex-1 min-w-0"><div class="font-semibold text-sm truncate">${corto(c)}</div><div class="text-xs text-mute">${v.hora} · ${v.cant} ${v.cant===1?"par":"pares"} · ${(PAGOS[v.pago]||PAGOS.efectivo).join(" ")}</div></div>
+    <img src="${c.imagen}" class="w-12 h-12 tile object-contain" alt=""><div class="flex-1 min-w-0"><div class="font-semibold text-sm truncate">${corto(c)}</div><div class="text-xs text-mute">N° ${v.nro??"—"} · ${v.hora} · ${v.cant} ${v.cant===1?"par":"pares"} · ${(PAGOS[v.pago]||PAGOS.efectivo).join(" ")}</div></div>
     <div class="font-semibold tabular-nums">${bs(v.cant*v.precio)}</div></div>`:""}).join("")
     :`<div class="rounded-2xl bg-suave p-8 text-center text-mute text-sm">Aún no hay ventas hoy en esta tienda.<br>Usa el escáner o el formulario.</div>`;
 }
@@ -724,7 +755,7 @@ function ajustarConteo(id,d){const B=borrador(), base=B.valores[id]??S.stock[id]
 function resultadoConteo(R){
   if(!R) return "";
   const cab=R.filas.length
-    ?`<div class="flex items-center gap-3"><div class="w-11 h-11 rounded-full bg-marca text-white grid place-items-center font-bold">!</div><div><div class="font-bold">Conteo cerrado con diferencias</div><div class="text-sm">Faltante: <b>${R.falt} ${R.falt===1?"par":"pares"} · ${bs(R.monto)}</b>${R.sobra?` · sobrante: ${R.sobra}`:""}</div></div></div>`
+    ?`<div class="flex items-center gap-3"><div class="w-11 h-11 rounded-full bg-marca text-white grid place-items-center font-bold">!</div><div><div class="font-bold">Conteo cerrado con diferencias</div><div class="text-sm">Faltante: <b>${R.falt} ${R.falt===1?"par":"pares"} · merma a costo ${bs(R.monto)}</b>${R.sobra?` · sobrante: ${R.sobra}`:""}</div></div></div>`
     :`<div class="flex items-center gap-3"><div class="w-11 h-11 rounded-full bg-ok text-white grid place-items-center font-bold">✓</div><div><div class="font-bold">Inventario cuadrado</div><div class="text-sm">Todo lo contado coincide con el sistema.</div></div></div>`;
   return `<div class="rounded-2xl p-5 fade ${R.filas.length?"bg-marca-50":"bg-ok-50"}">${cab}
     <div class="text-sm mt-3">Contaste <b>${R.contados}</b> de ${R.total} modelos${R.sinContar?` · <b>${R.sinContar}</b> sin contar mantienen el stock del sistema`:""} · cerrado a las ${R.hora}.</div>
@@ -741,8 +772,8 @@ $("#cBtn").onclick=()=>{
   S.cierres=S.cierres.filter(c=>!(c.fecha===hoy()&&c.tienda===t)); // un solo conteo vigente por día y tienda
   ids.forEach(id=>{const esp=S.stock[id][t], fis=B.valores[id], dif=fis-esp;
     S.cierres.push({fecha:hoy(),tienda:t,id,esperado:esp,fisico:fis,dif});
-    if(dif){filas.push({id,esp,fis,dif}); if(dif<0){falt+=-dif; monto+=-dif*modelo(id).precio_bs;} else sobra+=dif;}
-    S.stock[id][t]=fis;});
+    if(dif){filas.push({id,esp,fis,dif}); if(dif<0){falt+=-dif; monto+=-dif*modelo(id).costo_bs;} else sobra+=dif;}
+    if(dif) D.moverStock(S,{id,tienda:t,cant:dif,tipo:"ajuste",ref:"Conteo de inventario",fecha:hoy(),hora:new Date().toTimeString().slice(0,5),costo:modelo(id).costo_bs});});
   const lim=diaMenos(3); S.cierres=S.cierres.filter(c=>c.fecha>=lim||c.dif!==0);
   B.cerrado=true; B.resultado={filas:filas.sort((a,b)=>a.dif-b.dif),falt,sobra,monto,contados:ids.length,total:CAT.length,sinContar,hora:new Date().toTimeString().slice(0,5)};
   guardar(); renderCierre();
@@ -752,56 +783,65 @@ $("#cBtn").onclick=()=>{
 let rankN=5;
 function renderDash(){
   $$("[data-per]").forEach(b=>{const on=+b.dataset.per===dPer; b.className="px-3.5 py-1.5 rounded-full text-sm font-medium "+(on?"bg-tinta text-white":"text-mute hover:text-tinta"); b.setAttribute("aria-pressed",on);});
-  const m=v=>v.cant*v.precio, suma=a=>a.reduce((x,v)=>x+m(v),0), deT=v=>dTie==="Todas"||v.tienda===dTie;
-  const desde=dPer===1?hoy():diaMenos(dPer), antDesde=dPer===1?diaMenos(1):diaMenos(dPer*2);
-  const V=S.ventas.filter(v=>v.fecha>=desde&&deT(v)), Vant=S.ventas.filter(v=>v.fecha>=antDesde&&v.fecha<desde&&deT(v));
-  const tot=suma(V), pares=V.reduce((a,v)=>a+v.cant,0), totAnt=suma(Vant), tend=totAnt?(tot-totAnt)/totAnt*100:0;
-  const nombrePer={1:"hoy",7:"los últimos 7 días",30:"los últimos 30 días"}[dPer], antPer={1:"ayer",7:"los 7 días anteriores",30:"los 30 días anteriores"}[dPer];
-  const donde=dTie==="Todas"?"en las 3 tiendas":"en "+dTie;
-  const porMod={}; V.forEach(v=>{(porMod[v.id]??={p:0,bs:0}); porMod[v.id].p+=v.cant; porMod[v.id].bs+=m(v);});
+  const deT=v=>dTie==="Todas"||v.tienda===dTie, W=D.ventana(dPer,dPer===1?hoy():D.sumarDias(hoy(),-1)) /* 7 y 30 días: días COMPLETOS hasta ayer, para comparar justo */, enW=f=>D.enRango(f,W.desde,W.hasta);
+  const V=S.ventas.filter(v=>enW(v.fecha)&&deT(v)).map(conCosto), Vant=S.ventas.filter(v=>D.enRango(v.fecha,W.antDesde,W.antHasta)&&deT(v)).map(conCosto);
+  const R=D.resumenVentas(V), Ra=D.resumenVentas(Vant);
+  const tend=dPer===1?null:D.variacion(R.bruto,Ra.bruto); // "Hoy" está en curso: no se compara con un día completo
+  const nombrePer={1:"hoy",7:"los últimos 7 días completos",30:"los últimos 30 días completos"}[dPer], antPer={7:"los 7 días anteriores",30:"los 30 días anteriores"}[dPer];
+  const donde=dTie==="Todas"?"en las 3 tiendas":"en "+dTie, flecha=v=>v>=0?"▲":"▼";
+  const porMod={}; V.forEach(v=>{(porMod[v.id]??={p:0,bs:0}); porMod[v.id].p+=v.cant; porMod[v.id].bs+=v.cant*v.precio;});
   const orden=Object.entries(porMod).sort((a,b)=>b[1].p-a[1].p);
-  const lim=diaMenos(Math.max(dPer,3)), C=S.cierres.filter(c=>c.fecha>=lim&&deT(c)), ok=C.filter(c=>c.dif===0).length, exact=C.length?ok/C.length*100:100;
-  const perd=C.filter(c=>c.dif<0), faltP=perd.reduce((a,c)=>a-c.dif,0), faltBs=perd.reduce((a,c)=>a-c.dif*(modelo(c.id)?.precio_bs||0),0);
+  const C=S.cierres.filter(c=>enW(c.fecha)&&deT(c)), K=D.kpiConteos(C,id=>modelo(id)?.costo_bs||0);
   const tiendasScope=dTie==="Todas"?TIENDAS:[dTie];
   const bajos=[]; CAT.forEach(c=>tiendasScope.forEach(t=>{if(S.stock[c.id][t]<BAJO) bajos.push([c,t,S.stock[c.id][t]])})); bajos.sort((a,b)=>a[2]-b[2]);
-  const flecha=tend>=0?"▲":"▼";
+  const stockScope=CAT.reduce((a,c)=>a+tiendasScope.reduce((b,t)=>b+S.stock[c.id][t],0),0);
+  const W30=D.ventana(30,D.sumarDias(hoy(),-1)), pares30=S.ventas.filter(v=>D.enRango(v.fecha,W30.desde,W30.hasta)&&deT(v)).reduce((a,v)=>a+v.cant,0);
+  const cob=D.cobertura(stockScope,pares30,30), valInv=CAT.reduce((a,c)=>a+tiendasScope.reduce((b,t)=>b+S.stock[c.id][t],0)*c.costo_bs,0);
+  const tasaMerma=R.neto?K.mermaCosto/R.neto*100:0;
 
   $("#hero").innerHTML=`<div class="absolute -right-16 -bottom-24 w-72 h-72 rounded-full bg-white/10"></div><div class="absolute right-24 -top-20 w-40 h-40 rounded-full bg-white/10"></div>
     <div class="relative">
-      <div class="text-sm text-white/80 mb-2">${nombrePer[0].toUpperCase()+nombrePer.slice(1)} · ${esc(donde)}</div>
-      <p class="titular text-3xl sm:text-5xl">${pares.toLocaleString("es-BO")} pares vendidos<br><span class="text-white/90">${bs(tot)} facturados</span></p>
+      <div class="text-sm text-white/80 mb-2">${nombrePer[0].toUpperCase()+nombrePer.slice(1)} · ${esc(donde)}${dPer>1?` · ${W.desde.slice(8)}/${W.desde.slice(5,7)} al ${W.hasta.slice(8)}/${W.hasta.slice(5,7)}`:""}</div>
+      <p class="titular text-3xl sm:text-5xl">${R.pares.toLocaleString("es-BO")} pares vendidos<br><span class="text-white/90">${bs(R.bruto)} facturados</span></p>
       <div class="flex flex-wrap gap-2 mt-5 text-sm">
-        ${totAnt?`<span class="px-3 py-1.5 rounded-full bg-white text-tinta font-semibold"><span class="${tend>=0?'text-ok':'text-marca'}">${flecha} ${Math.abs(tend).toFixed(0)}%</span> vs. ${antPer}</span>`:""}
-        <span class="px-3 py-1.5 rounded-full bg-white/15">Ganancia bruta: <b>${bs(V.reduce((a,v)=>a+ganancia(v),0))}</b> · margen ${tot?(V.reduce((a,v)=>a+ganancia(v),0)/tot*100).toFixed(0):0}%</span>
-        <span class="px-3 py-1.5 rounded-full bg-white/15">Ticket por par: <b>${pares?bs(tot/pares):"—"}</b></span>
-        <span class="px-3 py-1.5 rounded-full bg-white/15">${orden.length} modelos con ventas</span>
+        ${tend!=null?`<span class="px-3 py-1.5 rounded-full bg-white text-tinta font-semibold"><span class="${tend>=0?'text-ok':'text-marca'}">${flecha(tend)} ${Math.abs(tend).toFixed(0)}%</span> vs. ${antPer}</span>`:`<span class="px-3 py-1.5 rounded-full bg-white/15">Día en curso</span>`}
+        <span class="px-3 py-1.5 rounded-full bg-white/15">Utilidad bruta: <b>${bs(R.utilidad)}</b> · margen ${R.margenBruto.toFixed(0)}%</span>
+        <span class="px-3 py-1.5 rounded-full bg-white/15">Ticket promedio: <b>${bs(R.ticketPromedio)}</b></span>
+        <span class="px-3 py-1.5 rounded-full bg-white/15">Precio promedio por par: <b>${bs(R.precioPromedioPar)}</b></span>
       </div>
     </div>`;
 
   const est=(a,b)=>a?["Bien","text-ok","bg-ok"]:b?["Atención","text-aviso","bg-aviso"]:["Actuar","text-marca","bg-marca"];
   const T=[
-    ["Ventas",bs(tot),totAnt?`${flecha} ${Math.abs(tend).toFixed(0)}% respecto a ${antPer}.`:"Sin periodo anterior para comparar.",est(tend>=0,tend>-10),null],
-    ["¿El inventario cuadra?",exact.toFixed(0)+"%",`De cada 100 conteos, ${exact.toFixed(0)} coinciden con el sistema. Meta: 98.`,est(exact>=98,exact>=90),exact],
-    ["Pares perdidos",faltP+(faltP===1?" par":" pares"),faltP?`Faltaron al contar: ${bs(faltBs)}.`:"No faltó nada en los conteos.",est(faltP===0,faltP<=10),null],
-    ["Por reponer",bajos.length+(bajos.length===1?" modelo":" modelos"),`Con menos de ${BAJO} pares en alguna tienda.`,est(bajos.length===0,bajos.length<=15),null],
+    ["Ventas",bs(R.bruto),tend!=null?`${flecha(tend)} ${Math.abs(tend).toFixed(0)}% respecto a ${antPer}.`:"El día está en curso: compáralo al cerrar.",tend==null?["En curso","text-mute","bg-[#CACACB]"]:est(tend>=0,tend>-10),null],
+    ["¿El inventario cuadra?",K.exactitud==null?"—":K.exactitud.toFixed(0)+"%",K.exactitud==null?"Aún no hay conteos en este periodo.":`De cada 100 modelos contados, ${K.exactitud.toFixed(0)} coinciden con el sistema. Meta: 98.`,K.exactitud==null?["Sin datos","text-mute","bg-[#CACACB]"]:est(K.exactitud>=98,K.exactitud>=90),K.exactitud],
+    ["Merma de inventario",bs(K.mermaCosto),K.faltantes?`${K.faltantes} pares faltantes, valorizados a costo (${tasaMerma.toFixed(2).replace(".",",")} % de la venta neta).`:"No faltó nada en los conteos.",est(tasaMerma<=0.5,tasaMerma<=1.5),null],
+    ["Por reponer",bajos.length+(bajos.length===1?" modelo":" modelos"),`Con menos de ${BAJO} pares en alguna tienda. Cobertura general: ${isFinite(cob)?Math.round(cob)+" días":"—"}.`,est(bajos.length===0,bajos.length<=15),null],
   ];
-  // Ganancias por tipo y valor del inventario
-  const gTot=V.reduce((a,v)=>a+ganancia(v),0), mgTot=tot?gTot/tot*100:0;
-  const valInv=CAT.reduce((a,c)=>a+tiendasScope.reduce((b,t)=>b+S.stock[c.id][t],0)*c.costo_bs,0);
-  const filasCat=Object.keys(NOMC).map(k=>{const s=V.filter(v=>modelo(v.id)?.categoria===k), ve=s.reduce((a,v)=>a+v.cant*v.precio,0), ga=s.reduce((a,v)=>a+ganancia(v),0); return [NOMC[k],ve,ga,ve?ga/ve*100:0];});
-  const maxG=Math.max(...filasCat.map(f=>f[2]),1);
-  $("#ganancias").innerHTML=`<div class="grid grid-cols-3 gap-2 mb-5">
-      <div class="rounded-2xl bg-ok-50 p-3"><div class="text-xs text-mute">Ganancia bruta</div><div class="text-lg sm:text-2xl font-extrabold text-ok tabular-nums">${bs(gTot)}</div></div>
-      <div class="rounded-2xl bg-suave p-3"><div class="text-xs text-mute">Margen</div><div class="text-lg sm:text-2xl font-extrabold">${mgTot.toFixed(0)}%</div></div>
-      <div class="rounded-2xl bg-suave p-3"><div class="text-xs text-mute">Inventario a costo</div><div class="text-lg sm:text-2xl font-extrabold tabular-nums">${bs(valInv)}</div></div></div>
-    <div class="space-y-3">${filasCat.map(([n,ve,ga,mg])=>`<div><div class="flex justify-between text-sm"><span class="font-semibold">${n}</span><span class="tabular-nums"><b>${bs(ga)}</b> <span class="text-mute">· margen ${mg.toFixed(0)}%</span></span></div><div class="barra mt-1.5"><i class="bg-ok" style="width:${ga/maxG*100}%"></i></div></div>`).join("")}</div>
-    <p class="text-xs text-mute mt-4">El formal de cuero tiene el mayor margen por par: refuerza la estrategia "competir en cuero".</p>`;
-  // Cajas: estado hoy + últimos arqueos
-  const estadoHoy=TIENDAS.map(t=>{const c=S.cajas[hoy()+"|"+t]; return [t,!c?["Sin abrir","bg-suave text-mute"]:c.abierta?["Abierta","bg-ok-50 text-ok"]:[(c.dif? "Cerrada · dif. "+bsc(c.dif):"Cerrada · cuadra"),c.dif?"bg-marca-50 text-marca":"bg-ok-50 text-ok"]];});
-  const ult=Object.values(S.cajas).filter(c=>!c.abierta&&c.fecha>=desde&&deT(c));
-  const conDif=ult.filter(c=>c.dif), sumDif=conDif.reduce((a,c)=>a+c.dif,0);
+  const filasCat=Object.keys(NOMC).map(k=>{const r=D.resumenVentas(V.filter(v=>modelo(v.id)?.categoria===k)); return [NOMC[k],r];});
+  const maxG=Math.max(...filasCat.map(f=>f[1].utilidad),1);
+  $("#ganancias").innerHTML=`<div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
+      <div class="rounded-2xl bg-suave p-3"><div class="text-xs text-mute">Venta neta (sin IVA)</div><div class="text-lg font-extrabold tabular-nums">${bs(R.neto)}</div></div>
+      <div class="rounded-2xl bg-ok-50 p-3"><div class="text-xs text-mute">Utilidad bruta</div><div class="text-lg font-extrabold text-ok tabular-nums">${bs(R.utilidad)}</div></div>
+      <div class="rounded-2xl bg-suave p-3"><div class="text-xs text-mute">Margen bruto</div><div class="text-lg font-extrabold">${R.margenBruto.toFixed(1).replace(".",",")}%</div></div>
+      <div class="rounded-2xl bg-suave p-3"><div class="text-xs text-mute">Inventario a costo</div><div class="text-lg font-extrabold tabular-nums">${bs(valInv)}</div></div></div>
+    <details class="mb-4 text-sm"><summary class="cursor-pointer font-semibold">¿Cómo se calcula?</summary>
+      <div class="mt-2 rounded-xl bg-suave p-3 space-y-1 tabular-nums [&_b]:whitespace-nowrap [&_div]:gap-3">
+        <div class="flex justify-between"><span>Facturado (precio con IVA)</span><b>${bs(R.bruto)}</b></div>
+        <div class="flex justify-between"><span>(−) IVA 13 % (se paga a Impuestos)</span><b>${bs(-R.iva)}</b></div>
+        <div class="flex justify-between"><span>= Venta neta</span><b>${bs(R.neto)}</b></div>
+        <div class="flex justify-between"><span>(−) Costo de lo vendido</span><b>${bs(-R.costo)}</b></div>
+        <div class="flex justify-between"><span>= Utilidad bruta</span><b class="text-ok">${bs(R.utilidad)}</b></div>
+        <div class="flex justify-between"><span>(−) IT 3 %</span><b>${bs(-R.it)}</b></div>
+        <div class="flex justify-between"><span>= Margen de contribución</span><b>${bs(R.contribucion)} (${R.margenContribucion.toFixed(1).replace(".",",")}%)</b></div>
+      </div></details>
+    <div class="space-y-3">${filasCat.map(([n,r])=>`<div><div class="flex justify-between text-sm"><span class="font-semibold">${n}</span><span class="tabular-nums"><b>${bs(r.utilidad)}</b> <span class="text-mute">· margen ${r.margenBruto.toFixed(0)}%</span></span></div><div class="barra mt-1.5"><i class="bg-ok" style="width:${Math.max(0,r.utilidad)/maxG*100}%"></i></div></div>`).join("")}</div>
+    <p class="text-xs text-mute mt-4">Costos simulados. El formal de cuero tiene el mayor margen por par: refuerza la estrategia "competir en cuero".</p>`;
+  const estadoHoy=TIENDAS.map(t=>{const c=cajaHoy(t); return [t,!c?["Sin abrir","bg-suave text-mute"]:c.abierta?["Abierta","bg-ok-50 text-ok"]:[(c.dif? "Cerrada · dif. "+bsc(c.dif):"Cerrada · cuadra"),c.dif?"bg-marca-50 text-marca":"bg-ok-50 text-ok"]];});
+  const ult=Object.values(S.cajas).filter(c=>!c.abierta&&enW(c.fecha)&&deT(c));
+  const conDif=ult.filter(c=>c.dif), sumDif=D.redondear(conDif.reduce((a,c)=>a+c.dif,0));
   $("#cajasDash").innerHTML=`<div class="space-y-2 mb-4">${estadoHoy.map(([t,[e,cls]])=>`<div class="flex justify-between items-center text-sm"><span class="font-medium">${esc(t.split(" - ")[0])}</span><span class="text-xs font-semibold px-2.5 py-1 rounded-full ${cls}">${e}</span></div>`).join("")}</div>
-    <div class="rounded-2xl bg-suave p-4"><div class="text-xs text-mute">Arqueos del periodo</div><div class="text-2xl font-extrabold">${ult.length-conDif.length} de ${ult.length} cuadraron</div>
+    <div class="rounded-2xl bg-suave p-4"><div class="text-xs text-mute">Arqueos del periodo</div><div class="text-2xl font-extrabold">${ult.length?`${ult.length-conDif.length} de ${ult.length} cuadraron`:"Sin cierres aún"}</div>
     <div class="text-sm ${sumDif<0?"text-marca":"text-mute"} mt-1">Diferencia acumulada: <b>${(sumDif>0?"+":"")+bsc(sumDif)}</b></div></div>`;
 
   $("#salud").innerHTML=T.map(([t,v,d,[e,tx,dot],pct])=>`<div class="rounded-2xl bg-suave p-5">
@@ -810,13 +850,13 @@ function renderDash(){
     ${pct!=null?`<div class="barra mt-2 bg-white"><i class="${dot}" style="width:${pct}%"></i></div>`:""}
     <p class="text-[13px] text-mute leading-snug mt-2">${d}</p></div>`).join("");
 
-  const porTiendaF={}; perd.forEach(c=>porTiendaF[c.tienda]=(porTiendaF[c.tienda]||0)-c.dif);
+  const porTiendaF={}; C.filter(c=>c.dif<0).forEach(c=>porTiendaF[c.tienda]=(porTiendaF[c.tienda]||0)-c.dif);
   const peorT=Object.entries(porTiendaF).sort((a,b)=>b[1]-a[1])[0];
   const acc=[];
   bajos.slice(0,3).forEach(([c,t,n])=>acc.push({txt:`Reponer <b>${corto(c)}</b> en ${esc(t.split(" - ")[0])}`,sub:`${n===1?"Queda 1 par":"Quedan "+n+" pares"}`,btn:"Pedir",fn:`pedirReposicion('${c.id}','${t}',this)`}));
-  if(peorT) acc.push({txt:`Revisar faltantes en <b>${esc(peorT[0].split(" - ")[0])}</b>`,sub:`${peorT[1]} pares no aparecieron al contar`,btn:rol==="gerente"?"Avisar":"Ir",fn:rol==="gerente"?`toast('📨 Aviso enviado al Encargado de ${peorT[0].split(" - ")[0]}: revisar ${peorT[1]} pares faltantes')`:`tienda='${peorT[0]}';$$('.selTienda').forEach(o=>o.value=tienda);ver('cierre')`});
+  if(peorT) acc.push({txt:`Revisar faltantes en <b>${esc(peorT[0].split(" - ")[0])}</b>`,sub:`${peorT[1]} pares no aparecieron al contar`,btn:rol==="gerente"?"Avisar":"Ir",fn:rol==="gerente"?`toast('📨 Aviso enviado al Encargado de ${peorT[0].split(" - ")[0]}: revisar ${peorT[1]} pares faltantes')`:`ver('cierre')`});
   if(orden[0]) acc.push({txt:`Asegurar stock de <b>${corto(modelo(orden[0][0]))}</b>`,sub:`Es el más vendido: ${orden[0][1].p} pares`,btn:"Ver",fn:`ver('inventario');$('#buscar').value=${JSON.stringify(modelo(orden[0][0]).nombre.split(" - ")[0])};renderInv()`});
-  acc.push({txt:`Impulsar la <b>línea de cuero</b>`,sub:`En el mercado vale casi el doble por par`,btn:"Ver",fn:`ver('mercado')`});
+  acc.push({txt:`Impulsar la <b>línea de cuero</b>`,sub:`Mayor margen y vale casi el doble por par en el mercado`,btn:"Ver",fn:`ver('mercado')`});
   $("#acciones").innerHTML=acc.slice(0,5).map((a,i)=>`<li class="flex gap-3 items-center rounded-2xl border border-linea p-3"><span class="w-7 h-7 shrink-0 rounded-full bg-tinta text-white grid place-items-center text-xs font-bold">${i+1}</span>
     <div class="flex-1 min-w-0"><div class="text-sm leading-snug">${a.txt}</div><div class="text-xs text-mute">${a.sub}</div></div><button class="btn btn-s !min-h-0 !py-1.5 !px-3.5 text-xs shrink-0" onclick="${esc(a.fn)}">${a.btn}</button></li>`).join("");
 
@@ -830,34 +870,38 @@ function renderDash(){
   $("#verTodos").textContent=rankN===5?"Ver top 15":"Ver solo top 5";
   $("#verTodos").onclick=()=>{rankN=rankN===5?15:5; renderDash();};
 
-  const Vt=S.ventas.filter(v=>v.fecha>=desde);
-  const pt=TIENDAS.map(t=>[t,suma(Vt.filter(v=>v.tienda===t))]).sort((a,b)=>b[1]-a[1]), totT=pt.reduce((a,x)=>a+x[1],0)||1;
+  const Vt=S.ventas.filter(v=>enW(v.fecha));
+  const pt=TIENDAS.map(t=>[t,D.resumenVentas(Vt.filter(v=>v.tienda===t)).bruto]).sort((a,b)=>b[1]-a[1]), totT=pt.reduce((a,x)=>a+x[1],0)||1;
   $("#tiendas").innerHTML=pt.map(([t,v],i)=>`<div class="${dTie!=="Todas"&&dTie!==t?'opacity-40':''}"><div class="flex justify-between items-baseline mb-1.5"><span class="font-semibold text-sm">${i+1}. ${esc(t)}</span><span class="font-bold tabular-nums">${bs(v)}</span></div>
     <div class="barra !h-3"><i style="width:${v/(pt[0][1]||1)*100}%;background:${["#E40140","#111111","#CACACB"][i]}"></i></div>
-    <div class="text-xs text-mute mt-1">${(v/totT*100).toFixed(0)}% de lo vendido</div></div>`).join("");
+    <div class="text-xs text-mute mt-1">${(v/totT*100).toFixed(0)}% de lo facturado</div></div>`).join("");
 
   Chart.defaults.font.family="Poppins, system-ui, sans-serif"; Chart.defaults.color="#707072";
   const g=(id,cfg)=>{charts[id]?.destroy(); cfg.options=Object.assign({responsive:true,maintainAspectRatio:false,animation:{duration:400},plugins:{legend:{display:false},tooltip:{backgroundColor:"#111",padding:10,cornerRadius:12,titleFont:{weight:"600"}}}},cfg.options||{}); charts[id]=new Chart($("#"+id),cfg);};
   const cats=Object.keys(NOMC), pal=["#E40140","#111111","#CACACB"];
-  const vc=cats.map(k=>suma(V.filter(v=>modelo(v.id)?.categoria===k)));
+  const vc=filasCat.map(f=>f[1].bruto);
   g("chCat",{type:"doughnut",data:{labels:cats.map(k=>NOMC[k]),datasets:[{data:vc,backgroundColor:pal,borderWidth:3,borderColor:"#fff"}]},options:{cutout:"70%",plugins:{legend:{display:false},tooltip:{backgroundColor:"#111",callbacks:{label:c=>" "+bs(c.raw)}}}}});
   const iMax=vc.indexOf(Math.max(...vc));
-  $("#catCentro").innerHTML=tot?`<div><div class="text-2xl font-extrabold">${(vc[iMax]/tot*100).toFixed(0)}%</div><div class="text-[11px] text-mute leading-tight">${NOMC[cats[iMax]]}</div></div>`:"";
-  $("#catLeyenda").innerHTML=cats.map((k,i)=>`<div class="flex items-center gap-3"><span class="w-3 h-3 rounded-full shrink-0" style="background:${pal[i]}"></span><div class="flex-1"><div class="text-sm font-semibold">${NOMC[k]}</div><div class="text-xs text-mute">${bs(vc[i])}</div></div><div class="text-lg font-bold">${tot?(vc[i]/tot*100).toFixed(0):0}%</div></div>`).join("");
+  $("#catCentro").innerHTML=R.bruto?`<div><div class="text-2xl font-extrabold">${(vc[iMax]/R.bruto*100).toFixed(0)}%</div><div class="text-[11px] text-mute leading-tight">${NOMC[cats[iMax]]}</div></div>`:"";
+  $("#catLeyenda").innerHTML=cats.map((k,i)=>`<div class="flex items-center gap-3"><span class="w-3 h-3 rounded-full shrink-0" style="background:${pal[i]}"></span><div class="flex-1"><div class="text-sm font-semibold">${NOMC[k]}</div><div class="text-xs text-mute">${bs(vc[i])}</div></div><div class="text-lg font-bold">${R.bruto?(vc[i]/R.bruto*100).toFixed(0):0}%</div></div>`).join("");
 
-  const nd=dPer===1?14:dPer, dias=[...Array(nd)].map((_,i)=>diaMenos(nd-i)), Vd=S.ventas.filter(deT);
-  const vd=dias.map(d=>suma(Vd.filter(v=>v.fecha===d))), prom=vd.reduce((a,b)=>a+b,0)/Math.max(vd.length,1);
-  $("#diaNota").textContent=`Promedio: ${bs(prom)} por día · sin contar hoy`;
+  const nd=dPer===1?14:dPer, dias=[...Array(nd)].map((_,i)=>D.sumarDias(hoy(),-(nd-i))), Vd=S.ventas.filter(deT);
+  const vd=dias.map(d=>D.resumenVentas(Vd.filter(v=>v.fecha===d)).bruto), prom=vd.reduce((a,b)=>a+b,0)/Math.max(vd.length,1);
+  $("#diaNota").textContent=`Promedio: ${bs(prom)} por día · ${nd} días completos (sin hoy)`;
   g("chDia",{type:"bar",data:{labels:dias.map(d=>+d.slice(8)+"/"+(+d.slice(5,7))),datasets:[
     {type:"line",data:vd.map(()=>prom),borderColor:"#111",borderDash:[5,5],pointRadius:0,borderWidth:1.5,order:0},
     {data:vd,backgroundColor:vd.map(v=>v>=prom?"#E40140":"#E5E5E5"),borderRadius:6,order:1}]},
-    options:{plugins:{legend:{display:false},tooltip:{backgroundColor:"#111",callbacks:{label:c=>c.dataset.type==="line"?" Promedio: "+bs(c.raw):" Vendido: "+bs(c.raw)}}},
+    options:{plugins:{legend:{display:false},tooltip:{backgroundColor:"#111",callbacks:{label:c=>c.dataset.type==="line"?" Promedio: "+bs(c.raw):" Facturado: "+bs(c.raw)}}},
       scales:{x:{grid:{display:false},ticks:{maxTicksLimit:10}},y:{grid:{color:"#F0F0F0"},border:{display:false},ticks:{callback:v=>"Bs "+(v>=1000?(v/1000).toFixed(0)+"k":v)}}}}});
 
-  const cuero=suma(V.filter(v=>modelo(v.id)?.categoria!=="Deportivo"));
-  const metas=[["Exactitud de inventario",exact,98,"%","12 meses"],["Participación del cuero",tot?cuero/tot*100:0,null,"%","36 meses · meta +15 pts"],["Faltantes del periodo",faltP,0,"pares","Meta: 0"]];
-  $("#metas").innerHTML=metas.map(([t,v,meta,u,s])=>{const pct=meta===98?Math.min(100,v/98*100):meta===0?(v===0?100:Math.max(5,100-v*4)):v;
-    return `<div><div class="flex justify-between text-sm mb-1.5"><span class="font-semibold">${t}</span><span class="tabular-nums"><b>${u==="%"?v.toFixed(0):v}</b> ${u}</span></div><div class="barra !h-3"><i class="bg-tinta" style="width:${pct}%"></i></div><div class="text-xs text-mute mt-1">${s}</div></div>`}).join("");
+  // Metas SMART con regla explícita: valor actual, meta y avance
+  const part=R.bruto?(R.bruto-filasCat[0][1].bruto)/R.bruto*100:0, partAnt=Ra.bruto?(Ra.bruto-D.resumenVentas(Vant.filter(v=>modelo(v.id)?.categoria==="Deportivo")).bruto)/Ra.bruto*100:null;
+  const metas=[
+    ["Exactitud de inventario",K.exactitud==null?"—":K.exactitud.toFixed(0)+" %","Meta ≥ 98 % en 12 meses",K.exactitud==null?0:Math.min(100,K.exactitud/98*100)],
+    ["Ventas de la línea de cuero",part.toFixed(0)+" %",partAnt==null?"Meta: +15 pts en 36 meses":`Antes ${partAnt.toFixed(0)} % · meta +15 pts en 36 meses`,Math.min(100,part)],
+    ["Merma sobre venta neta",tasaMerma.toFixed(2).replace(".",",")+" %","Meta ≤ 0,5 % (estándar retail)",tasaMerma<=0.5?100:Math.max(5,0.5/tasaMerma*100)],
+  ];
+  $("#metas").innerHTML=metas.map(([t,v,s,pct])=>`<div><div class="flex justify-between text-sm mb-1.5"><span class="font-semibold">${t}</span><b class="tabular-nums">${v}</b></div><div class="barra !h-3"><i class="bg-tinta" style="width:${pct}%"></i></div><div class="text-xs text-mute mt-1">${s}</div></div>`).join("");
 }
 
 /* ---------- MERCADO (base completa del Excel) ---------- */
@@ -920,55 +964,77 @@ function renderTablaM(){
   $("#mPag").textContent=`Página ${mPagina+1} de ${pags}`;
   $("#mPrev").disabled=mPagina===0; $("#mNext").disabled=mPagina>=pags-1;
 }
-/* ---------- CAJA: apertura, arqueo y Reporte Z ---------- */
+/* ---------- CAJA: sesión, movimientos de efectivo, arqueo y Reporte Z ---------- */
 document.addEventListener("click",e=>{const b=e.target.closest("[data-pago]"); if(!b) return; pago=b.dataset.pago; $$("[data-pago]").forEach(x=>x.classList.toggle("on",x.dataset.pago===pago));});
-function resumenSesion(t=tiendaAct(),f=hoy()){
-  const cj=S.cajas?.[f+"|"+t], desdeIdx=cj?.idx0??0; // solo las ventas de esta sesión de caja
-  const vs=S.ventas.slice(desdeIdx).filter(v=>v.fecha===f&&v.tienda===t);
-  const porPago={efectivo:0,qr:0,tarjeta:0}; vs.forEach(v=>porPago[v.pago||"efectivo"]+=v.cant*v.precio);
-  const tot=vs.reduce((a,v)=>a+v.cant*v.precio,0), costo=vs.reduce((a,v)=>a+v.cant*costoDe(v),0);
-  const conteo=S.cierres.filter(c=>c.fecha===f&&c.tienda===t), falt=conteo.filter(c=>c.dif<0).reduce((a,c)=>a-c.dif,0);
-  return {vs,porPago,tot,costo,gan:tot-costo,pares:vs.reduce((a,v)=>a+v.cant,0),conteo:conteo.length,falt};
+function ventasDeSesion(t=tiendaAct()){
+  const k=sesionKey(t), cj=S.cajas?.[k];
+  const conSesion=S.ventas.filter(v=>v.sesion===k);
+  return conSesion.length||!cj?.idx0?conSesion:S.ventas.slice(cj.idx0).filter(v=>v.tienda===t&&v.fecha===cj.fecha);
+}
+function resumenSesion(t=tiendaAct()){
+  const vs=ventasDeSesion(t).map(conCosto), R=D.resumenVentas(vs), cj=cajaHoy(t);
+  const fecha=cj?.fecha||hoy(), conteo=S.cierres.filter(c=>c.fecha===fecha&&c.tienda===t), K=D.kpiConteos(conteo,id=>modelo(id)?.costo_bs||0);
+  const nros=vs.map(v=>v.nro).filter(Boolean);
+  return {...R,vs,conteo:conteo.length,K,rango:nros.length?`N° ${Math.min(...nros)} – ${Math.max(...nros)}`:"—"};
 }
 function abrirCaja(){
-  const fondo=Math.max(0,parseFloat($("#fondoIni").value)||0);
-  S.cajas[cajaKey()]={fecha:hoy(),tienda:tiendaAct(),abierta:true,fondo,hApertura:new Date().toTimeString().slice(0,5),idx0:S.ventas.length};
-  asegurarInicio(tiendaAct()); guardar(); renderCaja(); toast(`🟢 Caja abierta con ${bsc(fondo)}`);
+  const fondo=D.redondear(Math.max(0,parseFloat($("#fondoIni").value)||0)), t=tiendaAct(), k=cajaKey(t)+"#"+Date.now();
+  S.cajas[k]={fecha:hoy(),tienda:t,abierta:true,fondo,movs:[],hApertura:new Date().toTimeString().slice(0,5),idx0:S.ventas.length};
+  (S.sesionActiva??={})[t]=k; if(S.permitirNueva) delete S.permitirNueva[t]; asegurarInicio(t); guardar(); renderCaja(); toast(`🟢 Caja abierta con ${bsc(fondo)}`);
 }
-function totalArqueo(){let t=0; $$("[data-den]").forEach(i=>t+=(+i.dataset.den)*Math.max(0,parseInt(i.value)||0)); return t;}
-function actArqueo(){const cj=cajaHoy(), r=resumenSesion(), esp=cj.fondo+r.porPago.efectivo, t=totalArqueo(), d=t-esp;
-  $("#arqTotal").textContent=bsc(t); $("#arqDif").textContent=(d>0.004?"+":"")+bsc(d); $("#arqDif").className="font-bold tabular-nums "+(Math.abs(d)<0.5?"text-ok":d<0?"text-marca":"text-aviso");}
+function movCaja(){
+  const tipo=$("#mcTipo").value, monto=D.redondear(parseFloat($("#mcMonto").value)||0), motivo=$("#mcMotivo").value.trim();
+  if(monto<=0){toast("Escribe un monto mayor a 0");return;} if(!motivo){toast("Escribe el motivo (ej.: depósito al banco)");return;}
+  const cj=cajaHoy(), r=resumenSesion();
+  if(tipo==="retiro"&&monto>D.esperadoCaja(cj,r.porPago.efectivo)){toast("No hay tanto efectivo en caja");return;}
+  (cj.movs??=[]).push({tipo,monto,motivo,hora:new Date().toTimeString().slice(0,5)}); guardar(); renderCaja();
+  toast(`${tipo==="retiro"?"↗ Retiro":"↘ Ingreso"} de ${bsc(monto)} registrado`);
+}
+const leerArqueo=()=>{const o={}; $$("[data-den]").forEach(i=>o[i.dataset.den]=i.value); return o;};
+const guardarArqueo=deb(()=>guardar(),400);
+function actArqueo(){const cj=cajaHoy(); cj.arqueo=leerArqueo(); guardarArqueo();
+  const r=resumenSesion(), esp=D.esperadoCaja(cj,r.porPago.efectivo), t=D.totalArqueo(cj.arqueo), d=D.redondear(t-esp);
+  $("#arqTotal").textContent=bsc(t); $("#arqDif").textContent=(d>0?"+":"")+bsc(d); $("#arqDif").className="text-2xl font-bold tabular-nums "+(d===0?"text-ok":d<0?"text-marca":"text-aviso");}
 function cerrarCaja(){
-  const cj=cajaHoy(), r=resumenSesion(), esperado=cj.fondo+r.porPago.efectivo, contado=totalArqueo();
-  if(!confirm(`¿Cerrar la caja? Contaste ${bsc(contado)} y el sistema espera ${bsc(esperado)}. Después no se podrá vender hoy.`)) return;
-  Object.assign(cj,{abierta:false,hCierre:new Date().toTimeString().slice(0,5),esperado,contado,dif:Math.round((contado-esperado)*100)/100});
-  guardar(); renderCaja(); toast("Caja cerrada · Reporte Z listo");
+  const cj=cajaHoy(), r=resumenSesion(), esperado=D.esperadoCaja(cj,r.porPago.efectivo), contado=D.totalArqueo(cj.arqueo||leerArqueo());
+  if(!confirm(`¿Cerrar la caja? Contaste ${bsc(contado)} y el sistema espera ${bsc(esperado)}.${contado===0?" ⚠️ No ingresaste ningún billete.":""} Después no se podrá vender en esta sesión.`)) return;
+  Object.assign(cj,{abierta:false,hCierre:new Date().toTimeString().slice(0,5),esperado,contado,dif:D.redondear(contado-esperado)});
+  delete S.sesionActiva[cj.tienda]; guardar(); renderCaja(); toast("Caja cerrada · Reporte Z listo");
 }
-function nuevaSesion(){ if(confirm("Solo para la demostración: ¿borrar la sesión de caja de hoy y abrir otra?")){delete S.cajas[cajaKey()]; guardar(); renderCaja();} }
+// Demo: permite abrir otra sesión el mismo día (la anterior queda en el historial, como en Odoo)
+function nuevaSesion(){ if(confirm("¿Abrir una nueva sesión de caja hoy? La sesión cerrada queda guardada en el historial.")){ S.permitirNueva??={}; S.permitirNueva[tiendaAct()]=hoy(); guardar(); renderCaja();} }
 function renderCaja(){
-  const t=tiendaAct(), cj=cajaHoy(), r=resumenSesion();
+  const t=tiendaAct(); let cj=cajaHoy(); if(cj&&!cj.abierta&&S.permitirNueva?.[t]===hoy()) cj=null;
+  const r=resumenSesion();
   $("#cajaTienda").textContent=t+" · "+new Date().toLocaleDateString("es-BO",{weekday:"long",day:"numeric",month:"long"});
-  const fila=(k,v,cls="")=>`<div class="flex justify-between py-2 border-b border-linea text-sm"><span class="text-mute">${k}</span><b class="tabular-nums ${cls}">${v}</b></div>`;
+  const fila=(k,v,cls="")=>`<div class="flex justify-between gap-3 py-2 border-b border-linea text-sm"><span class="text-mute min-w-0">${k}</span><b class="tabular-nums text-right whitespace-nowrap ${cls}">${v}</b></div>`;
   if(!cj){
     $("#cajaBody").innerHTML=`<div class="card p-6 max-w-lg fade">
       <div class="w-14 h-14 rounded-full bg-marca-50 text-marca grid place-items-center mb-4"><svg class="w-7 h-7" aria-hidden="true"><use href="#i-caja"/></svg></div>
-      <h2 class="font-bold text-xl">Apertura de caja</h2><p class="text-sm text-mute mb-5">Cuenta el dinero con el que empiezas el día (fondo para dar cambio). Mientras la caja no esté abierta, no se puede vender.</p>
-      <label class="block mb-5"><span class="text-sm font-medium">Fondo inicial (Bs)</span><input id="fondoIni" type="number" min="0" step="10" value="500" inputmode="decimal" class="campo mt-1.5 text-lg font-semibold"></label>
+      <h2 class="font-bold text-xl">Apertura de caja</h2><p class="text-sm text-mute mb-5">Cuenta el dinero con el que empiezas (fondo para dar cambio). Mientras la caja no esté abierta, no se puede vender.</p>
+      <label class="block mb-5"><span class="text-sm font-medium">Fondo inicial (Bs)</span><input id="fondoIni" type="number" min="0" step="0.1" value="500" inputmode="decimal" class="campo mt-1.5 text-lg font-semibold"></label>
       <button class="btn btn-p w-full" onclick="abrirCaja()">Abrir caja</button></div>`;
     return;
   }
+  const ing=(cj.movs||[]).filter(m=>m.tipo==="ingreso").reduce((a,m)=>a+m.monto,0), ret=(cj.movs||[]).filter(m=>m.tipo==="retiro").reduce((a,m)=>a+m.monto,0);
   if(cj.abierta){
-    const esp=cj.fondo+r.porPago.efectivo;
+    const esp=D.esperadoCaja(cj,r.porPago.efectivo);
     $("#cajaBody").innerHTML=`<div class="grid grid-cols-1 lg:grid-cols-5 gap-5 fade">
-      <div class="lg:col-span-2 space-y-3">
-        <div class="rounded-2xl bg-ok-50 text-ok px-4 py-3 text-sm font-semibold">🟢 Caja abierta desde las ${cj.hApertura}</div>
-        <div class="card p-5"><h2 class="font-bold text-lg mb-2">Movimientos del día</h2>
-          ${fila("Fondo inicial",bsc(cj.fondo))}${fila("💵 Ventas en efectivo",bsc(r.porPago.efectivo))}${fila("📱 Ventas por QR",bsc(r.porPago.qr))}${fila("💳 Ventas con tarjeta",bsc(r.porPago.tarjeta))}
+      <div class="lg:col-span-2 space-y-4">
+        <div class="rounded-2xl bg-ok-50 text-ok px-4 py-3 text-sm font-semibold">🟢 Caja abierta desde las ${cj.hApertura}${cj.fecha!==hoy()?` del ${cj.fecha}`:""}</div>
+        <div class="card p-5"><h2 class="font-bold text-lg mb-2">Efectivo de la sesión</h2>
+          ${fila("Fondo inicial",bsc(cj.fondo))}${fila("💵 Ventas en efectivo",bsc(r.porPago.efectivo))}${fila("↘ Ingresos",bsc(ing))}${fila("↗ Retiros",bsc(-ret),ret?"text-marca":"")}
           <div class="flex justify-between pt-3 text-base"><span class="font-semibold">Debe haber en caja</span><b class="tabular-nums">${bsc(esp)}</b></div>
-          <p class="text-xs text-mute mt-1">Solo el efectivo queda en la caja física; QR y tarjeta se concilian con el banco.</p></div>
+          <p class="text-xs text-mute mt-2">QR (${bsc(r.porPago.qr)}) y tarjeta (${bsc(r.porPago.tarjeta)}) no están en la caja física: se concilian con el banco.</p></div>
+        <div class="card p-5"><h2 class="font-bold text-lg">Ingreso o retiro de efectivo</h2><p class="text-xs text-mute mb-3">Ej.: depósito al banco, pago de un servicio, cambio recibido.</p>
+          <div class="grid grid-cols-2 gap-2"><select id="mcTipo" class="campo !rounded-xl" aria-label="Tipo"><option value="retiro">↗ Retiro</option><option value="ingreso">↘ Ingreso</option></select>
+            <input id="mcMonto" type="number" min="0" step="0.1" inputmode="decimal" placeholder="Monto Bs" class="campo !rounded-xl" aria-label="Monto"></div>
+          <input id="mcMotivo" maxlength="60" placeholder="Motivo" class="campo !rounded-xl mt-2" aria-label="Motivo">
+          <button class="btn btn-s w-full mt-3" onclick="movCaja()">Registrar movimiento</button>
+          ${(cj.movs||[]).length?`<div class="mt-3 space-y-1">${cj.movs.map(m=>`<div class="flex justify-between text-xs"><span>${m.hora} · ${esc(m.motivo)}</span><b class="${m.tipo==="retiro"?"text-marca":"text-ok"}">${m.tipo==="retiro"?"−":"+"}${bsc(m.monto)}</b></div>`).join("")}</div>`:""}</div>
       </div>
-      <div class="lg:col-span-3 card p-5"><h2 class="font-bold text-lg">Arqueo: cuenta el efectivo</h2><p class="text-sm text-mute mb-4">Escribe cuántos billetes y monedas hay de cada valor.</p>
-        <div class="grid grid-cols-3 sm:grid-cols-6 gap-2">${DENOM.map(d=>`<label class="rounded-xl bg-suave p-2 text-center"><span class="text-xs text-mute block">Bs ${String(d).replace(".",",")}</span><input data-den="${d}" type="number" min="0" inputmode="numeric" placeholder="0" class="w-full bg-white rounded-lg text-center font-semibold py-1.5 mt-1" oninput="actArqueo()" aria-label="Cantidad de Bs ${d}"></label>`).join("")}</div>
+      <div class="lg:col-span-3 card p-5 h-fit"><h2 class="font-bold text-lg">Arqueo: cuenta el efectivo</h2><p class="text-sm text-mute mb-4">Escribe cuántos billetes y monedas hay de cada valor.</p>
+        <div class="grid grid-cols-3 sm:grid-cols-6 gap-2">${DENOM.map(d=>`<label class="rounded-xl bg-suave p-2 text-center"><span class="text-xs text-mute block">Bs ${String(d).replace(".",",")}</span><input data-den="${d}" type="number" min="0" inputmode="numeric" placeholder="0" class="w-full bg-white rounded-lg text-center font-semibold py-1.5 mt-1" value="${cj.arqueo?.[d]??""}" oninput="actArqueo()" aria-label="Cantidad de Bs ${d}"></label>`).join("")}</div>
         <div class="grid grid-cols-2 gap-3 mt-5">
           <div class="rounded-2xl bg-suave p-4"><div class="text-xs text-mute">Contado</div><div id="arqTotal" class="text-2xl font-bold tabular-nums">Bs 0</div></div>
           <div class="rounded-2xl bg-suave p-4"><div class="text-xs text-mute">Diferencia</div><div id="arqDif" class="text-2xl font-bold tabular-nums"></div></div>
@@ -978,17 +1044,16 @@ function renderCaja(){
       </div></div>`;
     actArqueo(); return;
   }
-  const mg=r.tot?r.gan/r.tot*100:0;
   $("#cajaBody").innerHTML=`<div id="reporteZ" class="card p-6 max-w-2xl fade">
     <div class="flex items-start justify-between gap-3 mb-4"><div><div class="text-marca text-2xl font-extrabold italic leading-none">manaco</div><h2 class="font-bold text-2xl mt-2">Reporte Z</h2>
-      <div class="text-sm text-mute">${esc(t)} · ${cj.fecha} · ${cj.hApertura}–${cj.hCierre}</div></div><span class="text-xs font-semibold bg-tinta text-white px-3 py-1 rounded-full">Sesión cerrada</span></div>
-    <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-5"><div class="rounded-2xl bg-suave p-3"><div class="text-xs text-mute">Ventas</div><div class="text-lg font-bold tabular-nums">${bsc(r.tot)}</div></div>
-      <div class="rounded-2xl bg-suave p-3"><div class="text-xs text-mute">Pares</div><div class="text-lg font-bold">${r.pares}</div></div>
-      <div class="rounded-2xl bg-ok-50 p-3 col-span-2 sm:col-span-1"><div class="text-xs text-mute">Ganancia bruta</div><div class="text-lg font-bold text-ok tabular-nums">${bsc(r.gan)}</div></div></div>
-    <h3 class="eyebrow mb-1">Ventas por método de pago</h3>${fila("💵 Efectivo",bsc(r.porPago.efectivo))}${fila("📱 QR",bsc(r.porPago.qr))}${fila("💳 Tarjeta",bsc(r.porPago.tarjeta))}${fila("Transacciones",r.vs.length)}
-    <h3 class="eyebrow mt-5 mb-1">Rentabilidad</h3>${fila("Costo de lo vendido (simulado)",bsc(r.costo))}${fila("Ganancia bruta",bsc(r.gan),"text-ok")}${fila("Margen",mg.toFixed(1).replace(".",",")+" %")}
-    <h3 class="eyebrow mt-5 mb-1">Arqueo de caja</h3>${fila("Fondo inicial",bsc(cj.fondo))}${fila("Efectivo esperado",bsc(cj.esperado))}${fila("Efectivo contado",bsc(cj.contado))}${fila("Diferencia",(cj.dif>0.004?"+":"")+bsc(cj.dif),Math.abs(cj.dif)<0.5?"text-ok":"text-marca")}
-    <h3 class="eyebrow mt-5 mb-1">Inventario</h3>${r.conteo?fila("Pares faltantes en el conteo",r.falt,r.falt?"text-marca":"text-ok"):`<p class="text-sm text-aviso py-2">Conteo de inventario pendiente para hoy.</p>`}
+      <div class="text-sm text-mute">${esc(t)} · ${cj.fecha} · ${cj.hApertura}–${cj.hCierre} · ventas ${r.rango}</div></div><span class="text-xs font-semibold bg-tinta text-white px-3 py-1 rounded-full shrink-0">Sesión cerrada</span></div>
+    <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-5"><div class="rounded-2xl bg-suave p-3"><div class="text-xs text-mute">Facturado (con IVA)</div><div class="text-lg font-bold tabular-nums">${bsc(r.bruto)}</div></div>
+      <div class="rounded-2xl bg-suave p-3"><div class="text-xs text-mute">Pares · ventas</div><div class="text-lg font-bold">${r.pares} · ${r.transacciones}</div></div>
+      <div class="rounded-2xl bg-ok-50 p-3 col-span-2 sm:col-span-1"><div class="text-xs text-mute">Utilidad bruta</div><div class="text-lg font-bold text-ok tabular-nums">${bsc(r.utilidad)}</div></div></div>
+    <h3 class="eyebrow mb-1">Cobros por método de pago</h3>${fila("💵 Efectivo",bsc(r.porPago.efectivo))}${fila("📱 QR",bsc(r.porPago.qr))}${fila("💳 Tarjeta",bsc(r.porPago.tarjeta))}${fila("Ticket promedio",bsc(r.ticketPromedio))}
+    <h3 class="eyebrow mt-5 mb-1">Estado de resultados de la sesión</h3>${fila("Venta bruta (precio con IVA)",bsc(r.bruto))}${fila("(−) IVA débito fiscal 13 %",bsc(-r.iva))}${fila("= Venta neta",bsc(r.neto))}${fila("(−) Costo de lo vendido (simulado)",bsc(-r.costo))}${fila("= Utilidad bruta",bsc(r.utilidad),"text-ok")}${fila("Margen bruto (sobre venta neta)",r.margenBruto.toFixed(1).replace(".",",")+" %")}${fila("(−) IT 3 %",bsc(-r.it))}${fila("= Margen de contribución",bsc(r.contribucion))}
+    <h3 class="eyebrow mt-5 mb-1">Arqueo de caja</h3>${fila("Fondo inicial",bsc(cj.fondo))}${fila("Ventas en efectivo",bsc(r.porPago.efectivo))}${fila("Ingresos / retiros",bsc(ing)+" / "+bsc(-ret))}${fila("Efectivo esperado",bsc(cj.esperado))}${fila("Efectivo contado",bsc(cj.contado))}${fila("Diferencia",(cj.dif>0?"+":"")+bsc(cj.dif),cj.dif===0?"text-ok":"text-marca")}
+    <h3 class="eyebrow mt-5 mb-1">Inventario</h3>${r.conteo?fila("Modelos contados · exactitud",r.K.lineas+" · "+(r.K.exactitud??0).toFixed(0)+" %")+fila("Pares faltantes · merma a costo",r.K.faltantes+" · "+bsc(r.K.mermaCosto),r.K.faltantes?"text-marca":"text-ok"):`<p class="text-sm text-aviso py-2">Conteo de inventario pendiente para hoy.</p>`}
     <div class="flex flex-wrap gap-2 mt-6 no-print"><button class="btn btn-n" onclick="window.print()">Imprimir / guardar PDF</button><button class="btn btn-s" onclick="nuevaSesion()">Nueva sesión (demo)</button></div>
   </div>`;
 }
