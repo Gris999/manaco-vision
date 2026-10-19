@@ -64,7 +64,7 @@ const CTX = { modelo: id => IDX[id], ids: CAT.map(c => c.id), tiendas: A.TIENDAS
 let S, REV;
 async function cargarEstado() {
   const f = await BD.leerInstantanea();
-  if (f) { S = f.estado; REV = f.rev; return; }
+  if (f) { S = D.migrar(f.estado, CAT.map(c => c.id), A.TIENDAS, hoyLocal()); REV = f.rev; return; } // estados guardados por versiones anteriores
   S = A.estadoInicial(CAT, A.TIENDAS, hoyLocal()); REV = 0;
   await BD.confirmar([], [], REV, S, new Date().toISOString());
 }
