@@ -47,6 +47,7 @@
     let b = 0, c = 0, pares = 0;
     const porPago = { efectivo: 0, qr: 0, tarjeta: 0 };
     for (const v of ventas) {
+      if (v.anulada) continue; // anulada = revertida (devolución): no es ingreso
       const lb = cent(v.precio) * v.cant, lc = cent(v.costo) * v.cant;
       b += lb; c += lc; pares += v.cant;
       const k = porPago[v.pago] != null ? v.pago : "efectivo";
@@ -54,7 +55,7 @@
     }
     const iva = Math.round(b * IVA), it = Math.round(b * IT), neto = b - iva;
     const utilidad = neto - c, contribucion = utilidad - it;
-    const trans = ventas.length;
+    const trans = ventas.filter(v => !v.anulada).length;
     return {
       bruto: bs(b), iva: bs(iva), neto: bs(neto), it: bs(it), costo: bs(c),
       utilidad: bs(utilidad), contribucion: bs(contribucion),

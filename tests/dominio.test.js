@@ -115,3 +115,12 @@ test("migración v6 → v7: saldo inicial, N° de venta y sesión activa", () =>
   const antes = JSON.stringify(e); D.migrar(e, ["a"], ["LP", "CB"], "2026-10-20");
   assert.equal(JSON.stringify(e), antes, "la migración es idempotente");
 });
+
+test("ventas anuladas no suman ingresos, costo ni transacciones", () => {
+  const r = D.resumenVentas([
+    { cant: 1, precio: 100, costo: 60, pago: "efectivo" },
+    { cant: 2, precio: 100, costo: 60, pago: "qr", anulada: true },
+  ]);
+  assert.equal(r.bruto, 100); assert.equal(r.costo, 60); assert.equal(r.pares, 1); assert.equal(r.transacciones, 1);
+  assert.deepEqual(r.porPago, { efectivo: 100, qr: 0, tarjeta: 0 });
+});
