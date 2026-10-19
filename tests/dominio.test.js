@@ -124,3 +124,15 @@ test("ventas anuladas no suman ingresos, costo ni transacciones", () => {
   assert.equal(r.bruto, 100); assert.equal(r.costo, 60); assert.equal(r.pares, 1); assert.equal(r.transacciones, 1);
   assert.deepEqual(r.porPago, { efectivo: 100, qr: 0, tarjeta: 0 });
 });
+
+test("calidad: devoluciones por tipo, defectos y plazo de entrega", () => {
+  assert.equal(D.tipoDevolucion("Suela despegada"), "defecto");
+  assert.equal(D.tipoDevolucion("Cambio de talla"), "talla");
+  assert.equal(D.tipoDevolucion("No le gustó"), "otro");
+  const k = D.kpiCalidad([
+    { cant: 8 }, { cant: 1, anulada: true, motivoAnulacion: "Costura rota" }, { cant: 1, anulada: true, motivoAnulacion: "talla" },
+  ], [{ fecha: "2026-10-10", fechaRecibido: "2026-10-12", recibido: true }, { fecha: "2026-10-10", fechaRecibido: "2026-10-15", recibido: true }, { fecha: "2026-10-18" }]);
+  assert.equal(k.pares, 10); assert.equal(k.tasaDevolucion, 20); assert.equal(k.tasaDefectos, 10);
+  assert.equal(k.plazoPromedio, 3.5); assert.equal(k.aTiempo, 50); assert.equal(k.pendientes, 1);
+  assert.equal(D.kpiCalidad([], []).tasaDevolucion, null);
+});

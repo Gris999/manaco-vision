@@ -45,7 +45,7 @@ Deep link: `?rol=vendedor|encargado|gerente`.
 - **Caja tipo `pos.session`:** sesión con id único e independiente de la fecha, ingresos y retiros de efectivo (`cash in/out`), arqueo con borrador y Reporte Z con estado de resultados.
 - **KPIs:** ventanas de N días completos exactos, ticket promedio ≠ precio promedio por par, merma a **costo**, exactitud de inventario (IRA), cobertura en días.
 - **Código:** reglas de negocio puras en `js/dominio.js` (dinero en centavos) con **pruebas unitarias**: `npm test`. Migración de esquema sin perder datos (`D.migrar`).
-- Auditoría completa: `AUDITORIA_SENIOR.md`.
+- Auditoría completa: `docs/informes/AUDITORIA_SENIOR.md`.
 
 ## Fuentes de datos
 1. **Excel del caso** (comercio exterior, España): 230 registros → vista *Mercado* y estrategia.
@@ -129,3 +129,6 @@ Principios: base neutra, **un solo color de marca** como acento (CTA principal y
 2. ¿Qué flujo de escáner reduciría más los errores en tienda (confirmación, código de barras, multi-foto)?
 3. ¿Qué backend mínimo recomendarías para sincronizar las 3 tiendas (Supabase, Firebase…)?
 4. ¿Qué otros KPI aportarían a la decisión "competir en cuero, no en precio"?
+
+## Documentación de ingeniería
+Metodología, requisitos, arquitectura, pruebas y trazabilidad con el caso: [docs/README.md](docs/README.md).

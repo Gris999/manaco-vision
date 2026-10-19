@@ -126,6 +126,38 @@
     return diaria > 0 ? stock / diaria : Infinity;
   }
 
+  /* ---------- Calidad y logística (Estación 4: defectos, devoluciones, entregas) ---------- */
+  /** Clasifica el motivo libre de una devolución. */
+  function tipoDevolucion(motivo = "") {
+    const m = motivo.toLowerCase();
+    if (/defect|fall|roto|rot[ao]|despeg|cost?ura|suela|fábrica|fabrica/.test(m)) return "defecto";
+    if (/talla|número|numero|cambio|grande|pequeñ|chico/.test(m)) return "talla";
+    return "otro";
+  }
+  /**
+   * ventas: del periodo (incluye anuladas). pedidos: {fecha, fechaRecibido?, recibido}.
+   * - Tasa de devolución = pares devueltos ÷ pares facturados
+   * - Tasa de defectos = pares devueltos por defecto ÷ pares facturados
+   * - Plazo de entrega = días entre el pedido del Gerente y la recepción en tienda; a tiempo ≤ plazoMeta
+   */
+  function kpiCalidad(ventas, pedidos, plazoMeta = 3) {
+    let vend = 0, dev = 0; const porTipo = { defecto: 0, talla: 0, otro: 0 };
+    for (const v of ventas) {
+      vend += v.cant;
+      if (v.anulada) { dev += v.cant; porTipo[tipoDevolucion(v.motivoAnulacion)] += v.cant; }
+    }
+    const dias = (a, b) => Math.round((new Date(b) - new Date(a)) / 864e5);
+    const recibidos = pedidos.filter(p => p.recibido && p.fechaRecibido).map(p => dias(p.fecha, p.fechaRecibido));
+    return {
+      pares: vend, devueltos: dev, porTipo,
+      tasaDevolucion: vend ? dev / vend * 100 : null,
+      tasaDefectos: vend ? porTipo.defecto / vend * 100 : null,
+      pedidos: pedidos.length, pendientes: pedidos.filter(p => !p.recibido).length,
+      plazoPromedio: recibidos.length ? recibidos.reduce((a, b) => a + b, 0) / recibidos.length : null,
+      aTiempo: recibidos.length ? recibidos.filter(d => d <= plazoMeta).length / recibidos.length * 100 : null,
+    };
+  }
+
   /* ---------- Migración de datos guardados ---------- */
   const VERSION_ESQUEMA = 7;
   /** v6 → v7: saldo inicial en el kardex, N° de venta y sesiones independientes de la fecha. */
@@ -147,6 +179,6 @@
   }
 
   const Dominio = { IVA, IT, cent, bs, redondear, sumarDias, ventana, enRango, desglose, resumenVentas, variacion,
-    esperadoCaja, totalArqueo, moverStock, verificarKardex, kpiConteos, cobertura, migrar, VERSION_ESQUEMA };
+    esperadoCaja, totalArqueo, moverStock, verificarKardex, kpiConteos, cobertura, tipoDevolucion, kpiCalidad, migrar, VERSION_ESQUEMA };
   if (typeof module !== "undefined" && module.exports) module.exports = Dominio; else global.Dominio = Dominio;
 })(typeof window !== "undefined" ? window : globalThis);
