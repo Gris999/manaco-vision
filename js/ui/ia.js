@@ -12,6 +12,10 @@ function clasificar(fuente){
   const p=tf.tidy(()=>Array.from(head.predict(net.infer(fuente,true)).dataSync()));
   const i=p.indexOf(Math.max(...p)); return {clase:CLASES[i],prob:p[i],todas:p};
 }
+/* Modo "contar con cámara" (pedido del caso: "una persona solo pasa la cámara y detecta la cantidad"):
+   cada par reconocido suma 1 al conteo de hoy. Para no contar dos veces el mismo par, se exige
+   que la cámara deje de ver un zapato (o vea otro modelo) antes de volver a sumar. */
+let modoContar=false, armado=true, ultimoContado=null;
 let loop=null, stream=null, ultimo=null, ultimaProb=0, estable=0, facing="environment", ultimasTodas=null;
 async function abrirCam(){
   if(!navigator.mediaDevices?.getUserMedia){toast("Este navegador no permite usar la cámara. Usa \"Foto\".");return;}
@@ -27,8 +31,9 @@ async function abrirCam(){
       $("#liveNombre").innerHTML=valido?corto(modelo(r.clase)):"Buscando zapato…";
       $("#livePct").textContent=valido?(r.prob*100).toFixed(0)+"%":"";
       $("#liveBar").style.width=(valido?r.prob*100:6)+"%";
+      if(!valido) armado=true; else if(r.clase!==ultimoContado) armado=true;
       if(r.clase===ultimo) estable++; else {estable=0; ultimo=r.clase;}
-      if(estable===2) mostrar(r);
+      if(estable===2){ if(modoContar&&valido&&armado){ contarPar(r.clase); armado=false; ultimoContado=r.clase; } mostrar(r); }
     },380);
   }catch(e){toast(e.name==="NotAllowedError"?"Permiso de cámara denegado. Actívalo en el navegador o usa \"Foto\".":"No se pudo abrir la cámara. Usa \"Foto\".");}
 }
@@ -80,6 +85,20 @@ async function probarEjemplo(){
 let iMuestra=0;
 function abrirMuestra(){ iMuestra=Math.floor(Math.random()*CAT.length); pintarMuestra(); $("#muestra").classList.remove("hidden"); if(stream) cerrarCam(); }
 function pintarMuestra(){ const c=CAT[(iMuestra%CAT.length+CAT.length)%CAT.length]; $("#muestraImg").src=c.imagen; $("#muestraNombre").textContent=c.nombre; }
+function contarPar(id){
+  if(conteoCerrado()){toast("El conteo de hoy ya está cerrado"); return;}
+  const B=borrador(); B.valores[id]=(B.valores[id]??0)+1; guardar(); navigator.vibrate?.(60);
+  toast(`+1 · ${corto(modelo(id))}: ${B.valores[id]} contados`); pintarModoContar();
+}
+function pintarModoContar(){
+  const el=$("#chipContar"); if(!el) return;
+  const n=Object.values(borrador().valores).reduce((a,v)=>a+v,0);
+  el.classList.toggle("hidden",!modoContar);
+  el.innerHTML=`📷 Contando con cámara · ${n} pares · <u>terminar</u>`;
+}
+function contarConCamara(){ modoContar=true; armado=true; ultimoContado=null; borrador().ciego=true; guardar(); ver("escaner"); pintarModoContar(); if(!stream) abrirCam();
+  toast("Pasa la cámara por cada par, uno por uno. Cada zapato reconocido suma 1."); }
+function terminarContar(){ modoContar=false; pintarModoContar(); ver("cierre"); }
 function elegir(k,p){ultimo=k; mostrar({clase:k,prob:Math.max(p,UMBRAL),todas:ultimasTodas});}
 function mostrar(r){
   if(r.todas) ultimasTodas=r.todas;
@@ -108,7 +127,7 @@ function mostrar(r){
    ${cajaAbierta()?`<div class="flex gap-2 mt-4 flex-wrap pagos">${chipsPago()}</div>`:`<div class="mt-4 rounded-xl bg-aviso-50 text-aviso text-sm px-3 py-2">🔒 ${cajaHoy()?"La caja ya se cerró hoy":"La caja aún no está abierta"}: el Encargado debe ${cajaHoy()?"abrir una nueva sesión":"abrirla"} para vender.</div>`}
    <div class="grid grid-cols-2 gap-2 mt-3">
      <button class="btn btn-p" onclick="vender('${c.id}',1)" ${n<1||!cajaAbierta()?"disabled":""}>Vender 1 par</button>
-     ${rol==="encargado"?`<button class="btn btn-s" onclick="reponer('${c.id}',5)">+5 reponer</button>`:`<button class="btn btn-s" onclick="verKardex('${c.id}')">Ver ficha</button>`}
+     ${modoContar?`<button class="btn btn-s" onclick="contarPar('${c.id}')">+1 al conteo</button>`:rol==="encargado"?`<button class="btn btn-s" onclick="reponer('${c.id}',5)">+5 reponer</button>`:`<button class="btn btn-s" onclick="verKardex('${c.id}')">Ver ficha</button>`}
    </div>
    ${top?`<div class="mt-5 pt-4 border-t border-linea"><div class="text-xs font-semibold mb-2">¿No es este? Toca el correcto</div>${top.map(([k,p])=>`<button onclick="elegir('${k}',${p})" class="w-full flex items-center gap-3 text-left text-sm py-1.5 px-2 -mx-2 rounded-xl hover:bg-suave ${k===c.id?'bg-suave':''}"><img src="${modelo(k).imagen}" class="w-9 h-9 object-contain rounded-lg bg-suave" alt=""><span class="flex-1 truncate">${corto(modelo(k))}</span><span class="barra w-16"><i class="${k===c.id?'bg-marca':'bg-[#CACACB]'}" style="width:${(p*100).toFixed(1)}%"></i></span><span class="w-9 text-right tabular-nums text-xs">${(p*100).toFixed(0)}%</span></button>`).join("")}</div>`:""}
   </div>`;

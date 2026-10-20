@@ -40,7 +40,7 @@ function renderCierre(){
   $("#cDifRes").innerHTML=difs.length?`<span class="text-[#FF8FAE]">${difs.length} con diferencia · faltan ${faltan} ${faltan===1?"par":"pares"}</span>`:`<span class="text-white/70">${hechosHoy===H.ids.length?"¡Lista de hoy completa!":"Sin diferencias por ahora"}</span>`;
   const ciego=!!B.ciego;
   const F=[["hoy",`Hoy te tocan (${H.ids.length})`],["pendientes",`Pendientes (${H.ids.length-hechosHoy})`],["diferencias",`Con diferencia (${difs.length})`],["todo","Todo el catálogo"]];
-  $("#cFiltros").innerHTML=F.map(([k,n])=>`<button class="chip ${cFiltro===k?"on":""}" data-cf="${k}" aria-pressed="${cFiltro===k}">${n}</button>`).join("")+`<button class="chip ${ciego?"on":""}" onclick="borrador().ciego=!borrador().ciego;guardar();renderCierre()" aria-pressed="${ciego}" title="Oculta lo que dice el sistema para no contar de memoria">🙈 Conteo ciego</button>`;
+  $("#cFiltros").innerHTML=`<button class="chip !bg-marca !text-white" onclick="contarConCamara()" title="Pasa la cámara por cada par; cada zapato reconocido suma 1">📷 Contar con cámara</button>`+F.map(([k,n])=>`<button class="chip ${cFiltro===k?"on":""}" data-cf="${k}" aria-pressed="${cFiltro===k}">${n}</button>`).join("")+`<button class="chip ${ciego?"on":""}" onclick="borrador().ciego=!borrador().ciego;guardar();renderCierre()" aria-pressed="${ciego}" title="Oculta lo que dice el sistema para no contar de memoria">🙈 Conteo ciego</button>`;
   $$("[data-cf]").forEach(b=>b.onclick=()=>{cFiltro=b.dataset.cf; cPag=0; renderCierre();});
   $("#cBusqueda").classList.toggle("hidden",cFiltro!=="todo");
   const lista=listaConteo(), porPag=cFiltro==="todo"?POR_PAG_CONTEO:POR_PAG_HOY, pags=Math.max(1,Math.ceil(lista.length/porPag)); cPag=Math.min(cPag,pags-1);

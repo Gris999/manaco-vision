@@ -73,3 +73,21 @@ test("compras, transferencias, clientes y Excel", async ({ page }) => {
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   expect(errores).toEqual([]);
 });
+
+// Pedido del audio del docente: "una persona pasa la cámara y detecta la cantidad" (10 − 2 = 8, pero hay 7)
+test("contar con cámara: cada par reconocido suma 1 y el faltante queda registrado", async ({ page }) => {
+  const errores = []; page.on("pageerror", e => errores.push(e.message));
+  await page.goto("/");
+  await entrar(page, "encargado");
+  await nav(page, "cierre");
+  await page.getByRole("button", { name: "📷 Contar con cámara" }).click();
+  await expect(page.locator("#chipContar")).toBeVisible();
+  const { id, esp } = await page.evaluate(() => { const id = listaDelDia().ids.find(i => S.stock[i][tiendaAct()] >= 2) || CAT.find(c => S.stock[c.id][tiendaAct()] >= 2).id; return { id, esp: S.stock[id][tiendaAct()] }; });
+  const reales = esp - 1; // en el estante hay un par menos del que dice el sistema
+  for (let k = 0; k < reales; k++) await page.evaluate(id => contarPar(id), id);
+  await expect(page.locator("#chipContar")).toContainText(`${reales} pares`);
+  await page.locator("#chipContar").click();
+  await page.locator("#cBtn").click(); await aceptar(page);
+  await expect(page.locator("#cRes")).toContainText("Faltante: 1 par");
+  expect(errores).toEqual([]);
+});
