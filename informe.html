@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Informe de Mercado · Manaco Vision</title>
+<meta name="theme-color" content="#111111">
+<link rel="icon" type="image/png" href="icons/favicon-64.png">
+<link rel="stylesheet" href="vendor/poppins.css">
+<script src="vendor/chart-4.4.1.umd.min.js"></script>
+<style>
+/* Informe de análisis de datos (estilo reporte BI): navegador de páginas + segmentadores + visuales.
+   Paleta 60-30-10: blanco/negro dominan, gris para lo secundario, rojo Manaco solo como acento. */
+:root{--rojo:#E40140;--rojo2:#F0587A;--tinta:#111;--gris:#6B6B6B;--suave:#F4F4F5;--linea:#E4E4E7;--fondo:#FAFAFA;--ok:#1E8E3E;--aviso:#B26A00}
+*{box-sizing:border-box}html,body{margin:0}
+body{font-family:Poppins,system-ui,sans-serif;background:var(--fondo);color:var(--tinta);font-size:14px;line-height:1.45}
+button{font:inherit;cursor:pointer}
+.app{display:grid;grid-template-columns:240px 1fr;min-height:100vh}
+/* Navegador de páginas */
+nav{background:var(--tinta);color:#fff;padding:20px 14px;position:sticky;top:0;height:100vh;overflow:auto}
+.marca{font-weight:800;font-style:italic;font-size:22px;letter-spacing:-.02em}
+.marca small{display:block;font-style:normal;font-weight:500;font-size:11px;color:#A1A1AA;letter-spacing:.06em;text-transform:uppercase;margin-top:2px}
+.paginas{list-style:none;margin:22px 0 0;padding:0;display:grid;gap:4px;counter-reset:p}
+.paginas button{width:100%;text-align:left;background:none;border:0;color:#D4D4D8;padding:10px 12px;border-radius:10px;font-size:13px;display:flex;gap:10px;align-items:center}
+.paginas button::before{counter-increment:p;content:counter(p);width:22px;height:22px;border-radius:50%;border:1px solid #52525B;display:grid;place-items:center;font-size:11px;flex:none}
+.paginas button:hover{background:#27272A}
+.paginas button.on{background:#fff;color:var(--tinta);font-weight:600}
+.paginas button.on::before{background:var(--rojo);border-color:var(--rojo);color:#fff}
+.fuente{font-size:11px;color:#A1A1AA;margin-top:24px;line-height:1.5}
+.fuente a{color:#fff}
+/* Lienzo */
+main{padding:22px 26px 40px;min-width:0}
+.barra{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;background:#fff;border:1px solid var(--linea);border-radius:14px;padding:10px 14px;margin-bottom:18px;position:sticky;top:10px;z-index:5}
+.seg{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.seg>span{font-size:11px;font-weight:600;color:var(--gris);text-transform:uppercase;letter-spacing:.06em;margin-right:2px}
+.chip{border:1px solid var(--linea);background:#fff;border-radius:999px;padding:5px 11px;font-size:12px}
+.chip.on{background:var(--tinta);color:#fff;border-color:var(--tinta)}
+.limpiar{margin-left:auto;border:0;background:none;color:var(--gris);font-size:12px;text-decoration:underline}
+.eyebrow{font-size:11px;font-weight:600;color:var(--rojo);letter-spacing:.08em;text-transform:uppercase}
+h1{font-size:26px;line-height:1.15;letter-spacing:-.02em;margin:4px 0 4px;max-width:900px}
+.sub{color:var(--gris);margin:0 0 18px;max-width:820px}
+.grid{display:grid;gap:14px}
+.g4{grid-template-columns:repeat(4,1fr)}.g3{grid-template-columns:repeat(3,1fr)}.g2{grid-template-columns:1.4fr 1fr}.g11{grid-template-columns:1fr 1fr}
+.card{background:#fff;border:1px solid var(--linea);border-radius:14px;padding:16px;min-width:0}
+.card h2{font-size:14px;margin:0 0 2px}.card p.n{font-size:12px;color:var(--gris);margin:0 0 10px}
+.kpi .k{font-size:12px;color:var(--gris)}.kpi .v{font-size:26px;font-weight:800;letter-spacing:-.02em;line-height:1.15;margin-top:2px;font-variant-numeric:tabular-nums}
+.kpi .d{font-size:12px;color:var(--gris);margin-top:4px}.kpi.acento{border-top:3px solid var(--rojo)}
+.lienzo{position:relative;height:280px}.lienzo.alto{height:340px}
+.significa{background:#fff;border:1px solid var(--linea);border-left:4px solid var(--rojo);border-radius:14px;padding:14px 16px}
+.significa b.t{display:block;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--rojo);margin-bottom:4px}
+.significa ul{margin:6px 0 0;padding-left:18px}.significa li{margin:3px 0}
+.nota{font-size:11.5px;color:var(--gris);margin-top:8px}
+table{width:100%;border-collapse:collapse;font-size:12.5px}th{text-align:left;color:var(--gris);font-weight:600;border-bottom:1px solid var(--linea);padding:6px}td{padding:6px;border-bottom:1px solid var(--linea);font-variant-numeric:tabular-nums}
+.pill{display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--suave)}
+.pill.r{background:#FDE8EE;color:#B8002F}.pill.v{background:#E6F4EA;color:var(--ok)}.pill.a{background:#FFF4E0;color:var(--aviso)}
+.pagina{display:none}.pagina.on{display:block;animation:ap .25s ease}
+@keyframes ap{from{opacity:0;transform:translateY(4px)}to{opacity:1}}
+.pie{display:flex;justify-content:space-between;gap:10px;margin-top:18px}
+.pie button{border:1px solid var(--linea);background:#fff;border-radius:999px;padding:8px 14px;font-size:13px}
+.pie button.sig{background:var(--tinta);color:#fff;border-color:var(--tinta)}
+@media (max-width:900px){
+  .app{grid-template-columns:1fr}
+  nav{position:static;height:auto;padding:14px 16px}
+  .paginas{grid-auto-flow:column;grid-auto-columns:max-content;overflow-x:auto;margin-top:12px;padding-bottom:4px}
+  .paginas button{white-space:nowrap}
+  .fuente{display:none}
+  main{padding:14px 16px 32px}
+  .barra{position:static;padding:8px 10px;gap:6px}
+  .seg{flex-wrap:nowrap;overflow-x:auto;width:100%;scrollbar-width:none}.seg::-webkit-scrollbar{display:none}
+  .seg>span{min-width:74px}.chip{white-space:nowrap}
+  .limpiar{margin-left:0}
+  .g4{grid-template-columns:1fr 1fr}.g3,.g2,.g11{grid-template-columns:1fr}
+  h1{font-size:21px}.kpi .v{font-size:21px}
+}
+@media print{nav,.barra,.pie{display:none}.app{display:block}.pagina{display:block!important;break-after:page}}
+</style>
+</head>
+<body>
+<div class="app">
+  <nav aria-label="Páginas del informe">
+    <div class="marca">manaco<small>Informe de mercado</small></div>
+    <ol class="paginas" id="nav"></ol>
+    <p class="fuente">Fuente: base de comercio exterior de calzado del caso (país reportante: España, 2020–2024). 230 registros depurados con Python (pandas).<br><br><a href="./#mercado">← Volver al sistema</a></p>
+  </nav>
+  <main>
+    <div class="barra" id="segmentadores" aria-label="Filtros"></div>
+    <div id="paginas"></div>
+    <div class="pie"><button id="ant">← Anterior</button><button id="sig" class="sig">Siguiente →</button></div>
+  </main>
+</div>
+<script>
+"use strict";
+/* ---------- Datos y formato ---------- */
+let DATA = [];
+const CAT = { "Casual cuero (suela caucho)": "Casual de cuero", "Deportivo": "Deportivo", "Formal cuero/cuero": "Formal de cuero" };
+const CATS = Object.keys(CAT), COL = { "Casual de cuero": "#111111", "Deportivo": "#A1A1AA", "Formal de cuero": "#E40140" };
+const F = { I: "Importación", E: "Exportación" };
+const num = (n, d = 0) => n.toLocaleString("es-BO", { minimumFractionDigits: d, maximumFractionDigits: d });
+const mm = v => num(v / 1e6, 0) + " M USD";          // millones de USD
+const mil = v => num(v / 1e9, 1) + " mil M USD";      // miles de millones
+const pares = q => num(q / 1e6, 1) + " M pares";
+const pct = x => num(x, 1) + " %";
+const suma = (r, k) => r.reduce((a, x) => a + x[k], 0);
+const vpp = r => { const q = suma(r, "q"); return q ? suma(r, "v") / q : 0; }; // promedio PONDERADO
+const $ = s => document.querySelector(s);
+
+/* ---------- Segmentadores (filtros cruzados) ---------- */
+const filtro = { a: new Set(), c: new Set(), f: "T" };
+function dat(extra = {}) {
+  const fl = { ...filtro, ...extra };
+  return DATA.filter(r => (!fl.a.size || fl.a.has(r.a)) && (!fl.c.size || fl.c.has(r.c)) && (fl.f === "T" || r.f === fl.f));
+}
+function pintarSegmentadores() {
+  const anios = [...new Set(DATA.map(r => r.a))].sort();
+  $("#segmentadores").innerHTML =
+    `<div class="seg"><span>Año</span>${anios.map(a => `<button class="chip ${filtro.a.has(a) ? "on" : ""}" data-a="${a}">${a}</button>`).join("")}</div>
+     <div class="seg"><span>Tipo</span>${CATS.map(c => `<button class="chip ${filtro.c.has(c) ? "on" : ""}" data-c="${c}">${CAT[c]}</button>`).join("")}</div>
+     <div class="seg"><span>Movimiento</span>${[["T", "Ambos"], ["I", "Importación"], ["E", "Exportación"]].map(([k, t]) => `<button class="chip ${filtro.f === k ? "on" : ""}" data-f="${k}">${t}</button>`).join("")}</div>
+     <button class="limpiar" id="limpiar">Quitar filtros</button>`;
+  document.querySelectorAll("[data-a]").forEach(b => b.onclick = () => { const a = +b.dataset.a; filtro.a.has(a) ? filtro.a.delete(a) : filtro.a.add(a); refrescar(); });
+  document.querySelectorAll("[data-c]").forEach(b => b.onclick = () => { const c = b.dataset.c; filtro.c.has(c) ? filtro.c.delete(c) : filtro.c.add(c); refrescar(); });
+  document.querySelectorAll("[data-f]").forEach(b => b.onclick = () => { filtro.f = b.dataset.f; refrescar(); });
+  $("#limpiar").onclick = () => { filtro.a.clear(); filtro.c.clear(); filtro.f = "T"; refrescar(); };
+}
+
+/* ---------- Gráficos ---------- */
+Chart.defaults.font.family = "Poppins"; Chart.defaults.color = "#6B6B6B"; Chart.defaults.font.size = 11;
+const charts = {};
+function grafico(id, cfg) {
+  charts[id]?.destroy();
+  const el = document.getElementById(id); if (!el) return;
+  cfg.options = Object.assign({ responsive: true, maintainAspectRatio: false, animation: { duration: 350 },
+    plugins: { legend: { position: "bottom", labels: { usePointStyle: true, boxWidth: 8 } }, tooltip: { backgroundColor: "#111", padding: 10 } } }, cfg.options || {});
+  charts[id] = new Chart(el, cfg);
+}
+const sinGrid = { grid: { display: false }, border: { display: false } };
+const conGrid = { grid: { color: "#F0F0F0" }, border: { display: false } };
+
+/* ---------- Páginas ---------- */
+const PAGINAS = [
+  { id: "resumen", nav: "Resumen", render: pResumen },
+  { id: "categorias", nav: "Categorías", render: pCategorias },
+  { id: "valor-cantidad", nav: "Valor vs. cantidad", render: pValorCantidad },
+  { id: "por-par", nav: "Valor por par", render: pPorPar },
+  { id: "socios", nav: "Socios comerciales", render: pSocios },
+  { id: "calidad", nav: "Calidad de los datos", render: pCalidad },
+  { id: "decision", nav: "Decisión para Manaco", render: pDecision },
+];
+let actual = 0;
+const kpi = (k, v, d = "", acento = false) => `<div class="card kpi ${acento ? "acento" : ""}"><div class="k">${k}</div><div class="v">${v}</div>${d ? `<div class="d">${d}</div>` : ""}</div>`;
+const significa = items => `<div class="significa"><b class="t">¿Qué significa para Manaco?</b><ul>${items.map(i => `<li>${i}</li>`).join("")}</ul></div>`;
+const cabecera = (eyebrow, titulo, sub) => `<div class="eyebrow">${eyebrow}</div><h1>${titulo}</h1><p class="sub">${sub}</p>`;
+
+function pResumen(el) {
+  const R = dat(), I = R.filter(r => r.f === "I"), E = R.filter(r => r.f === "E");
+  const vI = suma(I, "v"), vE = suma(E, "v"), ratio = vE ? vI / vE : 0;
+  el.innerHTML = cabecera("Página 1 · Resumen ejecutivo",
+    ratio ? `España compra ${num(ratio, 1)} veces más calzado del que vende: es un mercado abierto al importado` : "Resumen del mercado",
+    "Visión general del comercio exterior de calzado en la selección actual. Use los filtros de arriba: todas las cifras y gráficos se recalculan.") +
+    `<div class="grid g4" style="margin-bottom:14px">
+      ${kpi("Importación (compras)", mil(vI), pares(suma(I, "q")), true)}
+      ${kpi("Exportación (ventas)", mil(vE), pares(suma(E, "q")))}
+      ${kpi("Balance comercial", (vE - vI < 0 ? "−" : "") + mil(Math.abs(vE - vI)), vE - vI < 0 ? "Déficit: entra más de lo que sale" : "Superávit")}
+      ${kpi("Valor promedio por par", num(vpp(R), 1) + " USD", "Promedio ponderado (valor ÷ pares)")}
+    </div>
+    <div class="grid g2" style="margin-bottom:14px">
+      <div class="card"><h2>Importación y exportación por año</h2><p class="n">Millones de USD · ojo: 2020 tiene 26 registros y 2024 tiene 77, no se debe leer como tendencia</p><div class="lienzo"><canvas id="c1"></canvas></div></div>
+      ${significa([
+        `<b>El cuero es la oportunidad:</b> el formal de cuero vale ≈ ${num(vpp(R.filter(r => r.c === "Formal cuero/cuero")), 0)} USD por par frente a ≈ ${num(vpp(R.filter(r => r.c !== "Formal cuero/cuero")), 0)} del resto.`,
+        `<b>El deportivo es la amenaza:</b> es la categoría donde más presiona el calzado importado.`,
+        `<b>Decisión:</b> competir por calidad en cuero, no por precio en deportivo (ver página 7).`,
+      ])}
+    </div>`;
+  const anios = [...new Set(DATA.map(r => r.a))].sort();
+  grafico("c1", { type: "bar", data: { labels: anios, datasets: ["I", "E"].filter(f => filtro.f === "T" || filtro.f === f).map(f => ({
+    label: F[f], data: anios.map(a => suma(R.filter(r => r.a === a && r.f === f), "v") / 1e6), backgroundColor: f === "I" ? "#E40140" : "#111", borderRadius: 4 })) },
+    options: { scales: { x: sinGrid, y: { ...conGrid, ticks: { callback: v => num(v) + " M" } } }, plugins: { tooltip: { callbacks: { label: c => ` ${c.dataset.label}: ${num(c.raw, 0)} M USD` } } } } });
+}
+
+function pCategorias(el) {
+  const R = dat({ c: new Set() });
+  const fila = c => { const I = R.filter(r => r.c === c && r.f === "I"), E = R.filter(r => r.c === c && r.f === "E"); return { c, vI: suma(I, "v"), vE: suma(E, "v") }; };
+  const T = CATS.map(fila), dep = T.find(x => x.c === "Deportivo"), cas = T.find(x => x.c.startsWith("Casual"));
+  const tot = T.reduce((a, x) => a + x.vI + x.vE, 0) || 1;
+  el.innerHTML = cabecera("Página 2 · Categorías",
+    `El casual de cuero mueve el dinero; el deportivo es donde entra el importado`,
+    `En el deportivo se importa ${dep.vE ? num(dep.vI / dep.vE, 1) : "–"} veces lo que se exporta. Esta página ignora el filtro de tipo para comparar las tres categorías.`) +
+    `<div class="grid g2" style="margin-bottom:14px">
+      <div class="card"><h2>Valor por categoría y movimiento</h2><p class="n">Miles de millones de USD</p><div class="lienzo alto"><canvas id="c2"></canvas></div></div>
+      <div class="card"><h2>Importa ÷ exporta, por categoría</h2><p class="n">Más de 1 = entra más de lo que sale (presión importadora)</p>
+        <table><tr><th>Categoría</th><th>Participación</th><th>Importa ÷ exporta</th></tr>
+        ${T.map(x => `<tr><td><b>${CAT[x.c]}</b></td><td>${pct((x.vI + x.vE) / tot * 100)}</td><td><span class="pill ${x.vE && x.vI / x.vE > 2 ? "r" : ""}">${x.vE ? num(x.vI / x.vE, 1) + "×" : "–"}</span></td></tr>`).join("")}</table>
+        <p class="nota">Lectura: en deportivo, por cada dólar que España vende, compra ${dep.vE ? num(dep.vI / dep.vE, 1) : "–"} dólares.</p></div>
+    </div>` + significa([
+      `El <b>casual de cuero</b> concentra ${pct((cas.vI + cas.vE) / tot * 100)} del comercio: es el mercado grande.`,
+      `El <b>deportivo</b> es donde compite el importado barato: Manaco no debería pelear ahí por precio.`,
+      `El <b>formal de cuero</b> es pequeño en volumen, pero la página 3 muestra que vale mucho más por unidad.`]);
+  grafico("c2", { type: "bar", data: { labels: T.map(x => CAT[x.c]), datasets: [
+    { label: "Importación", data: T.map(x => x.vI / 1e9), backgroundColor: "#E40140", borderRadius: 4 },
+    { label: "Exportación", data: T.map(x => x.vE / 1e9), backgroundColor: "#111", borderRadius: 4 }] },
+    options: { indexAxis: "y", scales: { x: { ...conGrid, ticks: { callback: v => num(v, 0) } }, y: sinGrid }, plugins: { tooltip: { callbacks: { label: c => ` ${c.dataset.label}: ${num(c.raw, 2)} mil M USD` } } } } });
+}
+
+function pValorCantidad(el) {
+  const R = dat({ c: new Set() }), V = suma(R, "v") || 1, Q = suma(R, "q") || 1;
+  const T = CATS.map(c => { const s = R.filter(r => r.c === c); return { c, pv: suma(s, "v") / V * 100, pq: suma(s, "q") / Q * 100 }; });
+  const fo = T.find(x => x.c === "Formal cuero/cuero");
+  el.innerHTML = cabecera("Página 3 · ¿Valor o cantidad?",
+    `Medido en pares el cuero parece pequeño; medido en dinero pesa ${fo.pq ? num(fo.pv / fo.pq, 1) : "–"} veces más`,
+    "Responde la pregunta del caso: ¿cambian las conclusiones si se mide valor en lugar de cantidad? El orden no cambia, pero el peso sí.") +
+    `<div class="grid g2" style="margin-bottom:14px">
+      <div class="card"><h2>Participación en dinero frente a participación en pares</h2><p class="n">% del total de la selección</p><div class="lienzo alto"><canvas id="c3"></canvas></div></div>
+      <div class="card"><h2>Cómo leerlo</h2><p class="n">Si la barra de dinero es más larga que la de pares, cada par de esa categoría vale más que el promedio.</p>
+        <table><tr><th>Categoría</th><th>% dinero</th><th>% pares</th><th>Peso relativo</th></tr>
+        ${T.map(x => `<tr><td><b>${CAT[x.c]}</b></td><td>${pct(x.pv)}</td><td>${pct(x.pq)}</td><td><span class="pill ${x.pv > x.pq ? "r" : ""}">${x.pq ? num(x.pv / x.pq, 2) + "×" : "–"}</span></td></tr>`).join("")}</table></div>
+    </div>` + significa([
+      "Si Manaco solo midiera <b>pares vendidos</b>, subestimaría sus líneas de cuero.",
+      "Los KPI del sistema propuesto miden <b>facturación y utilidad</b>, no solo unidades, por esta razón."]);
+  grafico("c3", { type: "bar", data: { labels: T.map(x => CAT[x.c]), datasets: [
+    { label: "% del dinero", data: T.map(x => x.pv), backgroundColor: "#E40140", borderRadius: 4 },
+    { label: "% de los pares", data: T.map(x => x.pq), backgroundColor: "#D4D4D8", borderRadius: 4 }] },
+    options: { scales: { x: sinGrid, y: { ...conGrid, ticks: { callback: v => v + " %" } } }, plugins: { tooltip: { callbacks: { label: c => ` ${c.dataset.label}: ${num(c.raw, 1)} %` } } } } });
+}
+
+function pPorPar(el) {
+  const R = dat({ c: new Set() }).map(r => ({ ...r, p: r.v / r.q }));
+  const ps = R.map(r => r.p).sort((a, b) => a - b);
+  const qn = k => { if (!ps.length) return 0; const i = (ps.length - 1) * k, lo = Math.floor(i); return ps[lo] + (ps[Math.min(lo + 1, ps.length - 1)] - ps[lo]) * (i - lo); }; // cuartil con interpolación lineal (igual que pandas)
+  const q1 = qn(.25), q3 = qn(.75), lim = q3 + 1.5 * (q3 - q1), atip = R.filter(r => r.p > lim);
+  const pond = CATS.map(c => ({ c, p: vpp(R.filter(r => r.c === c)) }));
+  el.innerHTML = cabecera("Página 4 · Valor por par",
+    `El formal de cuero vale ≈ ${num(pond[2].p, 0)} USD por par: casi el doble que el resto`,
+    "Valor por par = valor ÷ pares (promedio ponderado). Es valor en aduana: no incluye aranceles, transporte ni margen, así que no es el precio al consumidor.") +
+    `<div class="grid g11" style="margin-bottom:14px">
+      <div class="card"><h2>Valor promedio por par</h2><p class="n">USD por par, promedio ponderado por categoría</p><div class="lienzo"><canvas id="c4"></canvas></div></div>
+      <div class="card"><h2>Cada registro, por categoría</h2><p class="n">Cada punto es un país y un año · en rojo, los atípicos (más de ${num(lim, 0)} USD por par)</p><div class="lienzo"><canvas id="c5"></canvas></div></div>
+    </div>` + significa([
+      `Hay <b>${atip.length} registros atípicos</b>${atip.length ? ` (${num(Math.min(...atip.map(r => r.p)), 0)}–${num(Math.max(...atip.map(r => r.p)), 0)} USD por par)` : ""} y <b>${atip.filter(r => r.c === "Formal cuero/cuero").length} son de formal de cuero</b>: existe un nicho premium que paga de 2 a 4 veces más.`,
+      "No son errores: se conservan porque cuentan algo real del mercado.",
+      "Para Manaco: <b>el cuero de calidad es donde hay margen</b>; ahí debe concentrar marca y producción."]);
+  grafico("c4", { type: "bar", data: { labels: pond.map(x => CAT[x.c]), datasets: [{ label: "USD por par", data: pond.map(x => x.p), backgroundColor: pond.map(x => x.c === "Formal cuero/cuero" ? "#E40140" : "#111"), borderRadius: 6 }] },
+    options: { plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ` ${num(c.raw, 1)} USD por par` } } }, scales: { x: sinGrid, y: { ...conGrid, ticks: { callback: v => v + " USD" } } } } });
+  const jit = i => ((i * 9301 + 49297) % 233280) / 233280 * 0.5 - 0.25;
+  grafico("c5", { type: "scatter", data: { datasets: [
+    { label: "Normal", data: R.filter(r => r.p <= lim).map((r, i) => ({ x: CATS.indexOf(r.c) + jit(i), y: r.p, r })), backgroundColor: "rgba(17,17,17,.35)", pointRadius: 3.5 },
+    { label: "Atípico", data: atip.map((r, i) => ({ x: CATS.indexOf(r.c) + jit(i + 7), y: r.p, r })), backgroundColor: "#E40140", pointRadius: 5 }] },
+    options: { scales: { x: { ...sinGrid, min: -0.6, max: 2.6, ticks: { stepSize: 1, callback: v => CAT[CATS[v]] ?? "" } }, y: { ...conGrid, ticks: { callback: v => v + " USD" } } },
+      plugins: { tooltip: { callbacks: { label: c => ` ${c.raw.r.s} · ${c.raw.r.a} · ${F[c.raw.r.f]}: ${num(c.raw.y, 1)} USD/par` } } } } });
+}
+
+function pSocios(el) {
+  const fl = filtro.f === "T" ? "I" : filtro.f, R = dat({ f: fl });
+  const g = {}; R.forEach(r => { const x = (g[r.s] ??= { s: r.s, v: 0, q: 0 }); x.v += r.v; x.q += r.q; });
+  const L = Object.values(g).sort((a, b) => b.v - a.v), V = suma(L, "v") || 1;
+  L.forEach(x => { x.sh = x.v / V * 100; x.p = x.v / x.q; });
+  const hhi = L.reduce((a, x) => a + x.sh ** 2, 0), top3 = L.slice(0, 3).reduce((a, x) => a + x.sh, 0);
+  const nivel = hhi < 1500 ? ["baja", "v"] : hhi < 2500 ? ["moderada", "a"] : ["alta", "r"];
+  el.innerHTML = cabecera(`Página 5 · Socios comerciales · ${F[fl]}`,
+    `Ningún país domina: los 3 primeros suman ${pct(top3)} y la concentración es ${nivel[0]}`,
+    `${fl === "I" ? "Países de los que España compra calzado" : "Países a los que España vende calzado"}. Elija "Exportación" arriba para ver los destinos. El índice HHI mide la concentración (menos de 1.500 es baja).`) +
+    `<div class="grid g4" style="margin-bottom:14px">${kpi("Socios en la selección", L.length)}${kpi("Los 3 primeros", pct(top3))}${kpi("Índice HHI", num(hhi, 0), `<span class="pill ${nivel[1]}">Concentración ${nivel[0]}</span>`)}${kpi("Más barato · más caro", `${num(Math.min(...L.map(x => x.p)), 0)}–${num(Math.max(...L.map(x => x.p)), 0)} USD`, "por par, según el país")}</div>
+    <div class="grid g11" style="margin-bottom:14px">
+      <div class="card"><h2>Los 10 socios con más dinero</h2><p class="n">Millones de USD</p><div class="lienzo alto"><canvas id="c6"></canvas></div></div>
+      <div class="card"><h2>¿Baratos o premium?</h2><p class="n">Cada burbuja es un país: más a la derecha = más dinero; más arriba = más caro por par</p><div class="lienzo alto"><canvas id="c7"></canvas></div></div>
+    </div>` + significa([
+      "Un mercado <b>poco concentrado</b> significa muchos competidores y proveedores: el precio por sí solo no diferencia.",
+      `Los socios de abajo en el gráfico de burbujas son los que venden barato (por ejemplo, ${L.slice().sort((a, b) => a.p - b.p)[0]?.s ?? "–"}): es contra ellos que Manaco no debe competir por precio.`,
+      fl === "E" ? "<b>Calidad del dato:</b> Indonesia y Vietnam figuran como destinos, cuando suelen ser proveedores; se trata como limitación." : "Los proveedores premium confirman que hay un mercado dispuesto a pagar más por calidad."]);
+  const top = L.slice(0, 10);
+  grafico("c6", { type: "bar", data: { labels: top.map(x => x.s), datasets: [{ label: "Millones USD", data: top.map(x => x.v / 1e6), backgroundColor: top.map((_, i) => i < 3 ? "#E40140" : "#111"), borderRadius: 4 }] },
+    options: { indexAxis: "y", plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ` ${num(c.raw, 0)} M USD · ${pct(top[c.dataIndex].sh)}` } } }, scales: { x: { ...conGrid, ticks: { callback: v => num(v) } }, y: sinGrid } } });
+  grafico("c7", { type: "bubble", data: { datasets: [{ label: "Países", data: L.map(x => ({ x: x.v / 1e6, y: x.p, r: 4 + Math.sqrt(x.sh) * 3, s: x.s })), backgroundColor: L.map(x => x.p > 35 ? "rgba(228,1,64,.6)" : "rgba(17,17,17,.35)") }] },
+    options: { plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ` ${c.raw.s}: ${num(c.raw.x, 0)} M USD · ${num(c.raw.y, 1)} USD/par` } } },
+      scales: { x: { ...conGrid, title: { display: true, text: "Millones de USD" } }, y: { ...conGrid, title: { display: true, text: "USD por par" } } } } });
+}
+
+function pCalidad(el) {
+  const anios = [...new Set(DATA.map(r => r.a))].sort(), n = anios.map(a => DATA.filter(r => r.a === a).length);
+  el.innerHTML = cabecera("Página 6 · Calidad de los datos",
+    "Antes de concluir: qué se limpió, qué se verificó y qué NO se puede afirmar",
+    "Un analista explica cómo preparó los datos y cuáles son sus límites. Esta página no cambia con los filtros.") +
+    `<div class="grid g4" style="margin-bottom:14px">${kpi("Registros originales", "240")}${kpi("Registros depurados", "230", "10 claves repetidas se sumaron", true)}${kpi("Valores faltantes", "0")}${kpi("Registros \"Mundo\"", "0", "sin riesgo de doble conteo")}</div>
+    <div class="grid g11" style="margin-bottom:14px">
+      <div class="card"><h2>Registros por año</h2><p class="n">La cantidad de registros cambia mucho: por eso no se calcula una tendencia</p><div class="lienzo"><canvas id="c8"></canvas></div></div>
+      <div class="card"><h2>Decisiones de limpieza y su impacto</h2>
+        <table><tr><th>Revisión</th><th>Hallazgo</th><th>Decisión</th></tr>
+          <tr><td>Claves repetidas</td><td>10 pares con valores distintos (11 % del valor)</td><td>Sumar <span class="pill v">sensibilidad: 4,6 %</span></td></tr>
+          <tr><td>Columnas de valor</td><td>Valor USD vs. miles × 1000: hasta 5 USD de diferencia</td><td>Redondeo, se ignora</td></tr>
+          <tr><td>Plausibilidad</td><td>Indonesia y Vietnam como destinos</td><td><span class="pill a">Limitación declarada</span></td></tr>
+          <tr><td>Cobertura</td><td>Solo España, valor en aduana</td><td>Referencia externa, no ventas de Manaco</td></tr>
+        </table><p class="nota">Sensibilidad: si en vez de sumar se toma el máximo, el total cambia 4,6 % y ninguna conclusión cambia.</p></div>
+    </div>` + significa([
+      "<b>Se puede afirmar:</b> qué categorías valen más por par, dónde presiona el importado y qué tan concentrado está el mercado.",
+      "<b>No se puede afirmar:</b> tendencias en el tiempo, ventas de Manaco ni precios al consumidor en Bolivia.",
+      "Por eso la propuesta incluye un sistema que <b>genere los datos internos</b> que hoy faltan."]);
+  grafico("c8", { type: "bar", data: { labels: anios, datasets: [{ label: "Registros", data: n, backgroundColor: "#111", borderRadius: 4 }] },
+    options: { plugins: { legend: { display: false } }, scales: { x: sinGrid, y: conGrid } } });
+}
+
+function pDecision(el) {
+  const R = DATA, fo = vpp(R.filter(r => r.c === "Formal cuero/cuero")), resto = vpp(R.filter(r => r.c !== "Formal cuero/cuero"));
+  const dI = suma(R.filter(r => r.c === "Deportivo" && r.f === "I"), "v"), dE = suma(R.filter(r => r.c === "Deportivo" && r.f === "E"), "v");
+  el.innerHTML = cabecera("Página 7 · Decisión",
+    "Recomendación: competir por calidad en cuero, no por precio, y decidir con datos propios",
+    "Del diagnóstico de mercado a la decisión de la Gerencia. Esta página resume la historia completa.") +
+    `<div class="grid g3" style="margin-bottom:14px">
+      ${kpi("Lo que muestran los datos", num(fo / resto, 1) + "×", `El formal de cuero vale ${num(fo, 0)} USD/par frente a ${num(resto, 0)}`, true)}
+      ${kpi("La amenaza", num(dI / dE, 1) + "×", "Deportivo: importación ÷ exportación")}
+      ${kpi("Lo que falta", "Datos internos", "Ventas, stock, costos y clientes de Manaco")}
+    </div>
+    <div class="grid g11">
+      <div class="card"><h2>Tres decisiones</h2>
+        <table><tr><th>Decisión</th><th>Cómo se mide</th></tr>
+          <tr><td><b>1.</b> Priorizar la línea de cuero (marca, vitrina, producción)</td><td>% de ventas en cuero: +15 % en 3 años</td></tr>
+          <tr><td><b>2.</b> No competir por precio en deportivo</td><td>Margen bruto por línea</td></tr>
+          <tr><td><b>3.</b> Implementar el sistema para generar datos internos</td><td>Exactitud de inventario ≥ 98 % en 12 meses</td></tr>
+        </table></div>
+      ${significa([
+        "El análisis externo dice <b>dónde</b> competir; el sistema propuesto dice <b>cómo</b> va Manaco en tiempo real.",
+        "Siguiente paso: <b>piloto de 3 meses en una tienda de La Paz</b>, midiendo faltantes, exactitud y ventas de cuero.",
+        `Con 6–12 meses de datos propios: pronóstico de demanda por modelo y tienda.`])}
+    </div>`;
+}
+
+/* ---------- Navegación ---------- */
+function ir(i) {
+  actual = Math.max(0, Math.min(PAGINAS.length - 1, i));
+  document.querySelectorAll(".paginas button").forEach((b, k) => { b.classList.toggle("on", k === actual); b.setAttribute("aria-current", k === actual ? "page" : "false"); });
+  document.querySelectorAll(".pagina").forEach((p, k) => p.classList.toggle("on", k === actual));
+  history.replaceState(null, "", "#" + PAGINAS[actual].id);
+  $("#ant").disabled = actual === 0; $("#sig").textContent = actual === PAGINAS.length - 1 ? "Volver al inicio ↺" : "Siguiente →";
+  refrescar(); window.scrollTo({ top: 0 });
+}
+function refrescar() { pintarSegmentadores(); const p = PAGINAS[actual]; p.render(document.getElementById("p-" + p.id)); }
+async function iniciar() {
+  DATA = await (await fetch("mercado.json")).json();
+  $("#nav").innerHTML = PAGINAS.map((p, i) => `<li><button onclick="ir(${i})">${p.nav}</button></li>`).join("");
+  $("#paginas").innerHTML = PAGINAS.map(p => `<section class="pagina" id="p-${p.id}" aria-label="${p.nav}"></section>`).join("");
+  $("#ant").onclick = () => ir(actual - 1); $("#sig").onclick = () => ir(actual === PAGINAS.length - 1 ? 0 : actual + 1);
+  document.addEventListener("keydown", e => { if (e.key === "ArrowRight") ir(actual + 1); if (e.key === "ArrowLeft") ir(actual - 1); });
+  const i = PAGINAS.findIndex(p => "#" + p.id === location.hash); ir(i < 0 ? 0 : i);
+}
+iniciar();
+</script>
+</body>
+</html>
