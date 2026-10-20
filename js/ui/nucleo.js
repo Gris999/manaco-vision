@@ -119,6 +119,7 @@ function ver(v){
   if(!VISTAS.some(x=>x[0]===v)) v=vistasRol()[0];
   if(!vistasRol().includes(v)){toast(`Esa pantalla es del ${duenoVista(v)}. Toca "${ROLES[rol].nombre}" arriba para cambiar de rol.`); return;}
   vista=v; history.replaceState(null,"","#"+v);
+  if(Sync.activo) Sync.sincronizar(); // al cambiar de pantalla trae lo último del servidor (pide solo si hubo cambios)
   $$("[data-v]").forEach(b=>{b.classList.toggle("on",b.dataset.v===v); b.setAttribute("aria-current",b.dataset.v===v?"page":"false");});
   $$(".vista").forEach(s=>s.classList.toggle("hidden",s.id!=="v-"+v));
   if(v!=="escaner"&&stream) cerrarCam();
