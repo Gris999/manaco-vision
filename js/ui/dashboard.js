@@ -18,6 +18,10 @@ function renderDash(){
   const W30=D.ventana(30,D.sumarDias(hoy(),-1)), pares30=vivas.filter(v=>D.enRango(v.fecha,W30.desde,W30.hasta)&&deT(v)).reduce((a,v)=>a+v.cant,0);
   const cob=D.cobertura(stockScope,pares30,30), valInv=INV.valor;
   const tasaMerma=R.neto?K.mermaCosto/R.neto*100:0;
+  /* Objetivo SMART 2 del informe: pares sin venta en 90 días ÷ stock total (inventario inmovilizado) */
+  const W90=D.ventana(90,hoy()), vend90=new Set(vivas.filter(v=>D.enRango(v.fecha,W90.desde,W90.hasta)&&deT(v)).map(v=>v.id+"|"+v.tienda));
+  let sinVenta=0; CAT.forEach(c=>tiendasScope.forEach(t=>{if(!vend90.has(c.id+"|"+t)) sinVenta+=S.stock[c.id][t];}));
+  const pctSinVenta=stockScope?sinVenta/stockScope*100:0;
 
   $("#hero").innerHTML=`<div class="absolute -right-16 -bottom-24 w-72 h-72 rounded-full bg-white/10"></div><div class="absolute right-24 -top-20 w-40 h-40 rounded-full bg-white/10"></div>
     <div class="relative">
@@ -36,6 +40,7 @@ function renderDash(){
     ["Ventas",bs(R.bruto),tend!=null?`${flecha(tend)} ${Math.abs(tend).toFixed(0)}% respecto a ${antPer}.`:"El día está en curso: compáralo al cerrar.",tend==null?["En curso","text-mute","bg-[#CACACB]"]:est(tend>=0,tend>-10),null],
     ["¿El inventario cuadra?",K.exactitud==null?"—":K.exactitud.toFixed(0)+"%",K.exactitud==null?"Aún no hay conteos en este periodo.":`De cada 100 modelos contados, ${K.exactitud.toFixed(0)} coinciden con el sistema. Meta: 98.`,K.exactitud==null?["Sin datos","text-mute","bg-[#CACACB]"]:est(K.exactitud>=98,K.exactitud>=90),K.exactitud],
     ["Merma de inventario",bs(K.mermaCosto),K.faltantes?`${K.faltantes} pares faltantes, valorizados a costo (${tasaMerma.toFixed(2).replace(".",",")} % de la venta neta).`:"No faltó nada en los conteos.",est(tasaMerma<=0.5,tasaMerma<=1.5),null],
+    ["Sin venta en 90 días",pctSinVenta.toFixed(0)+"%",`${sinVenta.toLocaleString("es-BO")} de ${stockScope.toLocaleString("es-BO")} pares en stock no se vendieron en 90 días (inventario inmovilizado). Meta: bajarlo un 20 %.`,est(pctSinVenta<=20,pctSinVenta<=35),null],
     ["Por reponer",bajos.length+(bajos.length===1?" modelo":" modelos"),`Con menos de ${BAJO} pares en alguna tienda. Cobertura general: ${isFinite(cob)?Math.round(cob)+" días":"—"}.`,est(bajos.length===0,bajos.length<=15),null],
   ];
   const filasCat=Object.keys(NOMC).map(k=>{const r=D.resumenVentas(V.filter(v=>modelo(v.id)?.categoria===k)); return [NOMC[k],r];});
@@ -56,7 +61,7 @@ function renderDash(){
         <div class="flex justify-between"><span>= Margen de contribución</span><b>${bs(R.contribucion)} (${R.margenContribucion.toFixed(1).replace(".",",")}%)</b></div>
       </div></details>
     <div class="space-y-3">${filasCat.map(([n,r])=>`<div><div class="flex justify-between text-sm"><span class="font-semibold">${n}</span><span class="tabular-nums"><b>${bs(r.utilidad)}</b> <span class="text-mute">· margen ${r.margenBruto.toFixed(0)}%</span></span></div><div class="barra mt-1.5"><i class="bg-ok" style="width:${Math.max(0,r.utilidad)/maxG*100}%"></i></div></div>`).join("")}</div>
-    <p class="text-xs text-mute mt-4">Es la utilidad <b>antes</b> de sueldos, alquiler, servicios y otros gastos de operación (no es la ganancia final). Costos simulados. El formal de cuero tiene el mayor margen por par: refuerza la estrategia "competir en cuero".</p>`;
+    <p class="text-xs text-mute mt-4">Es la utilidad <b>antes</b> de sueldos, alquiler, servicios y otros gastos de operación (no es la ganancia final). Costos simulados. Con estos costos simulados, el formal de cuero tiene el mayor margen por par: es la hipótesis a validar en el piloto.</p>`;
   const estadoHoy=TIENDAS.map(t=>{const c=cajaHoy(t); return [t,!c?["Sin abrir","bg-suave text-mute"]:c.abierta?["Abierta","bg-ok-50 text-ok"]:[(c.dif? "Cerrada · dif. "+bsc(c.dif):"Cerrada · cuadra"),c.dif?"bg-marca-50 text-marca":"bg-ok-50 text-ok"]];});
   const ult=Object.values(S.cajas).filter(c=>!c.abierta&&enW(c.fecha)&&deT(c));
   const conDif=ult.filter(c=>c.dif), faltCaja=D.redondear(conDif.filter(c=>c.dif<0).reduce((a,c)=>a-c.dif,0)), sobraCaja=D.redondear(conDif.filter(c=>c.dif>0).reduce((a,c)=>a+c.dif,0));
@@ -78,7 +83,7 @@ function renderDash(){
   bajos.slice(0,3).forEach(([c,t,n])=>acc.push({txt:`Reponer <b>${corto(c)}</b> en ${esc(t.split(" - ")[0])}`,sub:`${n===1?"Queda 1 par":"Quedan "+n+" pares"}`,...(pedidoPendiente(c.id,t)?{btn:"Pedido ✓",off:true}:{btn:"Pedir",fn:`pedirReposicion('${c.id}','${t}',this)`})}));
   if(peorT) acc.push({txt:`Revisar faltantes en <b>${esc(peorT[0].split(" - ")[0])}</b>`,sub:`${peorT[1]} pares no aparecieron al contar`,btn:rol==="gerente"?"Avisar":"Ir",fn:rol==="gerente"?`toast('📨 Aviso enviado al Encargado de ${peorT[0].split(" - ")[0]}: revisar ${peorT[1]} pares faltantes')`:`ver('cierre')`});
   if(orden[0]) acc.push({txt:`Asegurar stock de <b>${corto(modelo(orden[0][0]))}</b>`,sub:`Es el más vendido: ${orden[0][1].p} pares`,btn:"Ver",fn:`ver('inventario');$('#buscar').value=${JSON.stringify(modelo(orden[0][0]).nombre.split(" - ")[0])};renderInv()`});
-  acc.push({txt:`Impulsar la <b>línea de cuero</b>`,sub:`Mayor margen y vale casi el doble por par en el mercado`,btn:"Ver",fn:`ver('mercado')`});
+  acc.push({txt:`Probar la línea <b>formal de cuero</b>`,sub:`En la base externa vale casi el doble por par (hipótesis a validar)`,btn:"Ver",fn:`ver('mercado')`});
   $("#acciones").innerHTML=acc.slice(0,5).map((a,i)=>`<li class="flex gap-3 items-center rounded-2xl border border-linea p-3"><span class="w-7 h-7 shrink-0 rounded-full bg-tinta text-white grid place-items-center text-xs font-bold">${i+1}</span>
     <div class="flex-1 min-w-0"><div class="text-sm leading-snug">${a.txt}</div><div class="text-xs text-mute">${a.sub}</div></div><button class="btn btn-s !min-h-0 !py-1.5 !px-3.5 text-xs shrink-0" ${a.off?"disabled":`onclick="${esc(a.fn)}"`}>${a.btn}</button></li>`).join("");
 
